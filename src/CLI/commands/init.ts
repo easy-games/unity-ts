@@ -203,8 +203,8 @@ async function init(argv: yargs.Arguments<InitOptions>, initMode: InitMode) {
 		await cmd(selectedPackageManager.init);
 		const pkgJson = await fs.readJson(paths.packageJson);
 		pkgJson.scripts = {
-			build: "rbxtsc",
-			watch: "rbxtsc -w",
+			build: "utsc",
+			watch: "utsc -w",
 		};
 		if (template === InitMode.Package) {
 			pkgJson.name = RBXTS_SCOPE + "/" + pkgJson.name;
