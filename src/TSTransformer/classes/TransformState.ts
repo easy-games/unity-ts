@@ -208,16 +208,23 @@ export class TransformState {
 				let expression: luau.IndexableExpression = createGetService(serviceName);
 				// iterate through the rest of the path
 				// for each instance in the path, create a new WaitForChild call to be added on to the end of the final expression
+				let stringPath = "";
 				for (let i = 1; i < this.runtimeLibRbxPath.length; i++) {
-					expression = luau.create(luau.SyntaxKind.MethodCallExpression, {
-						expression,
-						name: "WaitForChild",
-						args: luau.list.make(luau.string(this.runtimeLibRbxPath[i])),
-					});
+					// expression = luau.create(luau.SyntaxKind.MethodCallExpression, {
+					// 	expression,
+					// 	name: "WaitForChild",
+					// 	args: luau.list.make(luau.string(this.runtimeLibRbxPath[i])),
+					// });
+					stringPath += this.runtimeLibRbxPath[i];
+					if (i + 1 < this.runtimeLibRbxPath.length) {
+						stringPath += "/";
+					}
 				}
 
+				const stringExpression: luau.StringLiteral = luau.string(stringPath);
+
 				// nest the chain of `WaitForChild`s inside a require call
-				expression = luau.call(luau.globals.require, [expression]);
+				expression = luau.call(luau.globals.require, [stringExpression]);
 
 				// create a variable declaration for this call
 				return luau.create(luau.SyntaxKind.VariableDeclaration, {
