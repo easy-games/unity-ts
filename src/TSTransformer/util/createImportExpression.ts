@@ -1,5 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
-import { FileRelation, NetworkType, RbxPath, RbxPathParent, RbxType, RojoResolver } from "@roblox-ts/rojo-resolver";
+import { NetworkType, RbxPath, RbxPathParent, RbxType, RojoResolver } from "@roblox-ts/rojo-resolver";
 import path from "path";
 import { NODE_MODULES, PARENT_FIELD, ProjectType } from "Shared/constants";
 import { errors } from "Shared/diagnostics";
@@ -7,7 +7,6 @@ import { assert } from "Shared/util/assert";
 import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
 import ts from "typescript";
@@ -16,10 +15,17 @@ function getAbsoluteImport(moduleRbxPath: RbxPath) {
 	const pathExpressions = new Array<luau.Expression>();
 	const serviceName = moduleRbxPath[0];
 	assert(serviceName);
-	pathExpressions.push(createGetService(serviceName));
-	for (let i = 1; i < moduleRbxPath.length; i++) {
-		pathExpressions.push(luau.string(moduleRbxPath[i]));
+	console.log("PATH:", moduleRbxPath);
+
+	let stringPath = "";
+	for (let i = 0; i < moduleRbxPath.length; i++) {
+		stringPath += moduleRbxPath[i];
+		if (i + 1 < moduleRbxPath.length) {
+			stringPath += "/";
+		}
 	}
+
+	pathExpressions.push(luau.string(stringPath));
 	return pathExpressions;
 }
 
@@ -164,15 +170,16 @@ function getImportParts(
 			return [];
 		}
 
-		const fileRelation = state.rojoResolver.getFileRelation(sourceRbxPath, moduleRbxPath);
-		if (fileRelation === FileRelation.OutToOut || fileRelation === FileRelation.InToOut) {
-			return getAbsoluteImport(moduleRbxPath);
-		} else if (fileRelation === FileRelation.InToIn) {
-			return getRelativeImport(sourceRbxPath, moduleRbxPath);
-		} else {
-			DiagnosticService.addDiagnostic(errors.noIsolatedImport(moduleSpecifier));
-			return [];
-		}
+		return getAbsoluteImport(moduleRbxPath);
+		// const fileRelation = state.rojoResolver.getFileRelation(sourceRbxPath, moduleRbxPath);
+		// if (fileRelation === FileRelation.OutToOut || fileRelation === FileRelation.InToOut) {
+		// 	return getAbsoluteImport(moduleRbxPath);
+		// } else if (fileRelation === FileRelation.InToIn) {
+		// 	return getRelativeImport(sourceRbxPath, moduleRbxPath);
+		// } else {
+		// 	DiagnosticService.addDiagnostic(errors.noIsolatedImport(moduleSpecifier));
+		// 	return [];
+		// }
 	} else {
 		return getRelativeImport(sourceRbxPath, moduleRbxPath);
 	}
@@ -200,7 +207,6 @@ export function createImportExpression(
 		: state.pathTranslator.getImportPath(virtualPath);
 
 	const parts = new Array<luau.Expression>();
-	parts.push(luau.globals.script);
 
 	if (isInsideNodeModules) {
 		parts.push(...getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath));
@@ -215,5 +221,5 @@ export function createImportExpression(
 		parts.push(...getImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath));
 	}
 
-	return luau.call(state.TS(moduleSpecifier.parent, "import"), parts);
+	return luau.call(luau.globals.require, parts);
 }
