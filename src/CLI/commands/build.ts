@@ -111,7 +111,8 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 
 	handler: async argv => {
 		try {
-			const tsConfigPath = findTsConfigPath(argv.project);
+			// const tsConfigPath = findTsConfigPath(argv.project);
+			const tsConfigPath = findTsConfigPath(".");
 
 			// parse the contents of the retrieved JSON path as a partial `ProjectOptions`
 			const projectOptions: ProjectOptions = Object.assign(
