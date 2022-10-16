@@ -9,7 +9,7 @@
 		"strictNullChecks": true,
 		"esModuleInterop": true,
 		"removeComments": true,
-		"forceConsistentCasingInFileNames": true,
+		"forceConsistentCasingInFileNames": false,
 		"composite": true,
 		"sourceMap": true,
 		"outDir": "out",
