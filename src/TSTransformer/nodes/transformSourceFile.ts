@@ -211,7 +211,7 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 	}
 
 	// add build information to the tree
-	luau.list.unshift(statements, luau.comment(`Compiled with roblox-ts v${COMPILER_VERSION}`));
+	luau.list.unshift(statements, luau.comment(`Compiled with unity-ts v${COMPILER_VERSION}`));
 
 	return statements;
 }
