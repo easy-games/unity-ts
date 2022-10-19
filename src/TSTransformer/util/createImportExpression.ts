@@ -15,7 +15,6 @@ function getAbsoluteImport(moduleRbxPath: RbxPath) {
 	const pathExpressions = new Array<luau.Expression>();
 	const serviceName = moduleRbxPath[0];
 	assert(serviceName);
-	console.log("PATH:", moduleRbxPath);
 
 	let stringPath = "";
 	for (let i = 0; i < moduleRbxPath.length; i++) {
@@ -211,6 +210,11 @@ export function createImportExpression(
 	if (isInsideNodeModules) {
 		parts.push(...getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath));
 	} else {
+		if (moduleOutPath.includes("/TS/types/")) {
+			console.log("skipping types import.");
+			// return luau.none();
+		}
+
 		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
 		if (!moduleRbxPath) {
 			DiagnosticService.addDiagnostic(

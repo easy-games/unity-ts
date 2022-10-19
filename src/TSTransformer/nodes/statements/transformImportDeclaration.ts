@@ -49,6 +49,10 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 	);
 
 	if (importClause) {
+		if (node.moduleSpecifier.text === "types/generated") {
+			return luau.list.make<luau.Statement>();
+		}
+
 		// detect if we need to push to a new var or not
 		const uses = countImportExpUses(state, importClause);
 		if (uses > 1) {

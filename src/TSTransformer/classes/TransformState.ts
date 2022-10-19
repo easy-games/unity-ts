@@ -234,6 +234,7 @@ export class TransformState {
 			} else {
 				const sourceOutPath = this.pathTranslator.getOutputPath(sourceFile.fileName);
 				const rbxPath = this.rojoResolver.getRbxPathFromFilePath(sourceOutPath);
+				console.log("runtime path: " + sourceOutPath);
 				if (!rbxPath) {
 					DiagnosticService.addDiagnostic(
 						errors.noRojoData(sourceFile, path.relative(this.data.projectPath, sourceOutPath), false),
