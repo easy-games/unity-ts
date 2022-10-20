@@ -11,7 +11,7 @@ import { createProjectProgram } from "Project/functions/createProjectProgram";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { setupProjectWatchProgram } from "Project/functions/setupProjectWatchProgram";
 import { LogService } from "Shared/classes/LogService";
-import { DEFAULT_PROJECT_OPTIONS, ProjectType } from "Shared/constants";
+import { DEFAULT_PROJECT_OPTIONS } from "Shared/constants";
 import { LoggableError } from "Shared/errors/LoggableError";
 import { ProjectOptions } from "Shared/types";
 import { getRootDirs } from "Shared/util/getRootDirs";
@@ -52,65 +52,75 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 
 	describe: "Build a project",
 
-	builder: () =>
-		yargs
-			.option("project", {
-				alias: "p",
-				string: true,
-				default: ".",
-				describe: "project path",
-			})
-			// DO NOT PROVIDE DEFAULTS BELOW HERE, USE DEFAULT_PROJECT_OPTIONS
-			.option("watch", {
-				alias: "w",
-				boolean: true,
-				describe: "enable watch mode",
-			})
-			.option("usePolling", {
-				implies: "watch",
-				boolean: true,
-				describe: "use polling for watch mode",
-			})
-			.option("verbose", {
-				boolean: true,
-				describe: "enable verbose logs",
-			})
-			.option("noInclude", {
-				boolean: true,
-				describe: "do not copy include files",
-			})
-			.option("logTruthyChanges", {
-				boolean: true,
-				describe: "logs changes to truthiness evaluation from Lua truthiness rules",
-			})
-			.option("writeOnlyChanged", {
-				boolean: true,
-				hidden: true,
-			})
-			.option("optimizedLoops", {
-				boolean: true,
-				hidden: true,
-			})
-			.option("type", {
-				choices: [ProjectType.Game, ProjectType.Model, ProjectType.Package] as const,
-				describe: "override project type",
-			})
-			.option("includePath", {
-				alias: "i",
-				string: true,
-				describe: "folder to copy runtime files to",
-			})
-			.option("rojo", {
-				string: true,
-				describe: "manually select Rojo project file",
-			})
-			.option("allowCommentDirectives", {
-				boolean: true,
-				hidden: true,
-			}),
+	builder: {
+		project: {
+			alias: "p",
+			string: true,
+			default: ".",
+			describe: "project path",
+		},
+	},
+
+	// builder: () =>
+	// 	yargs
+	// 		.option("project", {
+	// 			alias: "p",
+	// 			string: true,
+	// 			default: ".",
+	// 			describe: "project path",
+	// 		})
+	// 		// DO NOT PROVIDE DEFAULTS BELOW HERE, USE DEFAULT_PROJECT_OPTIONS
+	// 		.option("watch", {
+	// 			alias: "w",
+	// 			boolean: true,
+	// 			describe: "enable watch mode",
+	// 		})
+	// 		.option("usePolling", {
+	// 			implies: "watch",
+	// 			boolean: true,
+	// 			describe: "use polling for watch mode",
+	// 		})
+	// 		.option("verbose", {
+	// 			boolean: true,
+	// 			describe: "enable verbose logs",
+	// 		})
+	// 		.option("noInclude", {
+	// 			boolean: true,
+	// 			describe: "do not copy include files",
+	// 		})
+	// 		.option("logTruthyChanges", {
+	// 			boolean: true,
+	// 			describe: "logs changes to truthiness evaluation from Lua truthiness rules",
+	// 		})
+	// 		.option("writeOnlyChanged", {
+	// 			boolean: true,
+	// 			hidden: true,
+	// 		})
+	// 		.option("optimizedLoops", {
+	// 			boolean: true,
+	// 			hidden: true,
+	// 		})
+	// 		.option("type", {
+	// 			choices: [ProjectType.Game, ProjectType.Model, ProjectType.Package] as const,
+	// 			describe: "override project type",
+	// 		})
+	// 		.option("includePath", {
+	// 			alias: "i",
+	// 			string: true,
+	// 			describe: "folder to copy runtime files to",
+	// 		})
+	// 		.option("rojo", {
+	// 			string: true,
+	// 			describe: "manually select Rojo project file",
+	// 		})
+	// 		.option("allowCommentDirectives", {
+	// 			boolean: true,
+	// 			hidden: true,
+	// 		}),
 
 	handler: async argv => {
 		try {
+			console.log("PATH: " + argv.project);
 			const tsConfigPath = findTsConfigPath(argv.project);
 			// const tsConfigPath = findTsConfigPath(".");
 

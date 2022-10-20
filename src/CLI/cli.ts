@@ -25,13 +25,13 @@ yargs
 	.wrap(yargs.terminalWidth())
 
 	// execute
-	.fail(str => {
-		process.exitCode = 1;
-		if (str) {
-			// eslint-disable-next-line no-console
-			console.log(str);
-		}
-	})
+	// .fail((str) => {
+	// 	process.exitCode = 1;
+	// 	if (str) {
+	// 		// eslint-disable-next-line no-console
+	// 		console.log(str);
+	// 	}
+	// })
 	.parseAsync()
 	.catch(e => {
 		if (e instanceof CLIError) {

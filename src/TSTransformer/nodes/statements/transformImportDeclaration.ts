@@ -48,7 +48,9 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 		createImportExpression(state, node.getSourceFile(), node.moduleSpecifier),
 	);
 
+	const sourceFile = node.getSourceFile();
 	if (importClause) {
+		// TODO: How can we determine if this is a .d.ts file and ignore it?
 		if (node.moduleSpecifier.text === "types/generated") {
 			return luau.list.make<luau.Statement>();
 		}
