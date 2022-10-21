@@ -2,8 +2,7 @@
 	"extends": "../../tsconfig-base.json",
 	"compilerOptions": {
 		"outDir": "../../out/CLI",
-		"rootDir": ".",
-		"sourceMap": true
+		"rootDir": "."
 	},
 	"references": [{ "path": "../Shared" }, { "path": "../Project" }]
 }
