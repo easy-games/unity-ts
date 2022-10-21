@@ -4,7 +4,8 @@
 		"composite": true,
 		"baseUrl": "src",
 		"outDir": "out",
-		"forceConsistentCasingInFileNames": false
+		"forceConsistentCasingInFileNames": false,
+		"sourceMap": true
 	},
 	"references": [
 		{ "path": "./src/Shared" },
