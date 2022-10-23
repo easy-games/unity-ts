@@ -23,4 +23,5 @@ jobs:
           echo $(cat package.json | jq ".version |= . + \"-dev-$(git rev-parse --short HEAD)\"") > package.json
           npm publish --tag next
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # We use EASY_AUTH_TOKEN because that's what's in the .npmrc
+          EASY_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
