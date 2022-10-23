@@ -19,6 +19,10 @@
 		"test-run": "run-in-roblox --place ./tests/test.rbxlx --script ./tests/out/main.server.lua",
 		"test-build": "npm run build && node ./out/CLI/cli.js build --project ../../easy/luauPlugin/LuauUnityProject/Typescript/"
 	},
+	"repository": {
+        "type": "git",
+        "url": "git+https://github.com/easy-games/unity-ts.git"
+    },
 	"nyc": {
 		"all": true,
 		"reporter": [
