@@ -6,7 +6,7 @@
 	"bin": {
 		"utsc": "out/CLI/cli.js"
 	},
-	"types": "include/unity-ts.d.ts",
+	"types": "out/Types/index.d.ts",
 	"scripts": {
 		"prepublishOnly": "npm run build",
 		"build": "ttsc -b",
