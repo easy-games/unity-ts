@@ -12,5 +12,6 @@
 		{ "path": "./src/CLI" },
 		{ "path": "./src/Project" },
 		{ "path": "./src/TSTransformer" }
-	]
+	],
+	"include": ["src/Types/unity-ts.d.ts"]
 }
