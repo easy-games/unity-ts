@@ -75,6 +75,7 @@ function getGlobalSymbolByNameOrThrow(typeChecker: ts.TypeChecker, name: string,
 	if (symbol) {
 		return symbol;
 	}
+	// debugger;
 	throw new ProjectError(`MacroManager could not find symbol for ${name}` + TYPES_NOTICE);
 }
 
@@ -148,6 +149,7 @@ export class MacroManager {
 			if (symbol) {
 				this.symbols.set(symbolName, symbol);
 			} else {
+				debugger;
 				throw new ProjectError(`MacroManager could not find symbol for ${symbolName}` + TYPES_NOTICE);
 			}
 		}

@@ -9,7 +9,7 @@ export const INCLUDE_PATH = path.join(PACKAGE_ROOT, "include");
 export const COMPILER_VERSION: string = require("../../package.json").version;
 
 export const NODE_MODULES = "node_modules";
-export const RBXTS_SCOPE = "@rbxts";
+export const RBXTS_SCOPE = "@easy-games";
 
 export const TS_EXT = ".ts";
 export const TSX_EXT = ".tsx";
