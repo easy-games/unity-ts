@@ -1,6 +1,6 @@
 {
 	"name": "@easy-games/unity-ts",
-	"version": "2.1",
+	"version": "2.1.0",
 	"description": "A TypeScript-to-Luau Compiler for Unity",
 	"main": "out/CLI/index.js",
 	"bin": {
