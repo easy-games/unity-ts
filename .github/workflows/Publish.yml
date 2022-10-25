@@ -1,29 +1,29 @@
 name: Publish
 
 on:
-  workflow_dispatch:
-  schedule:
-    - cron: '0 7 * * *'
-  push:
-    branches: [ main ]
+    workflow_dispatch:
+    schedule:
+        - cron: "0 7 * * *"
+    push:
+        branches: [main]
 
 jobs:
-  publish:
-    runs-on: ubuntu-latest
+    publish:
+        runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2.3.4
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v2.3.4
 
-      - name: Install NPM dependencies
-        uses: bahmutov/npm-install@v1.7.4
+            - name: Install NPM dependencies
+              uses: bahmutov/npm-install@v1.7.4
 
-      - name: Publish
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "noreply@github.com"
-          echo $(cat package.json | jq ".version |= . + \"-dev-$(git rev-parse --short HEAD)\"") > package.json
-          npm publish --tag next
-        env:
-          # We use EASY_AUTH_TOKEN because that's what's in the .npmrc
-          EASY_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+            - name: Publish
+              run: |
+                  git config user.name "GitHub Actions"
+                  git config user.email "noreply@github.com"
+                  npm --no-git-tag-version version $(cat package.json | sed -n '/"version": "*/ { s///; s/".*//; p; q; }')-${{github.run_number}}
+                  npm publish
+              env:
+                  # We use EASY_AUTH_TOKEN because that's what's in the .npmrc
+                  EASY_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
