@@ -209,7 +209,7 @@ export class TransformState {
 				// iterate through the rest of the path
 				// for each instance in the path, create a new WaitForChild call to be added on to the end of the final expression
 				let stringPath = "";
-				for (let i = 1; i < this.runtimeLibRbxPath.length; i++) {
+				for (let i = 0; i < this.runtimeLibRbxPath.length; i++) {
 					// expression = luau.create(luau.SyntaxKind.MethodCallExpression, {
 					// 	expression,
 					// 	name: "WaitForChild",

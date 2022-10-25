@@ -221,7 +221,7 @@ local Promise = {
 	Error = Error,
 	Status = makeEnum("Promise.Status", { "Started", "Resolved", "Rejected", "Cancelled" }),
 	_getTime = os.clock,
-	_timeEvent = game:GetService("RunService").Heartbeat,
+	-- _timeEvent = game:GetService("RunService").Heartbeat,
 	_unhandledRejectionCallbacks = {},
 }
 Promise.prototype = {}
@@ -1802,7 +1802,8 @@ function Promise.prototype:_reject(...)
 		local err = tostring((...))
 
 		coroutine.wrap(function()
-			Promise._timeEvent:Wait()
+			-- Promise._timeEvent:Wait()
+			wait()
 
 			-- Someone observed the error, hooray!
 			if not self._unhandledRejection then

@@ -1,6 +1,4 @@
-local Promise = require(script.Parent.Promise)
-
-local RunService = game:GetService("RunService")
+local Promise = require("Scripts/TS/include/Promise")
 
 local OUTPUT_PREFIX = "roblox-ts: "
 local NODE_MODULES = "node_modules"
@@ -9,10 +7,6 @@ local DEFAULT_SCOPE = "@rbxts"
 local TS = {}
 
 TS.Promise = Promise
-
-local function isPlugin(context)
-	return RunService:IsStudio() and context:FindFirstAncestorWhichIsA("Plugin") ~= nil
-end
 
 function TS.getModule(context, scope, moduleName)
 	-- legacy call signature
