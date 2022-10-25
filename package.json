@@ -21,9 +21,9 @@
 		"test-build": "npm run build && node ./out/CLI/cli.js build --project ../luauPlugin/LuauUnityProject/Typescript/ --verbose"
 	},
 	"repository": {
-        "type": "git",
-        "url": "git+https://github.com/easy-games/unity-ts.git"
-    },
+		"type": "git",
+		"url": "git+https://github.com/easy-games/unity-ts.git"
+	},
 	"nyc": {
 		"all": true,
 		"reporter": [
@@ -55,6 +55,7 @@
 		"@roblox-ts/rojo-resolver": "^1.0.3",
 		"ajv": "^8.6.3",
 		"chokidar": "^3.5.3",
+		"copyfiles": "^2.4.1",
 		"fs-extra": "^10.1.0",
 		"kleur": "^4.1.5",
 		"lookpath": "^1.2.2",
@@ -64,6 +65,7 @@
 		"yargs": "^17.5.1"
 	},
 	"devDependencies": {
+		"@types/copyfiles": "^2.4.1",
 		"@types/fs-extra": "^9.0.13",
 		"@types/mocha": "^10.0.0",
 		"@types/node": "^18.7.16",

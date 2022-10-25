@@ -4,7 +4,7 @@ import path from "path";
 import { cleanup } from "Project/functions/cleanup";
 import { compileFiles } from "Project/functions/compileFiles";
 import { copyFiles } from "Project/functions/copyFiles";
-import { copyInclude } from "Project/functions/copyInclude";
+import { copyInclude, copyNodeModules } from "Project/functions/copyInclude";
 import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProjectData } from "Project/functions/createProjectData";
 import { createProjectProgram } from "Project/functions/createProjectProgram";
@@ -154,6 +154,7 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 				const pathTranslator = createPathTranslator(program);
 				cleanup(pathTranslator);
 				copyInclude(data);
+				await copyNodeModules(data);
 				copyFiles(data, pathTranslator, new Set(getRootDirs(program.getCompilerOptions())));
 				const emitResult = compileFiles(
 					program.getProgram(),
