@@ -18,7 +18,7 @@
 		"test-compile": "nyc mocha --timeout 0 --recursive out/CLI/test.js",
 		"test-rojo": "rojo build tests -o ./tests/test.rbxlx",
 		"test-run": "run-in-roblox --place ./tests/test.rbxlx --script ./tests/out/main.server.lua",
-		"test-build": "npm run build && node ./out/CLI/cli.js build --project ../../easy/luauPlugin/LuauUnityProject/Typescript/"
+		"test-build": "npm run build && node ./out/CLI/cli.js build --project ../luauPlugin/LuauUnityProject/Typescript/ --verbose"
 	},
 	"repository": {
         "type": "git",

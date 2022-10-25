@@ -104,6 +104,7 @@ export function compileFiles(
 	if (projectType !== ProjectType.Package) {
 		runtimeLibRbxPath = rojoResolver.getRbxPathFromFilePath(path.join(data.includePath, "RuntimeLib.lua"));
 		if (!runtimeLibRbxPath) {
+			debugger;
 			return emitResultFailure("Rojo project contained no data for include folder!");
 		} else if (rojoResolver.getNetworkType(runtimeLibRbxPath) !== NetworkType.Unknown) {
 			return emitResultFailure("Runtime library cannot be in a server-only or client-only container!");

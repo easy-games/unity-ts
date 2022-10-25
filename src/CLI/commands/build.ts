@@ -23,7 +23,8 @@ function getTsConfigProjectOptions(tsConfigPath?: string): Partial<ProjectOption
 	if (tsConfigPath !== undefined) {
 		const rawJson = ts.sys.readFile(tsConfigPath);
 		if (rawJson !== undefined) {
-			return ts.parseConfigFileTextToJson(tsConfigPath, rawJson).config.rbxts;
+			const t = ts.parseConfigFileTextToJson(tsConfigPath, rawJson).config.rbxts;
+			return t;
 		}
 	}
 }
@@ -58,6 +59,15 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 			string: true,
 			default: ".",
 			describe: "project path",
+		},
+		verbose: {
+			boolean: true,
+			describe: "enable verbose logs",
+		},
+		watch: {
+			alias: "w",
+			boolean: true,
+			describe: "enable watch mode",
 		},
 	},
 

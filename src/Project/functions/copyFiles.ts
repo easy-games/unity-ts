@@ -7,6 +7,7 @@ export function copyFiles(data: ProjectData, pathTranslator: PathTranslator, sou
 	benchmarkIfVerbose("copy non-compiled files", () => {
 		for (const source of sources) {
 			copyItem(data, pathTranslator, source);
+			console.log("copied file: " + source);
 		}
 	});
 }

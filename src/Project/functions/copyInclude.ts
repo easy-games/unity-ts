@@ -9,8 +9,10 @@ export function copyInclude(data: ProjectData) {
 		data.projectOptions.type !== ProjectType.Package &&
 		!(data.projectOptions.type === undefined && data.isPackage)
 	) {
-		benchmarkIfVerbose("copy include files", () =>
-			fs.copySync(INCLUDE_PATH, data.includePath, { dereference: true }),
-		);
+		benchmarkIfVerbose("copy include files", () => {
+			fs.copySync(INCLUDE_PATH, data.includePath, { dereference: true });
+			console.log("INCLUDE_PATH: " + INCLUDE_PATH);
+			var files = fs.readdirSync(INCLUDE_PATH);
+		});
 	}
 }

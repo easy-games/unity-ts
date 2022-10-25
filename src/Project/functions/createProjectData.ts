@@ -50,7 +50,7 @@ export function createProjectData(tsConfigPath: string, projectOptions: ProjectO
 	const optimizedLoops = projectOptions.optimizedLoops;
 	const watch = projectOptions.watch;
 
-	return {
+	const projectData: ProjectData = {
 		tsConfigPath,
 		includePath,
 		isPackage,
@@ -64,4 +64,5 @@ export function createProjectData(tsConfigPath: string, projectOptions: ProjectO
 		optimizedLoops,
 		watch,
 	};
+	return projectData;
 }
