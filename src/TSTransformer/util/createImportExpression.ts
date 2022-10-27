@@ -1,7 +1,7 @@
 import { NetworkType, RbxPath, RbxPathParent, RbxType, RojoResolver } from "@easy-games/unity-rojo-resolver";
 import luau from "@roblox-ts/luau-ast";
 import path from "path";
-import { NODE_MODULES, PARENT_FIELD, ProjectType } from "Shared/constants";
+import { NODE_MODULES, ProjectType } from "Shared/constants";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
@@ -23,7 +23,6 @@ function getAbsoluteImport(moduleRbxPath: RbxPath) {
 			stringPath += "/";
 		}
 	}
-	debugger;
 
 	pathExpressions.push(luau.string(stringPath));
 	return pathExpressions;
@@ -32,23 +31,33 @@ function getAbsoluteImport(moduleRbxPath: RbxPath) {
 function getRelativeImport(sourceRbxPath: RbxPath, moduleRbxPath: RbxPath) {
 	const relativePath = RojoResolver.relative(sourceRbxPath, moduleRbxPath);
 
+	let stringPath = "./";
+
 	// create descending path pieces
 	const path = new Array<string>();
 	let i = 0;
 	while (relativePath[i] === RbxPathParent) {
-		path.push(PARENT_FIELD);
+		stringPath += "../";
 		i++;
 	}
+	path.push(stringPath);
 
-	const pathExpressions: Array<luau.Expression> = [propertyAccessExpressionChain(luau.globals.script, path)];
+	const pathExpressions = new Array<luau.Expression>();
 
 	// create descending path pieces
 	for (; i < relativePath.length; i++) {
 		const pathPart = relativePath[i];
 		assert(typeof pathPart === "string");
-		pathExpressions.push(luau.string(pathPart));
+		stringPath += pathPart;
+
+		if (i + 1 < relativePath.length) {
+			stringPath += "/";
+		}
 	}
 
+	pathExpressions.push(luau.string(stringPath));
+
+	// debugger;
 	return pathExpressions;
 }
 
