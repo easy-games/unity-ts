@@ -1,5 +1,5 @@
+import { NetworkType, RbxPath, RojoResolver } from "@easy-games/unity-rojo-resolver";
 import { renderAST } from "@roblox-ts/luau-ast";
-import { NetworkType, RbxPath, RojoResolver } from "@roblox-ts/rojo-resolver";
 import fs from "fs-extra";
 import path from "path";
 import { checkFileName } from "Project/functions/checkFileName";

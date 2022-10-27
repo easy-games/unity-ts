@@ -1,5 +1,5 @@
+import { RbxPath, RbxPathParent, RojoResolver } from "@easy-games/unity-rojo-resolver";
 import luau, { render, RenderState, renderStatements, solveTempIds } from "@roblox-ts/luau-ast";
-import { RbxPath, RbxPathParent, RojoResolver } from "@roblox-ts/rojo-resolver";
 import path from "path";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { PARENT_FIELD, ProjectType } from "Shared/constants";

@@ -1,4 +1,4 @@
-import { RbxPath } from "@roblox-ts/rojo-resolver";
+import { RbxPath } from "@easy-games/unity-rojo-resolver";
 import kleur from "kleur";
 import { SourceFileWithTextRange } from "Shared/types";
 import { createDiagnosticWithLocation } from "Shared/util/createDiagnosticWithLocation";

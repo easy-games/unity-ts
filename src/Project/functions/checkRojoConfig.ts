@@ -1,4 +1,4 @@
-import { RojoResolver } from "@roblox-ts/rojo-resolver";
+import { RojoResolver } from "@easy-games/unity-rojo-resolver";
 import path from "path";
 import { ProjectData } from "Project";
 import { PathTranslator } from "Shared/classes/PathTranslator";

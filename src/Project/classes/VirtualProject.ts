@@ -1,6 +1,6 @@
+import { RojoResolver } from "@easy-games/unity-rojo-resolver";
 import { renderAST } from "@roblox-ts/luau-ast";
-import { RojoResolver } from "@roblox-ts/rojo-resolver";
-import { PATH_SEP, pathJoin, VirtualFileSystem } from "Project/classes/VirtualFileSystem";
+import { pathJoin, PATH_SEP, VirtualFileSystem } from "Project/classes/VirtualFileSystem";
 import { validateCompilerOptions } from "Project/functions/validateCompilerOptions";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { PathTranslator } from "Shared/classes/PathTranslator";

@@ -1,4 +1,4 @@
-import { RojoResolver } from "@roblox-ts/rojo-resolver";
+import { RojoResolver } from "@easy-games/unity-rojo-resolver";
 import fs from "fs-extra";
 import path from "path";
 import { LogService } from "Shared/classes/LogService";
