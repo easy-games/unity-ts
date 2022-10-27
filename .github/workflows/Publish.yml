@@ -13,8 +13,19 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v2.3.4
 
-            - name: Install NPM dependencies
-              uses: bahmutov/npm-install@v1.7.4
+            - name: Setup Node.js environment
+              uses: actions/setup-node@v2.4.0
+              with:
+                  node-version: 16
+                  registry-url: "https://npm.pkg.github.com/"
+                  scope: "@easy-games"
+
+            # Runs a single command using the runners shell
+            - name: Install Dependencies
+              run: |
+                  npm ci
+              env:
+                  EASY_AUTH_TOKEN: ${{ secrets.PULL_PACKAGE_PAT }}
 
             - name: Publish
               run: |
