@@ -190,7 +190,7 @@ function TS.try(func, catch, finally)
 		func,
 		function(errInner)
 			err = errInner
-			traceback = debug.traceback()
+			traceback = // debug.traceback()
 		end
 	)
 	if not success and catch then
