@@ -1,3 +1,4 @@
+import copyfiles from "copyfiles";
 import fs from "fs-extra";
 import { INCLUDE_PATH, ProjectType } from "Shared/constants";
 import { ProjectData } from "Shared/types";
@@ -23,9 +24,9 @@ export async function copyNodeModules(data: ProjectData) {
 		// fs.copySync("node_modules/@easy-games/", nodeModules, {
 		// 	dereference: true,
 		// });
-		// copyfiles(["node_modules/@easy-games/**/*.lua", nodeModules], err => {
-		// 	resolve();
-		// });
+		copyfiles(["node_modules/@easy-games/**/*.lua", nodeModules], err => {
+			resolve();
+		});
 		resolve();
 	});
 }
