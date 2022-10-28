@@ -51,9 +51,10 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 	const sourceFile = node.getSourceFile();
 	if (importClause) {
 		// TODO: How can we determine if this is a .d.ts file and ignore it?
-		if (node.moduleSpecifier.text === "types/generated") {
+		if (node.moduleSpecifier.text === "@easy-games/types/include/generated") {
 			return luau.list.make<luau.Statement>();
 		}
+		// console.log("\ntext: " + node.moduleSpecifier.text);
 
 		// detect if we need to push to a new var or not
 		const uses = countImportExpUses(state, importClause);

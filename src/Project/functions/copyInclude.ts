@@ -1,4 +1,3 @@
-import copyfiles from "copyfiles";
 import fs from "fs-extra";
 import { INCLUDE_PATH, ProjectType } from "Shared/constants";
 import { ProjectData } from "Shared/types";
@@ -12,8 +11,8 @@ export function copyInclude(data: ProjectData) {
 	) {
 		benchmarkIfVerbose("copy include files", () => {
 			fs.copySync(INCLUDE_PATH, data.includePath, { dereference: true });
-			console.log("INCLUDE_PATH: " + INCLUDE_PATH);
-			var files = fs.readdirSync(INCLUDE_PATH);
+			// console.log("INCLUDE_PATH: " + INCLUDE_PATH);
+			// var files = fs.readdirSync(INCLUDE_PATH);
 		});
 	}
 }
@@ -24,8 +23,9 @@ export async function copyNodeModules(data: ProjectData) {
 		// fs.copySync("node_modules/@easy-games/", nodeModules, {
 		// 	dereference: true,
 		// });
-		copyfiles(["node_modules/@easy-games/**/*.lua", nodeModules], err => {
-			resolve();
-		});
+		// copyfiles(["node_modules/@easy-games/**/*.lua", nodeModules], err => {
+		// 	resolve();
+		// });
+		resolve();
 	});
 }

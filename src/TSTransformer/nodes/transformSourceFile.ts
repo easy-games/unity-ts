@@ -213,5 +213,8 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 	// add build information to the tree
 	luau.list.unshift(statements, luau.comment(`Compiled with unity-ts v${COMPILER_VERSION}`));
 
+	luau.list.push(statements, luau.comment("----------------------------------"));
+	luau.list.push(statements, luau.comment("----------------------------------"));
+
 	return statements;
 }
