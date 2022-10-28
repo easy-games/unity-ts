@@ -7,6 +7,10 @@ local ERROR_NON_LIST = "Please pass a list of promises to %s"
 local ERROR_NON_FUNCTION = "Please pass a handler function to %s!"
 local MODE_KEY_METATABLE = { __mode = "k" }
 
+local function debugTracebackReplacement()
+	return "[dummy stacktrace]";
+end
+
 local function isCallable(value)
 	if type(value) == "function" then
 		return true
@@ -70,7 +74,7 @@ do
 			kind = options.kind,
 			parent = parent,
 			createdTick = os.clock(),
-			createdTrace = debug.traceback(),
+			createdTrace = debugTracebackReplacement(),
 		}, Error)
 	end
 
@@ -159,7 +163,7 @@ local function makeErrorHandler(traceback)
 		return Error.new({
 			error = err,
 			kind = Error.Kind.ExecutionError,
-			trace = debug.traceback(tostring(err), 2),
+			trace = debugTracebackReplacement(tostring(err), 2),
 			context = "Promise created at:\n\n" .. traceback,
 		})
 	end
@@ -336,7 +340,7 @@ end
 	@return Promise
 ]=]
 function Promise.new(executor)
-	return Promise._new(debug.traceback(nil, 2), executor)
+	return Promise._new(debugTracebackReplacement(nil, 2), executor)
 end
 
 function Promise:__tostring()
@@ -362,7 +366,7 @@ end
 	@return Promise
 ]=]
 function Promise.defer(executor)
-	local traceback = debug.traceback(nil, 2)
+	local traceback = debugTracebackReplacement(nil, 2)
 	local promise
 	promise = Promise._new(traceback, function(resolve, reject, onCancel)
 		local connection
@@ -406,7 +410,7 @@ Promise.async = Promise.defer
 ]=]
 function Promise.resolve(...)
 	local length, values = pack(...)
-	return Promise._new(debug.traceback(nil, 2), function(resolve)
+	return Promise._new(debugTracebackReplacement(nil, 2), function(resolve)
 		resolve(unpack(values, 1, length))
 	end)
 end
@@ -423,7 +427,7 @@ end
 ]=]
 function Promise.reject(...)
 	local length, values = pack(...)
-	return Promise._new(debug.traceback(nil, 2), function(_, reject)
+	return Promise._new(debugTracebackReplacement(nil, 2), function(_, reject)
 		reject(unpack(values, 1, length))
 	end)
 end
@@ -464,7 +468,7 @@ end
 	@return Promise
 ]=]
 function Promise.try(callback, ...)
-	return Promise._try(debug.traceback(nil, 2), callback, ...)
+	return Promise._try(debugTracebackReplacement(nil, 2), callback, ...)
 end
 
 --[[
@@ -578,7 +582,7 @@ end
 	@return Promise<{T}>
 ]=]
 function Promise.all(promises)
-	return Promise._all(debug.traceback(nil, 2), promises)
+	return Promise._all(debugTracebackReplacement(nil, 2), promises)
 end
 
 --[=[
@@ -642,7 +646,7 @@ end
 function Promise.some(promises, count)
 	assert(type(count) == "number", "Bad argument #2 to Promise.some: must be a number")
 
-	return Promise._all(debug.traceback(nil, 2), promises, count)
+	return Promise._all(debugTracebackReplacement(nil, 2), promises, count)
 end
 
 --[=[
@@ -664,7 +668,7 @@ end
 	@return Promise<T>
 ]=]
 function Promise.any(promises)
-	return Promise._all(debug.traceback(nil, 2), promises, 1):andThen(function(values)
+	return Promise._all(debugTracebackReplacement(nil, 2), promises, 1):andThen(function(values)
 		return values[1]
 	end)
 end
@@ -703,7 +707,7 @@ function Promise.allSettled(promises)
 		return Promise.resolve({})
 	end
 
-	return Promise._new(debug.traceback(nil, 2), function(resolve, _, onCancel)
+	return Promise._new(debugTracebackReplacement(nil, 2), function(resolve, _, onCancel)
 		-- An array to contain our resolved values from the given promises.
 		local fates = {}
 		local newPromises = {}
@@ -770,7 +774,7 @@ function Promise.race(promises)
 		assert(Promise.is(promise), string.format(ERROR_NON_PROMISE_IN_LIST, "Promise.race", tostring(i)))
 	end
 
-	return Promise._new(debug.traceback(nil, 2), function(resolve, reject, onCancel)
+	return Promise._new(debugTracebackReplacement(nil, 2), function(resolve, reject, onCancel)
 		local newPromises = {}
 		local finished = false
 
@@ -862,7 +866,7 @@ function Promise.each(list, predicate)
 	assert(type(list) == "table", string.format(ERROR_NON_LIST, "Promise.each"))
 	assert(isCallable(predicate), string.format(ERROR_NON_FUNCTION, "Promise.each"))
 
-	return Promise._new(debug.traceback(nil, 2), function(resolve, reject, onCancel)
+	return Promise._new(debugTracebackReplacement(nil, 2), function(resolve, reject, onCancel)
 		local results = {}
 		local promisesToCancel = {}
 
@@ -1008,7 +1012,7 @@ end
 ]=]
 function Promise.promisify(callback)
 	return function(...)
-		return Promise._try(debug.traceback(nil, 2), callback, ...)
+		return Promise._try(debugTracebackReplacement(nil, 2), callback, ...)
 	end
 end
 
@@ -1045,7 +1049,7 @@ do
 			seconds = 1 / 60
 		end
 
-		return Promise._new(debug.traceback(nil, 2), function(resolve, _, onCancel)
+		return Promise._new(debugTracebackReplacement(nil, 2), function(resolve, _, onCancel)
 			local startTime = Promise._getTime()
 			local endTime = startTime + seconds
 
@@ -1167,7 +1171,7 @@ end
 	@return Promise
 ]=]
 function Promise.prototype:timeout(seconds, rejectionValue)
-	local traceback = debug.traceback(nil, 2)
+	local traceback = debugTracebackReplacement(nil, 2)
 
 	return Promise.race({
 		Promise.delay(seconds):andThen(function()
@@ -1256,7 +1260,7 @@ function Promise.prototype:andThen(successHandler, failureHandler)
 	assert(successHandler == nil or isCallable(successHandler), string.format(ERROR_NON_FUNCTION, "Promise:andThen"))
 	assert(failureHandler == nil or isCallable(failureHandler), string.format(ERROR_NON_FUNCTION, "Promise:andThen"))
 
-	return self:_andThen(debug.traceback(nil, 2), successHandler, failureHandler)
+	return self:_andThen(debugTracebackReplacement(nil, 2), successHandler, failureHandler)
 end
 
 --[=[
@@ -1274,7 +1278,7 @@ end
 ]=]
 function Promise.prototype:catch(failureHandler)
 	assert(failureHandler == nil or isCallable(failureHandler), string.format(ERROR_NON_FUNCTION, "Promise:catch"))
-	return self:_andThen(debug.traceback(nil, 2), nil, failureHandler)
+	return self:_andThen(debugTracebackReplacement(nil, 2), nil, failureHandler)
 end
 
 --[=[
@@ -1295,7 +1299,7 @@ end
 ]=]
 function Promise.prototype:tap(tapHandler)
 	assert(isCallable(tapHandler), string.format(ERROR_NON_FUNCTION, "Promise:tap"))
-	return self:_andThen(debug.traceback(nil, 2), function(...)
+	return self:_andThen(debugTracebackReplacement(nil, 2), function(...)
 		local callbackReturn = tapHandler(...)
 
 		if Promise.is(callbackReturn) then
@@ -1331,7 +1335,7 @@ end
 function Promise.prototype:andThenCall(callback, ...)
 	assert(isCallable(callback), string.format(ERROR_NON_FUNCTION, "Promise:andThenCall"))
 	local length, values = pack(...)
-	return self:_andThen(debug.traceback(nil, 2), function()
+	return self:_andThen(debugTracebackReplacement(nil, 2), function()
 		return callback(unpack(values, 1, length))
 	end)
 end
@@ -1360,7 +1364,7 @@ end
 ]=]
 function Promise.prototype:andThenReturn(...)
 	local length, values = pack(...)
-	return self:_andThen(debug.traceback(nil, 2), function()
+	return self:_andThen(debugTracebackReplacement(nil, 2), function()
 		return unpack(values, 1, length)
 	end)
 end
@@ -1484,7 +1488,7 @@ end
 ]=]
 function Promise.prototype:finally(finallyHandler)
 	assert(finallyHandler == nil or isCallable(finallyHandler), string.format(ERROR_NON_FUNCTION, "Promise:finally"))
-	return self:_finally(debug.traceback(nil, 2), finallyHandler)
+	return self:_finally(debugTracebackReplacement(nil, 2), finallyHandler)
 end
 
 --[=[
@@ -1499,7 +1503,7 @@ end
 function Promise.prototype:finallyCall(callback, ...)
 	assert(isCallable(callback), string.format(ERROR_NON_FUNCTION, "Promise:finallyCall"))
 	local length, values = pack(...)
-	return self:_finally(debug.traceback(nil, 2), function()
+	return self:_finally(debugTracebackReplacement(nil, 2), function()
 		return callback(unpack(values, 1, length))
 	end)
 end
@@ -1524,7 +1528,7 @@ end
 ]=]
 function Promise.prototype:finallyReturn(...)
 	local length, values = pack(...)
-	return self:_finally(debug.traceback(nil, 2), function()
+	return self:_finally(debugTracebackReplacement(nil, 2), function()
 		return unpack(values, 1, length)
 	end)
 end
@@ -1547,7 +1551,7 @@ end
 ]=]
 function Promise.prototype:done(doneHandler)
 	assert(doneHandler == nil or isCallable(doneHandler), string.format(ERROR_NON_FUNCTION, "Promise:done"))
-	return self:_finally(debug.traceback(nil, 2), doneHandler, true)
+	return self:_finally(debugTracebackReplacement(nil, 2), doneHandler, true)
 end
 
 --[=[
@@ -1562,7 +1566,7 @@ end
 function Promise.prototype:doneCall(callback, ...)
 	assert(isCallable(callback), string.format(ERROR_NON_FUNCTION, "Promise:doneCall"))
 	local length, values = pack(...)
-	return self:_finally(debug.traceback(nil, 2), function()
+	return self:_finally(debugTracebackReplacement(nil, 2), function()
 		return callback(unpack(values, 1, length))
 	end, true)
 end
@@ -1587,7 +1591,7 @@ end
 ]=]
 function Promise.prototype:doneReturn(...)
 	local length, values = pack(...)
-	return self:_finally(debug.traceback(nil, 2), function()
+	return self:_finally(debugTracebackReplacement(nil, 2), function()
 		return unpack(values, 1, length)
 	end, true)
 end
@@ -1870,7 +1874,7 @@ end
 	@return Promise
 ]=]
 function Promise.prototype:now(rejectionValue)
-	local traceback = debug.traceback(nil, 2)
+	local traceback = debugTracebackReplacement(nil, 2)
 	if self._status == Promise.Status.Resolved then
 		return self:_andThen(traceback, function(...)
 			return ...
@@ -1987,7 +1991,7 @@ function Promise.fromEvent(event, predicate)
 		return true
 	end
 
-	return Promise._new(debug.traceback(nil, 2), function(resolve, _, onCancel)
+	return Promise._new(debugTracebackReplacement(nil, 2), function(resolve, _, onCancel)
 		local connection
 		local shouldDisconnect = false
 
