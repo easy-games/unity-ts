@@ -262,11 +262,15 @@ export class TransformState {
 			// access it here via `local TS = _G[script]`
 			return luau.create(luau.SyntaxKind.VariableDeclaration, {
 				left: luau.globals.TS,
-				right: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-					expression: luau.globals._G,
-					index: luau.globals.script,
-				}),
+				right: luau.call(luau.globals.require, [luau.string("Scripts/TS/include/RuntimeLib")]),
 			});
+			// return luau.create(luau.SyntaxKind.VariableDeclaration, {
+			// 	left: luau.globals.TS,
+			// 	right: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+			// 		expression: luau.globals._G,
+			// 		index: luau.globals.script,
+			// 	}),
+			// });
 		}
 	}
 
