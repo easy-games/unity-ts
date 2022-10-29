@@ -7,7 +7,6 @@ import { assert } from "Shared/util/assert";
 import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
 import ts from "typescript";
 
@@ -110,19 +109,28 @@ function getNodeModulesImportParts(
 			return [];
 		}
 
-		const moduleName = relativeRbxPath[0];
-		assert(moduleName);
+		let modulePath = moduleOutPath.split("node_modules/")[1];
+		modulePath = modulePath.split(".lua")[0];
+		assert(modulePath);
+		// debugger;
 
-		return [
-			propertyAccessExpressionChain(
-				luau.call(state.TS(moduleSpecifier.parent, "getModule"), [
-					luau.globals.script,
-					luau.string(moduleScope),
-					luau.string(moduleName),
-				]),
-				relativeRbxPath.slice(1),
-			),
-		];
+		return [luau.string(modulePath)];
+
+		// const moduleName = relativeRbxPath[0];
+		// assert(moduleName);
+
+		// debugger;
+
+		// return [
+		// 	propertyAccessExpressionChain(
+		// 		luau.call(state.TS(moduleSpecifier.parent, "getModule"), [
+		// 			luau.globals.script,
+		// 			luau.string(moduleScope),
+		// 			luau.string(moduleName),
+		// 		]),
+		// 		relativeRbxPath.slice(1),
+		// 	),
+		// ];
 	} else {
 		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
 		if (!moduleRbxPath) {
