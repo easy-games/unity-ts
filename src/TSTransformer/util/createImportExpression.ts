@@ -10,6 +10,8 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
 import ts from "typescript";
 
+const NODE_MODULES_PATH = "Scripts/rbxts_include/node_modules/";
+
 function getAbsoluteImport(moduleRbxPath: RbxPath) {
 	const pathExpressions = new Array<luau.Expression>();
 	const serviceName = moduleRbxPath[0];
@@ -111,6 +113,7 @@ function getNodeModulesImportParts(
 
 		let modulePath = moduleOutPath.split("node_modules/")[1];
 		modulePath = modulePath.split(".lua")[0];
+		modulePath = NODE_MODULES_PATH + modulePath;
 		assert(modulePath);
 		// debugger;
 
