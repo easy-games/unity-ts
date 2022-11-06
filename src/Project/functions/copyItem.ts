@@ -5,7 +5,9 @@ import { PathTranslator } from "Shared/classes/PathTranslator";
 import { DTS_EXT } from "Shared/constants";
 
 export function copyItem(data: ProjectData, pathTranslator: PathTranslator, item: string) {
-	fs.copySync(item, pathTranslator.getOutputPath(item), {
+	const output = pathTranslator.getOutputPath(item);
+	// debugger;
+	fs.copySync(item, output, {
 		filter: (src, dest) => {
 			if (
 				data.writeOnlyChanged &&

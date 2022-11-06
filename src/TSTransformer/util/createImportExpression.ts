@@ -10,7 +10,7 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
 import ts from "typescript";
 
-const NODE_MODULES_PATH = "Scripts/rbxts_include/node_modules/";
+const NODE_MODULES_PATH = "rbxts_include/node_modules/";
 
 function getAbsoluteImport(moduleRbxPath: RbxPath) {
 	const pathExpressions = new Array<luau.Expression>();
