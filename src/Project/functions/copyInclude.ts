@@ -20,7 +20,7 @@ export function copyInclude(data: ProjectData) {
 
 export async function copyNodeModules(data: ProjectData) {
 	return new Promise<void>((resolve, reject) => {
-		const nodeModules = data.includePath + "/../../rbxts_include";
+		const nodeModules = data.includePath + "/../../Shared/rbxts_include";
 		// fs.copySync("node_modules/@easy-games/", nodeModules, {
 		// 	dereference: true,
 		// });
