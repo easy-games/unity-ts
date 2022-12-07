@@ -22,6 +22,17 @@ function isOutputFileOrphaned(pathTranslator: PathTranslator, filePath: string) 
 }
 
 export function tryRemoveOutput(pathTranslator: PathTranslator, outPath: string) {
+	if (outPath.endsWith("Resources") || outPath.endsWith("Scenes")) {
+		return;
+	}
+	if (outPath.includes("Resources/") && !outPath.includes("Resources/TS")) {
+		console.log("skipping " + outPath);
+		return;
+	}
+	if (outPath.includes("Scenes/")) {
+		console.log("skipping " + outPath);
+		return;
+	}
 	if (isOutputFileOrphaned(pathTranslator, outPath)) {
 		fs.removeSync(outPath);
 		LogService.writeLineIfVerbose(`remove ${outPath}`);

@@ -8,7 +8,7 @@ function cleanupDirRecursively(pathTranslator: PathTranslator, dir: string) {
 		for (const name of fs.readdirSync(dir)) {
 			const itemPath = path.join(dir, name);
 			if (fs.statSync(itemPath).isDirectory()) {
-				if (name === ".git") {
+				if (name === ".git" || name === ".gitkeep") {
 					continue;
 				}
 				cleanupDirRecursively(pathTranslator, itemPath);

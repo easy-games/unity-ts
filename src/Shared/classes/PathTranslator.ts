@@ -45,11 +45,11 @@ export class PathTranslator {
 		const makeRelative = this.makeRelativeFactory();
 
 		if (filePath.includes("src/Shared")) {
-			filePath = filePath.replace("src/Shared", "src/Shared/Resources");
+			filePath = filePath.replace("src/Shared", "src/Shared/Resources/TS");
 		} else if (filePath.includes("src/Server")) {
-			filePath = filePath.replace("src/Server", "src/Server/Resources");
+			filePath = filePath.replace("src/Server", "src/Server/Resources/TS");
 		} else if (filePath.includes("src/Client")) {
-			filePath = filePath.replace("src/Client", "src/Client/Resources");
+			filePath = filePath.replace("src/Client", "src/Client/Resources/TS");
 		}
 
 		const pathInfo = PathInfo.from(filePath);
