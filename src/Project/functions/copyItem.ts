@@ -9,6 +9,9 @@ export function copyItem(data: ProjectData, pathTranslator: PathTranslator, item
 	// debugger;
 	fs.copySync(item, output, {
 		filter: (src, dest) => {
+			if (fs.lstatSync(src).isDirectory()) {
+				return false;
+			}
 			if (
 				data.writeOnlyChanged &&
 				fs.pathExistsSync(dest) &&

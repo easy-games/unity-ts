@@ -3,6 +3,7 @@ import fs from "fs-extra";
 import path from "path";
 import { cleanup } from "Project/functions/cleanup";
 import { compileFiles } from "Project/functions/compileFiles";
+import { copyFiles } from "Project/functions/copyFiles";
 import { copyInclude, copyNodeModules } from "Project/functions/copyInclude";
 import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProjectData } from "Project/functions/createProjectData";
@@ -13,6 +14,7 @@ import { LogService } from "Shared/classes/LogService";
 import { DEFAULT_PROJECT_OPTIONS } from "Shared/constants";
 import { LoggableError } from "Shared/errors/LoggableError";
 import { ProjectOptions } from "Shared/types";
+import { getRootDirs } from "Shared/util/getRootDirs";
 import { hasErrors } from "Shared/util/hasErrors";
 import ts from "typescript";
 import yargs from "yargs";
@@ -153,7 +155,7 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 				cleanup(pathTranslator);
 				copyInclude(data);
 				await copyNodeModules(data);
-				// copyFiles(data, pathTranslator, new Set(getRootDirs(program.getCompilerOptions())));
+				copyFiles(data, pathTranslator, new Set(getRootDirs(program.getCompilerOptions())));
 				// if (Math.random() < 10) {
 				// 	throw "error";
 				// }
