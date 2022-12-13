@@ -262,7 +262,7 @@ export class TransformState {
 			// access it here via `local TS = _G[script]`
 			return luau.create(luau.SyntaxKind.VariableDeclaration, {
 				left: luau.globals.TS,
-				right: luau.call(luau.globals.require, [luau.string("TS/include/RuntimeLib")]),
+				right: luau.call(luau.globals.require, [luau.string("Shared/TS/include/RuntimeLib")]),
 			});
 			// return luau.create(luau.SyntaxKind.VariableDeclaration, {
 			// 	left: luau.globals.TS,
