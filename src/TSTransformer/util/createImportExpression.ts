@@ -32,13 +32,20 @@ function getAbsoluteImport(moduleRbxPath: RbxPath) {
 function getRelativeImport(sourceRbxPath: RbxPath, moduleRbxPath: RbxPath) {
 	const relativePath = RojoResolver.relative(sourceRbxPath, moduleRbxPath);
 
-	let stringPath = "./";
+	let stringPath = "";
+	console.log("\nrelative path:", relativePath);
+	console.log("source path: ", sourceRbxPath);
+	console.log("module path:", moduleRbxPath);
 
 	// create descending path pieces
 	const path = new Array<string>();
 	let i = 0;
 	while (relativePath[i] === RbxPathParent) {
-		stringPath += "../";
+		if (i === 0) {
+			stringPath += "./";
+		} else {
+			stringPath += "../";
+		}
 		i++;
 	}
 	path.push(stringPath);
