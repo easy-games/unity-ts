@@ -156,9 +156,6 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 				copyInclude(data);
 				await copyNodeModules(data);
 				copyFiles(data, pathTranslator, new Set(getRootDirs(program.getCompilerOptions())));
-				// if (Math.random() < 10) {
-				// 	throw "error";
-				// }
 				const emitResult = compileFiles(
 					program.getProgram(),
 					data,

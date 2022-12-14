@@ -1,4 +1,4 @@
-import { NetworkType, RbxPath, RojoResolver } from "@easy-games/unity-rojo-resolver";
+import { RojoResolver } from "@easy-games/unity-rojo-resolver";
 import { renderAST } from "@roblox-ts/luau-ast";
 import fs from "fs-extra";
 import path from "path";
@@ -100,17 +100,18 @@ export function compileFiles(
 		return emitResultFailure("Non-package projects must have a Rojo project file!");
 	}
 
-	let runtimeLibRbxPath: RbxPath | undefined;
-	if (projectType !== ProjectType.Package) {
-		runtimeLibRbxPath = rojoResolver.getRbxPathFromFilePath(path.join(data.includePath, "RuntimeLib.lua"));
-		if (!runtimeLibRbxPath) {
-			return emitResultFailure("Rojo project contained no data for include folder!");
-		} else if (rojoResolver.getNetworkType(runtimeLibRbxPath) !== NetworkType.Unknown) {
-			return emitResultFailure("Runtime library cannot be in a server-only or client-only container!");
-		} else if (rojoResolver.isIsolated(runtimeLibRbxPath)) {
-			return emitResultFailure("Runtime library cannot be in an isolated container!");
-		}
-	}
+	// let runtimeLibRbxPath: RbxPath | undefined;
+	// if (projectType !== ProjectType.Package) {
+	// 	runtimeLibRbxPath = rojoResolver.getRbxPathFromFilePath(path.join(data.includePath, "RuntimeLib.lua"));
+	// 	if (!runtimeLibRbxPath) {
+	// 		return emitResultFailure("Rojo project contained no data for include folder!");
+	// 	} else if (rojoResolver.getNetworkType(runtimeLibRbxPath) !== NetworkType.Unknown) {
+	// 		return emitResultFailure("Runtime library cannot be in a server-only or client-only container!");
+	// 	} else if (rojoResolver.isIsolated(runtimeLibRbxPath)) {
+	// 		return emitResultFailure("Runtime library cannot be in an isolated container!");
+	// 	}
+	// }
+	// console.log("RuntimeLib:", runtimeLibRbxPath);
 
 	if (DiagnosticService.hasErrors()) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
 
@@ -176,7 +177,7 @@ export function compileFiles(
 				pkgRojoResolvers,
 				nodeModulesPathMapping,
 				reverseSymlinkMap,
-				runtimeLibRbxPath,
+				undefined,
 				typeChecker,
 				projectType,
 				sourceFile,
