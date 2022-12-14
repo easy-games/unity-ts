@@ -33,9 +33,6 @@ function getRelativeImport(sourceRbxPath: RbxPath, moduleRbxPath: RbxPath) {
 	const relativePath = RojoResolver.relative(sourceRbxPath, moduleRbxPath);
 
 	let stringPath = "";
-	console.log("\nrelative path:", relativePath);
-	console.log("source path: ", sourceRbxPath);
-	console.log("module path:", moduleRbxPath);
 
 	// create descending path pieces
 	const path = new Array<string>();
