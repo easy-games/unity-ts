@@ -9,6 +9,9 @@ function isOutputFileOrphaned(pathTranslator: PathTranslator, filePath: string) 
 	}
 
 	for (const path of pathTranslator.getInputPaths(filePath)) {
+		if (path.endsWith(".lua")) {
+			continue;
+		}
 		if (fs.pathExistsSync(path)) {
 			return false;
 		}
