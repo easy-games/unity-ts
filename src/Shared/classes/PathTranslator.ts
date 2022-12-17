@@ -92,8 +92,10 @@ export class PathTranslator {
 	 * - `out/*` -> `src/*`
 	 */
 	public getInputPaths(filePath: string) {
+		console.log("start: " + filePath);
+
 		const makeRelative = this.makeRelativeFactory(this.outDir, this.rootDir);
-		const possiblePaths = new Array<string>();
+		let possiblePaths = new Array<string>();
 		const pathInfo = PathInfo.from(filePath);
 
 		// index.*.lua cannot come from a .ts file
@@ -153,6 +155,18 @@ export class PathTranslator {
 		}
 
 		possiblePaths.push(makeRelative(pathInfo));
+
+		possiblePaths = possiblePaths.map(filePath => {
+			if (filePath.includes("src/Shared/Resources/TS")) {
+				filePath = filePath.replace("src/Shared/Resources/TS", "src/Shared");
+			} else if (filePath.includes("src/Server/Resources/TS")) {
+				filePath = filePath.replace("src/Server/Resources/TS", "src/Server");
+			} else if (filePath.includes("src/Client/Resources/TS")) {
+				filePath = filePath.replace("src/Client/Resources/TS", "src/Client");
+			}
+			return filePath;
+		});
+
 		return possiblePaths;
 	}
 
