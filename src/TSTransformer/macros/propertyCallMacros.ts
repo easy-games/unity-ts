@@ -899,6 +899,22 @@ const MAP_METHODS: MacroList<PropertyCallMacro> = {
 	},
 };
 
+const DICTIONARY_METHODS: MacroList<PropertyCallMacro> = {
+	Get: (state, node, expression, args) =>
+		luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+			expression: convertToIndexableExpression(expression),
+			index: args[0],
+		}),
+};
+
+// const KEY_COLLECTION_METHODS: MacroList<PropertyCallMacro> = {
+// 	Get: (state, node, expression, args) =>
+// 		luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+// 			expression: convertToIndexableExpression(expression),
+// 			index: args[0],
+// 		}),
+// };
+
 const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
 	then: (state, node, expression, args) =>
 		luau.create(luau.SyntaxKind.MethodCallExpression, {
@@ -926,6 +942,8 @@ export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCall
 	Set: SET_METHODS,
 	ReadonlyMap: READONLY_MAP_METHODS,
 	Map: MAP_METHODS,
+	CSDictionary: DICTIONARY_METHODS,
+	// CSKeyCollection: KEY_COLLECTION_METHODS,
 	Promise: PROMISE_METHODS,
 };
 

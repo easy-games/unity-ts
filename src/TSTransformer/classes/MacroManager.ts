@@ -30,6 +30,8 @@ export const SYMBOL_NAMES = {
 	IterableFunction: "IterableFunction",
 	LuaTuple: "LuaTuple",
 	Map: "Map",
+	CSDictionary: "CSDictionary",
+	// CSKeyCollection: "CSKeyCollection",
 	Object: "Object",
 	ReadonlyArray: "ReadonlyArray",
 	ReadonlyMap: "ReadonlyMap",

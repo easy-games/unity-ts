@@ -263,7 +263,8 @@ function extendsMacroClass(state: TransformState, node: ts.ClassLikeDeclaration)
 				symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.WeakSetConstructor) ||
 				symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.WeakMapConstructor) ||
 				symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlyMapConstructor) ||
-				symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlySetConstructor)
+				symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlySetConstructor) ||
+				symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.CSDictionary)
 			);
 		}
 	}
