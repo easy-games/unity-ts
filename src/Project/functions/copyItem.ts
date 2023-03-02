@@ -30,7 +30,7 @@ export function copyItem(data: ProjectData, pathTranslator: PathTranslator, item
 
 				// console.log("skip:1 destPath=" + destPath);
 				if (fs.pathExistsSync(destPath)) {
-					console.log("skip:2 src=" + src + " dest=" + dest);
+					console.log("skip:2 src=" + src + " dest=" + item);
 					if (!fs.lstatSync(src).isDirectory()) {
 						console.log("skip:3");
 						if (
