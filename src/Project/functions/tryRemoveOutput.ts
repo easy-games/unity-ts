@@ -13,9 +13,7 @@ function isOutputFileOrphaned(pathTranslator: PathTranslator, filePath: string) 
 		if (path.endsWith(".lua")) {
 			continue;
 		}
-		// console.log("checking path: " + path);
 		if (fs.pathExistsSync(path)) {
-			// console.log("does exist.");
 			return false;
 		}
 	}

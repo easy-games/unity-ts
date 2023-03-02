@@ -1,5 +1,5 @@
 import path from "path";
-import { DTS_EXT, D_EXT, INDEX_NAME, INIT_NAME, LUA_EXT, TSX_EXT, TS_EXT } from "Shared/constants";
+import { D_EXT, DTS_EXT, INDEX_NAME, INIT_NAME, LUA_EXT, TS_EXT, TSX_EXT } from "Shared/constants";
 import { assert } from "Shared/util/assert";
 
 class PathInfo {
@@ -32,7 +32,9 @@ export class PathTranslator {
 	) {}
 
 	private makeRelativeFactory(from = this.rootDir, to = this.outDir) {
-		return (pathInfo: PathInfo) => path.join(to, path.relative(from, pathInfo.join()));
+		return (pathInfo: PathInfo) => {
+			return path.join(to, path.relative(from, pathInfo.join()));
+		};
 	}
 
 	/**
@@ -42,7 +44,10 @@ export class PathTranslator {
 	 * - `src/*` -> `out/*`
 	 */
 	public getOutputPath(filePath: string) {
+		// console.log("output.1 " + filePath);
 		const makeRelative = this.makeRelativeFactory();
+
+		filePath = filePath.replace("/Typescript~/src/", "/Bundles/");
 
 		if (filePath.includes("src/Shared")) {
 			filePath = filePath.replace("src/Shared", "src/Shared/Resources/TS");
@@ -51,8 +56,10 @@ export class PathTranslator {
 		} else if (filePath.includes("src/Client")) {
 			filePath = filePath.replace("src/Client", "src/Client/Resources/TS");
 		}
+		// console.log("getoutput.2 " + filePath);
 
 		const pathInfo = PathInfo.from(filePath);
+		// console.log("getoutput.3 " + pathInfo);
 
 		if ((pathInfo.extsPeek() === TS_EXT || pathInfo.extsPeek() === TSX_EXT) && pathInfo.extsPeek(1) !== D_EXT) {
 			pathInfo.exts.pop(); // pop .tsx?
@@ -65,7 +72,13 @@ export class PathTranslator {
 			pathInfo.exts.push(LUA_EXT);
 		}
 
-		return makeRelative(pathInfo);
+		const join = pathInfo.join();
+		// console.log("output.2 " + join);
+		return join;
+
+		// const relative = makeRelative(pathInfo);
+		// console.log("getoutput.4 " + relative);
+		// return relative;
 	}
 
 	/**
@@ -92,7 +105,7 @@ export class PathTranslator {
 	 * - `out/*` -> `src/*`
 	 */
 	public getInputPaths(filePath: string) {
-		console.log("start: " + filePath);
+		// console.log("start: " + filePath);
 
 		const makeRelative = this.makeRelativeFactory(this.outDir, this.rootDir);
 		let possiblePaths = new Array<string>();

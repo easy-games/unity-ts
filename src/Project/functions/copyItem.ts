@@ -18,14 +18,30 @@ export function copyItem(data: ProjectData, pathTranslator: PathTranslator, item
 				// }
 				// return false;
 			}
-			if (
-				data.writeOnlyChanged &&
-				fs.pathExistsSync(dest) &&
-				!fs.lstatSync(src).isDirectory() &&
-				fs.readFileSync(src).toString() === fs.readFileSync(dest).toString()
-			) {
-				console.log("skipping copy: " + src);
-				return false;
+
+			if (data.projectOptions.writeOnlyChanged) {
+				// console.log("skip:1 dest=" + dest + ", output=" + output);
+				const destPath = pathTranslator.getOutputPath(dest);
+
+				console.log("------");
+				console.log("input: " + dest);
+				console.log("output: " + destPath);
+				console.log("------");
+
+				// console.log("skip:1 destPath=" + destPath);
+				if (fs.pathExistsSync(destPath)) {
+					console.log("skip:2 src=" + src + " dest=" + item);
+					if (!fs.lstatSync(src).isDirectory()) {
+						console.log("skip:3");
+						if (
+							fs.existsSync(dest) &&
+							fs.readFileSync(src).toString() === fs.readFileSync(dest).toString()
+						) {
+							console.log("skip:4 SKIPPING!!");
+							return false;
+						}
+					}
+				}
 			}
 
 			if (src.endsWith(DTS_EXT)) {
@@ -33,7 +49,13 @@ export function copyItem(data: ProjectData, pathTranslator: PathTranslator, item
 			}
 
 			// console.log(`${src} is compatible: ${isCompilableFile(src)}. output: ` + dest);
-			return !isCompilableFile(src);
+			const isCompilable = isCompilableFile(src);
+			if (!isCompilable) {
+				return true;
+			}
+
+			console.log("copying file: " + src);
+			return false;
 		},
 		dereference: true,
 	});
