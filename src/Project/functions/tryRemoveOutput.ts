@@ -8,6 +8,10 @@ function isOutputFileOrphaned(pathTranslator: PathTranslator, filePath: string) 
 		return true;
 	}
 
+	if (filePath.endsWith(".meta")) {
+		return false;
+	}
+
 	// console.log("-------------------------");
 	for (const path of pathTranslator.getInputPaths(filePath)) {
 		if (path.endsWith(".lua")) {

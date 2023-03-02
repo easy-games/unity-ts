@@ -69,6 +69,11 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 			boolean: true,
 			describe: "enable watch mode",
 		},
+		writeOnlyChanged: {
+			alias: "writeOnlyChanged",
+			boolean: true,
+			describe: "enable to only write changed files",
+		},
 	},
 
 	// builder: () =>
