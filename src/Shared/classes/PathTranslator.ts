@@ -47,6 +47,8 @@ export class PathTranslator {
 		// console.log("output.1 " + filePath);
 		const makeRelative = this.makeRelativeFactory();
 
+		filePath = filePath.replace("/Typescript~/src/", "/Bundles/");
+
 		if (filePath.includes("src/Shared")) {
 			filePath = filePath.replace("src/Shared", "src/Shared/Resources/TS");
 		} else if (filePath.includes("src/Server")) {
@@ -54,8 +56,6 @@ export class PathTranslator {
 		} else if (filePath.includes("src/Client")) {
 			filePath = filePath.replace("src/Client", "src/Client/Resources/TS");
 		}
-
-		filePath = filePath.replace("/Typescript~/src/", "/Bundles/");
 		// console.log("getoutput.2 " + filePath);
 
 		const pathInfo = PathInfo.from(filePath);

@@ -37,9 +37,6 @@ export function tryRemoveOutput(pathTranslator: PathTranslator, outPath: string)
 		// console.log("skipping " + outPath);
 		return;
 	}
-	if (outPath.endsWith(".meta")) {
-		return;
-	}
 	if (isOutputFileOrphaned(pathTranslator, outPath)) {
 		fs.removeSync(outPath);
 		LogService.writeLineIfVerbose(`remove ${outPath}`);
