@@ -197,22 +197,29 @@ export function compileFiles(
 	const emittedFiles = new Array<string>();
 	if (fileWriteQueue.length > 0) {
 		benchmarkIfVerbose("writing compiled files", () => {
+			let skipCount = 0;
+			let writeCount = 0;
 			for (const { sourceFile, source } of fileWriteQueue) {
 				const outPath = pathTranslator.getOutputPath(sourceFile.fileName);
-				if (
-					!data.writeOnlyChanged ||
-					!fs.pathExistsSync(outPath) ||
-					fs.readFileSync(outPath).toString() !== source
-				) {
-					fs.outputFileSync(outPath, source);
-					emittedFiles.push(outPath);
+
+				if (data.writeOnlyChanged && fs.pathExistsSync(outPath)) {
+					if (fs.readFileSync(outPath).toString() === source) {
+						skipCount++;
+						continue;
+					}
 				}
+
+				fs.outputFileSync(outPath, source);
+				emittedFiles.push(outPath);
+				writeCount++;
+
 				if (compilerOptions.declaration) {
 					proxyProgram.emit(sourceFile, ts.sys.writeFile, undefined, true, {
 						afterDeclarations: [transformTypeReferenceDirectives, transformPaths],
 					});
 				}
 			}
+			console.log(`\nwrote ${writeCount} compiled files (skipped ${skipCount})`);
 		});
 	}
 
