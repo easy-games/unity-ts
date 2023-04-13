@@ -202,7 +202,9 @@ export function compileFiles(
 			for (const { sourceFile, source } of fileWriteQueue) {
 				const outPath = pathTranslator.getOutputPath(sourceFile.fileName);
 
-				if (data.writeOnlyChanged && fs.pathExistsSync(outPath)) {
+				console.log(`writeOnlyChanged: ${data.writeOnlyChanged} | pathExists: (${outPath}) ${fs.existsSync(outPath)}`);
+
+				if (data.writeOnlyChanged && fs.existsSync(outPath)) {
 					if (fs.readFileSync(outPath).toString() === source) {
 						skipCount++;
 						continue;

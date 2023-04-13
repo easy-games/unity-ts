@@ -44,12 +44,12 @@ export class PathTranslator {
 	public getOutputPath(filePath: string) {
 		const makeRelative = this.makeRelativeFactory();
 
-		if (filePath.includes("src/Shared")) {
-			filePath = filePath.replace("src/Shared", "src/Shared/Resources/TS");
-		} else if (filePath.includes("src/Server")) {
-			filePath = filePath.replace("src/Server", "src/Server/Resources/TS");
-		} else if (filePath.includes("src/Client")) {
-			filePath = filePath.replace("src/Client", "src/Client/Resources/TS");
+		if (filePath.includes(path.join("src/Shared"))) {
+			filePath = filePath.replace(path.join("src/Shared"), path.join("src/Shared/Resources/TS"));
+		} else if (filePath.includes(path.join("src/Server"))) {
+			filePath = filePath.replace(path.join("src/Server"), path.join("src/Server/Resources/TS"));
+		} else if (filePath.includes(path.join("src/Client"))) {
+			filePath = filePath.replace(path.join("src/Client"), path.join("src/Client/Resources/TS"));
 		}
 
 		const pathInfo = PathInfo.from(filePath);
@@ -157,12 +157,12 @@ export class PathTranslator {
 		possiblePaths.push(makeRelative(pathInfo));
 
 		possiblePaths = possiblePaths.map(filePath => {
-			if (filePath.includes("src/Shared/Resources/TS")) {
-				filePath = filePath.replace("src/Shared/Resources/TS", "src/Shared");
-			} else if (filePath.includes("src/Server/Resources/TS")) {
-				filePath = filePath.replace("src/Server/Resources/TS", "src/Server");
-			} else if (filePath.includes("src/Client/Resources/TS")) {
-				filePath = filePath.replace("src/Client/Resources/TS", "src/Client");
+			if (filePath.includes(path.join("src/Shared/Resources/TS"))) {
+				filePath = filePath.replace(path.join("src/Shared/Resources/TS"), path.join("src/Shared"));
+			} else if (filePath.includes(path.join("src/Server/Resources/TS"))) {
+				filePath = filePath.replace(path.join("src/Server/Resources/TS"), path.join("src/Server"));
+			} else if (filePath.includes(path.join("src/Client/Resources/TS"))) {
+				filePath = filePath.replace(path.join("src/Client/Resources/TS"), path.join("src/Client"));
 			}
 			return filePath;
 		});
