@@ -163,18 +163,18 @@ export class PathTranslator {
 		possiblePaths.push(makeRelative(pathInfo));
 
 		possiblePaths = possiblePaths.map(filePath => {
-			if (filePath.includes("src/Shared/Resources/TS")) {
-				filePath = filePath.replace("src/Shared/Resources/TS", "src/Shared");
-			} else if (filePath.includes("src/Server/Resources/TS")) {
-				filePath = filePath.replace("src/Server/Resources/TS", "src/Server");
-			} else if (filePath.includes("src/Client/Resources/TS")) {
-				filePath = filePath.replace("src/Client/Resources/TS", "src/Client");
-			} else if (filePath.includes("src/CoreClient/Resources/TS")) {
-				filePath = filePath.replace("src/CoreClient/Resources/TS", "src/CoreClient");
-			} else if (filePath.includes("src/CoreShared/Resources/TS")) {
-				filePath = filePath.replace("src/CoreShared/Resources/TS", "src/CoreShared");
-			} else if (filePath.includes("src/CoreServer/Resources/TS")) {
-				filePath = filePath.replace("src/CoreServer/Resources/TS", "src/CoreServer");
+			if (filePath.includes(path.join("src/Shared/Resources/TS"))) {
+				filePath = filePath.replace(path.join("src/Shared/Resources/TS"), path.join("src/Shared"));
+			} else if (filePath.includes(path.join("src/Server/Resources/TS"))) {
+				filePath = filePath.replace(path.join("src/Server/Resources/TS"), path.join("src/Server"));
+			} else if (filePath.includes(path.join("src/Client/Resources/TS"))) {
+				filePath = filePath.replace(path.join("src/Client/Resources/TS"), path.join("src/Client"));
+			} else if (filePath.includes(path.join("src/CoreShared/Resources/TS"))) {
+				filePath = filePath.replace(path.join("src/CoreShared/Resources/TS"), path.join("src/CoreShared"));
+			} else if (filePath.includes(path.join("src/CoreServer/Resources/TS"))) {
+				filePath = filePath.replace(path.join("src/CoreServer/Resources/TS"), path.join("src/CoreServer"));
+			} else if (filePath.includes(path.join("src/CoreClient/Resources/TS"))) {
+				filePath = filePath.replace(path.join("src/CoreClient/Resources/TS"), path.join("src/CoreClient"));
 			}
 			return filePath;
 		});

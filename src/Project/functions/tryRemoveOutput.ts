@@ -32,13 +32,6 @@ function isOutputFileOrphaned(pathTranslator: PathTranslator, filePath: string) 
 }
 
 export function tryRemoveOutput(pathTranslator: PathTranslator, outPath: string) {
-	if (outPath.toLowerCase().endsWith("Resources") || outPath.toLowerCase().endsWith("Scenes")) {
-		return;
-	}
-	if (outPath.toLowerCase().includes("Resources/") && !outPath.toLowerCase().includes("Resources/TS")) {
-		// console.log("skipping " + outPath);
-		return;
-	}
 	if (outPath.includes("Scenes/")) {
 		// console.log("skipping " + outPath);
 		return;
