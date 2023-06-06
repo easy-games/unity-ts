@@ -1,5 +1,5 @@
 import path from "path";
-import { DTS_EXT, D_EXT, INDEX_NAME, INIT_NAME, LUA_EXT, TSX_EXT, TS_EXT } from "Shared/constants";
+import { D_EXT, DTS_EXT, INDEX_NAME, INIT_NAME, LUA_EXT, TS_EXT, TSX_EXT } from "Shared/constants";
 import { assert } from "Shared/util/assert";
 
 class PathInfo {
@@ -50,6 +50,12 @@ export class PathTranslator {
 			filePath = filePath.replace("src/Server", "src/Server/Resources/TS");
 		} else if (filePath.includes("src/Client")) {
 			filePath = filePath.replace("src/Client", "src/Client/Resources/TS");
+		} else if (filePath.includes("src/CoreClient")) {
+			filePath = filePath.replace("src/CoreClient", "src/CoreClient/Resources/TS");
+		} else if (filePath.includes("src/CoreServer")) {
+			filePath = filePath.replace("src/CoreServer", "src/CoreServer/Resources/TS");
+		} else if (filePath.includes("src/CoreShared")) {
+			filePath = filePath.replace("src/CoreShared", "src/CoreShared/Resources/TS");
 		}
 
 		const pathInfo = PathInfo.from(filePath);
@@ -163,6 +169,12 @@ export class PathTranslator {
 				filePath = filePath.replace("src/Server/Resources/TS", "src/Server");
 			} else if (filePath.includes("src/Client/Resources/TS")) {
 				filePath = filePath.replace("src/Client/Resources/TS", "src/Client");
+			} else if (filePath.includes("src/CoreClient/Resources/TS")) {
+				filePath = filePath.replace("src/CoreClient/Resources/TS", "src/CoreClient");
+			} else if (filePath.includes("src/CoreShared/Resources/TS")) {
+				filePath = filePath.replace("src/CoreShared/Resources/TS", "src/CoreShared");
+			} else if (filePath.includes("src/CoreServer/Resources/TS")) {
+				filePath = filePath.replace("src/CoreServer/Resources/TS", "src/CoreServer");
 			}
 			return filePath;
 		});
