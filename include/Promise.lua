@@ -1612,7 +1612,7 @@ function Promise.prototype:awaitStatus()
 		self:finally(function()
 			local success, err = coroutine.resume(thread)
 			if not success then
-				error(err)
+				warn(err)
 			end
 		end)
 
