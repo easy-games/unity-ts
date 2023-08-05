@@ -1,4 +1,5 @@
 import fs, { readdirSync } from "fs-extra";
+import path from "path";
 import { ProjectData } from "Project";
 import { isCompilableFile } from "Project/util/isCompilableFile";
 import { PathTranslator } from "Shared/classes/PathTranslator";
@@ -13,10 +14,10 @@ export function copyItem(data: ProjectData, pathTranslator: PathTranslator, item
 	fs.copySync(item, output, {
 		filter: (src, dest) => {
 			if (fs.lstatSync(item).isDirectory()) {
-				// for (let child of getDirectories(src)) {
-				// 	copyItem(data, pathTranslator, path.join(item, child));
-				// }
-				// return false;
+				for (let child of getDirectories(src)) {
+					copyItem(data, pathTranslator, path.join(item, child));
+				}
+				return false;
 			}
 			if (
 				data.writeOnlyChanged &&
@@ -24,7 +25,7 @@ export function copyItem(data: ProjectData, pathTranslator: PathTranslator, item
 				!fs.lstatSync(src).isDirectory() &&
 				fs.readFileSync(src).toString() === fs.readFileSync(dest).toString()
 			) {
-				console.log("skipping copy: " + src);
+				// console.log("skipping copy: " + src);
 				return false;
 			}
 
@@ -33,7 +34,11 @@ export function copyItem(data: ProjectData, pathTranslator: PathTranslator, item
 			}
 
 			// console.log(`${src} is compatible: ${isCompilableFile(src)}. output: ` + dest);
-			return !isCompilableFile(src);
+			let result = !isCompilableFile(src);
+			// if (result) {
+			// 	console.log("allowing " + src + "\n");
+			// }
+			return result;
 		},
 		dereference: true,
 	});

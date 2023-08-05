@@ -58,6 +58,20 @@ export class PathTranslator {
 			filePath = filePath.replace("src/CoreShared", "src/CoreShared/Resources/TS");
 		}
 
+		let hasImports = false;
+		if (filePath.includes("Imports/")) {
+			hasImports = true;
+			console.log("\nhas imports: " + filePath);
+			if (filePath.includes("/Shared")) {
+				filePath = filePath.replace("/Shared", "/Shared/Resources/TS");
+			} else if (filePath.includes("/Server")) {
+				filePath = filePath.replace("/Server", "/Server/Resources/TS");
+			} else if (filePath.includes("/Client")) {
+				filePath = filePath.replace("/Client", "/Client/Resources/TS");
+			}
+			console.log("path after: " + filePath + "\n");
+		}
+
 		const pathInfo = PathInfo.from(filePath);
 
 		if ((pathInfo.extsPeek() === TS_EXT || pathInfo.extsPeek() === TSX_EXT) && pathInfo.extsPeek(1) !== D_EXT) {
@@ -71,7 +85,11 @@ export class PathTranslator {
 			pathInfo.exts.push(LUA_EXT);
 		}
 
-		return makeRelative(pathInfo);
+		let relative = makeRelative(pathInfo);
+		if (hasImports) {
+			console.log("relative: " + relative + "\n");
+		}
+		return relative;
 	}
 
 	/**
@@ -98,8 +116,6 @@ export class PathTranslator {
 	 * - `out/*` -> `src/*`
 	 */
 	public getInputPaths(filePath: string) {
-		console.log("start: " + filePath);
-
 		const makeRelative = this.makeRelativeFactory(this.outDir, this.rootDir);
 		let possiblePaths = new Array<string>();
 		const pathInfo = PathInfo.from(filePath);
@@ -175,6 +191,16 @@ export class PathTranslator {
 				filePath = filePath.replace(path.join("src/CoreServer/Resources/TS"), path.join("src/CoreServer"));
 			} else if (filePath.includes(path.join("src/CoreClient/Resources/TS"))) {
 				filePath = filePath.replace(path.join("src/CoreClient/Resources/TS"), path.join("src/CoreClient"));
+			}
+
+			if (filePath.includes("Imports/")) {
+				if (filePath.includes(path.join("/Shared/Resources/TS"))) {
+					filePath = filePath.replace(path.join("/Shared/Resources/TS"), path.join("/Shared"));
+				} else if (filePath.includes(path.join("/Server/Resources/TS"))) {
+					filePath = filePath.replace(path.join("/Server/Resources/TS"), path.join("/Server"));
+				} else if (filePath.includes(path.join("/Client/Resources/TS"))) {
+					filePath = filePath.replace(path.join("/Client/Resources/TS"), path.join("/Client"));
+				}
 			}
 			return filePath;
 		});

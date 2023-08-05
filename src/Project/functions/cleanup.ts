@@ -26,6 +26,18 @@ export function cleanup(pathTranslator: PathTranslator) {
 		path.join(outDir, "Shared", "Resources", "TS"),
 	];
 
+	const importsDir = path.join(outDir, "Imports");
+	if (!fs.existsSync(importsDir)) {
+		fs.mkdirSync(importsDir);
+	}
+	const files = fs.readdirSync(importsDir, { withFileTypes: true });
+	for (const file of files) {
+		if (file.isDirectory()) {
+			console.log("found bundle: " + file + "\n");
+			dirsToCleanup.push(file.name);
+		}
+	}
+
 	for (let dir of dirsToCleanup) {
 		if (fs.pathExistsSync(dir)) {
 			cleanupDirRecursively(pathTranslator, dir);

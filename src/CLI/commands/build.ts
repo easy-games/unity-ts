@@ -135,7 +135,6 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 
 	handler: async argv => {
 		try {
-			console.log("PATH: " + argv.project);
 			const tsConfigPath = findTsConfigPath(argv.project);
 			// const tsConfigPath = findTsConfigPath(".");
 
