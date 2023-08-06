@@ -80,7 +80,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	function runInitialCompile() {
 		refreshProgram();
 		assert(program && pathTranslator);
-		cleanup(pathTranslator);
+		cleanup(pathTranslator, data.projectOptions);
 		copyInclude(data);
 		copyFiles(data, pathTranslator, new Set(getRootDirs(options)));
 		const sourceFiles = getChangedSourceFiles(program);

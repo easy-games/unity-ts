@@ -38,6 +38,7 @@ export enum ProjectType {
 	Game = "game",
 	Model = "model",
 	Package = "package",
+	AirshipBundle = "airshipbundle",
 }
 
 export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {

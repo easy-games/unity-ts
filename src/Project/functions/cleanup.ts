@@ -2,6 +2,8 @@ import fs from "fs-extra";
 import path from "path";
 import { tryRemoveOutput } from "Project/functions/tryRemoveOutput";
 import { PathTranslator } from "Shared/classes/PathTranslator";
+import { ProjectType } from "Shared/constants";
+import { ProjectOptions } from "Shared/types";
 
 function cleanupDirRecursively(pathTranslator: PathTranslator, dir: string) {
 	if (fs.pathExistsSync(dir)) {
@@ -18,7 +20,7 @@ function cleanupDirRecursively(pathTranslator: PathTranslator, dir: string) {
 	}
 }
 
-export function cleanup(pathTranslator: PathTranslator) {
+export function cleanup(pathTranslator: PathTranslator, projectOptions: ProjectOptions) {
 	const outDir = pathTranslator.outDir;
 	const dirsToCleanup = [
 		path.join(outDir, "Client", "Resources", "TS"),
@@ -26,15 +28,17 @@ export function cleanup(pathTranslator: PathTranslator) {
 		path.join(outDir, "Shared", "Resources", "TS"),
 	];
 
-	const importsDir = path.join(outDir, "Imports");
-	if (!fs.existsSync(importsDir)) {
-		fs.mkdirSync(importsDir);
-	}
-	const files = fs.readdirSync(importsDir, { withFileTypes: true });
-	for (const file of files) {
-		if (file.isDirectory()) {
-			console.log("found bundle: " + file + "\n");
-			dirsToCleanup.push(file.name);
+	if (projectOptions.type === ProjectType.Game) {
+		const importsDir = path.join(outDir, "Imports");
+		if (!fs.existsSync(importsDir)) {
+			fs.mkdirSync(importsDir);
+		}
+		const files = fs.readdirSync(importsDir, { withFileTypes: true });
+		for (const file of files) {
+			if (file.isDirectory()) {
+				console.log("found bundle: " + file + "\n");
+				dirsToCleanup.push(file.name);
+			}
 		}
 	}
 

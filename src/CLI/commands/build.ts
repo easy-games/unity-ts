@@ -156,7 +156,7 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 			} else {
 				const program = createProjectProgram(data);
 				const pathTranslator = createPathTranslator(program);
-				cleanup(pathTranslator);
+				cleanup(pathTranslator, projectOptions);
 				copyInclude(data);
 				await copyNodeModules(data);
 				copyFiles(data, pathTranslator, new Set(getRootDirs(program.getCompilerOptions())));
