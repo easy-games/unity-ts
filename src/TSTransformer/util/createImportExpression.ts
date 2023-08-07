@@ -247,7 +247,6 @@ export function createImportExpression(
 			);
 			return luau.none();
 		}
-		console.log("moduleRbxPath:", moduleRbxPath);
 		parts.push(...getImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath));
 	}
 
