@@ -46,7 +46,6 @@ export class PathTranslator {
 	public getOutputPath(filePath: string) {
 		const makeRelative = this.makeRelativeFactory();
 
-		console.log("filePath: " + filePath);
 		if (this.projectOptions.type !== ProjectType.AirshipBundle) {
 			if (filePath.includes("src/Shared")) {
 				filePath = filePath.replace("src/Shared", "src/Shared/Resources/TS");
@@ -66,7 +65,6 @@ export class PathTranslator {
 		let hasImports = false;
 		if (filePath.includes("Imports/")) {
 			hasImports = true;
-			console.log("\nhas imports: " + filePath);
 			if (filePath.includes("/Shared")) {
 				filePath = filePath.replace("/Shared", "/Shared/Resources/TS");
 			} else if (filePath.includes("/Server")) {
@@ -74,7 +72,6 @@ export class PathTranslator {
 			} else if (filePath.includes("/Client")) {
 				filePath = filePath.replace("/Client", "/Client/Resources/TS");
 			}
-			console.log("path after: " + filePath + "\n");
 		}
 
 		const pathInfo = PathInfo.from(filePath);
@@ -91,9 +88,6 @@ export class PathTranslator {
 		}
 
 		let relative = makeRelative(pathInfo);
-		if (hasImports) {
-			console.log("relative: " + relative + "\n");
-		}
 		return relative;
 	}
 
