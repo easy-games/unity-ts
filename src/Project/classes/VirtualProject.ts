@@ -1,6 +1,6 @@
 import { RojoResolver } from "@easy-games/unity-rojo-resolver";
 import { renderAST } from "@roblox-ts/luau-ast";
-import { pathJoin, PATH_SEP, VirtualFileSystem } from "Project/classes/VirtualFileSystem";
+import { PATH_SEP, pathJoin, VirtualFileSystem } from "Project/classes/VirtualFileSystem";
 import { validateCompilerOptions } from "Project/functions/validateCompilerOptions";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { PathTranslator } from "Shared/classes/PathTranslator";
@@ -115,7 +115,7 @@ export class VirtualProject {
 		this.typeChecker = this.program.getTypeChecker();
 
 		const services = createTransformServices(this.program, this.typeChecker, this.data);
-		const pathTranslator = new PathTranslator(ROOT_DIR, OUT_DIR, undefined, false);
+		const pathTranslator = new PathTranslator(ROOT_DIR, OUT_DIR, undefined, false, DEFAULT_PROJECT_OPTIONS);
 
 		const sourceFile = this.program.getSourceFile(PLAYGROUND_PATH);
 		assert(sourceFile);

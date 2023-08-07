@@ -27,7 +27,7 @@ describe("should compile tests project", () => {
 		}),
 	);
 	const program = createProjectProgram(data);
-	const pathTranslator = createPathTranslator(program);
+	const pathTranslator = createPathTranslator(program, data.projectOptions);
 
 	// clean outDir between test runs
 	fs.removeSync(program.getCompilerOptions().outDir!);

@@ -1,5 +1,6 @@
 import path from "path";
-import { D_EXT, DTS_EXT, INDEX_NAME, INIT_NAME, LUA_EXT, TS_EXT, TSX_EXT } from "Shared/constants";
+import { D_EXT, DTS_EXT, INDEX_NAME, INIT_NAME, LUA_EXT, ProjectType, TS_EXT, TSX_EXT } from "Shared/constants";
+import { ProjectOptions } from "Shared/types";
 import { assert } from "Shared/util/assert";
 
 class PathInfo {
@@ -29,6 +30,7 @@ export class PathTranslator {
 		public readonly outDir: string,
 		public readonly buildInfoOutputPath: string | undefined,
 		public readonly declaration: boolean,
+		public readonly projectOptions: ProjectOptions,
 	) {}
 
 	private makeRelativeFactory(from = this.rootDir, to = this.outDir) {
@@ -44,18 +46,21 @@ export class PathTranslator {
 	public getOutputPath(filePath: string) {
 		const makeRelative = this.makeRelativeFactory();
 
-		if (filePath.includes("src/Shared")) {
-			filePath = filePath.replace("src/Shared", "src/Shared/Resources/TS");
-		} else if (filePath.includes("src/Server")) {
-			filePath = filePath.replace("src/Server", "src/Server/Resources/TS");
-		} else if (filePath.includes("src/Client")) {
-			filePath = filePath.replace("src/Client", "src/Client/Resources/TS");
-		} else if (filePath.includes("src/CoreClient")) {
-			filePath = filePath.replace("src/CoreClient", "src/CoreClient/Resources/TS");
-		} else if (filePath.includes("src/CoreServer")) {
-			filePath = filePath.replace("src/CoreServer", "src/CoreServer/Resources/TS");
-		} else if (filePath.includes("src/CoreShared")) {
-			filePath = filePath.replace("src/CoreShared", "src/CoreShared/Resources/TS");
+		console.log("filePath: " + filePath);
+		if (this.projectOptions.type !== ProjectType.AirshipBundle) {
+			if (filePath.includes("src/Shared")) {
+				filePath = filePath.replace("src/Shared", "src/Shared/Resources/TS");
+			} else if (filePath.includes("src/Server")) {
+				filePath = filePath.replace("src/Server", "src/Server/Resources/TS");
+			} else if (filePath.includes("src/Client")) {
+				filePath = filePath.replace("src/Client", "src/Client/Resources/TS");
+			} else if (filePath.includes("src/CoreClient")) {
+				filePath = filePath.replace("src/CoreClient", "src/CoreClient/Resources/TS");
+			} else if (filePath.includes("src/CoreServer")) {
+				filePath = filePath.replace("src/CoreServer", "src/CoreServer/Resources/TS");
+			} else if (filePath.includes("src/CoreShared")) {
+				filePath = filePath.replace("src/CoreShared", "src/CoreShared/Resources/TS");
+			}
 		}
 
 		let hasImports = false;

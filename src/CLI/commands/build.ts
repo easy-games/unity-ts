@@ -11,7 +11,7 @@ import { createProjectProgram } from "Project/functions/createProjectProgram";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { setupProjectWatchProgram } from "Project/functions/setupProjectWatchProgram";
 import { LogService } from "Shared/classes/LogService";
-import { DEFAULT_PROJECT_OPTIONS } from "Shared/constants";
+import { DEFAULT_PROJECT_OPTIONS, ProjectType } from "Shared/constants";
 import { LoggableError } from "Shared/errors/LoggableError";
 import { ProjectOptions } from "Shared/types";
 import { getRootDirs } from "Shared/util/getRootDirs";
@@ -155,10 +155,12 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 				setupProjectWatchProgram(data, projectOptions.usePolling);
 			} else {
 				const program = createProjectProgram(data);
-				const pathTranslator = createPathTranslator(program);
+				const pathTranslator = createPathTranslator(program, projectOptions);
 				cleanup(pathTranslator, projectOptions);
-				copyInclude(data);
-				await copyNodeModules(data);
+				if (projectOptions.type !== ProjectType.AirshipBundle) {
+					copyInclude(data);
+					await copyNodeModules(data);
+				}
 				copyFiles(data, pathTranslator, new Set(getRootDirs(program.getCompilerOptions())));
 				const emitResult = compileFiles(
 					program.getProgram(),

@@ -74,7 +74,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	const createProgram = createProgramFactory(data, options);
 	function refreshProgram() {
 		program = createProgram([...fileNamesSet], options);
-		pathTranslator = createPathTranslator(program);
+		pathTranslator = createPathTranslator(program, data.projectOptions);
 	}
 
 	function runInitialCompile() {
