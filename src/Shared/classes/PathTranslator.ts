@@ -47,30 +47,30 @@ export class PathTranslator {
 		const makeRelative = this.makeRelativeFactory();
 
 		if (this.projectOptions.type !== ProjectType.AirshipBundle) {
-			if (filePath.includes("src/Shared")) {
-				filePath = filePath.replace("src/Shared", "src/Shared/Resources/TS");
-			} else if (filePath.includes("src/Server")) {
-				filePath = filePath.replace("src/Server", "src/Server/Resources/TS");
-			} else if (filePath.includes("src/Client")) {
-				filePath = filePath.replace("src/Client", "src/Client/Resources/TS");
-			} else if (filePath.includes("src/CoreClient")) {
-				filePath = filePath.replace("src/CoreClient", "src/CoreClient/Resources/TS");
-			} else if (filePath.includes("src/CoreServer")) {
-				filePath = filePath.replace("src/CoreServer", "src/CoreServer/Resources/TS");
-			} else if (filePath.includes("src/CoreShared")) {
-				filePath = filePath.replace("src/CoreShared", "src/CoreShared/Resources/TS");
+			if (filePath.includes(path.join("src", "Shared"))) {
+				filePath = filePath.replace(path.join("src/Shared"), path.join("src/Shared/Resources/TS"));
+			} else if (filePath.includes(path.join("src/Server"))) {
+				filePath = filePath.replace(path.join("src/Server"), path.join("src/Server/Resources/TS"));
+			} else if (filePath.includes(path.join("src/Client"))) {
+				filePath = filePath.replace(path.join("src/Client"), path.join("src/Client/Resources/TS"));
+			} else if (filePath.includes(path.join("src/CoreClient"))) {
+				filePath = filePath.replace(path.join("src/CoreClient"), path.join("src/CoreClient/Resources/TS"));
+			} else if (filePath.includes(path.join("src/CoreServer"))) {
+				filePath = filePath.replace(path.join("src/CoreServer"), path.join("src/CoreServer/Resources/TS"));
+			} else if (filePath.includes(path.join("src/CoreShared"))) {
+				filePath = filePath.replace(path.join("src/CoreShared"), path.join("src/CoreShared/Resources/TS"));
 			}
 		}
 
 		let hasImports = false;
-		if (filePath.includes("Imports/")) {
+		if (filePath.includes("Imports" + path.sep)) {
 			hasImports = true;
-			if (filePath.includes("/Shared")) {
-				filePath = filePath.replace("/Shared", "/Shared/Resources/TS");
-			} else if (filePath.includes("/Server")) {
-				filePath = filePath.replace("/Server", "/Server/Resources/TS");
-			} else if (filePath.includes("/Client")) {
-				filePath = filePath.replace("/Client", "/Client/Resources/TS");
+			if (filePath.includes(path.sep + "Shared")) {
+				filePath = filePath.replace(path.sep + "Shared", path.sep + path.join("Shared/Resources/TS"));
+			} else if (filePath.includes(path.sep + "Server")) {
+				filePath = filePath.replace(path.sep + "Server", path.sep + path.join("Server/Resources/TS"));
+			} else if (filePath.includes(path.sep + "Client")) {
+				filePath = filePath.replace(path.sep + "Client", path.sep + path.join("Client/Resources/TS"));
 			}
 		}
 
