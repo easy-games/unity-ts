@@ -9,6 +9,7 @@ import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProjectData } from "Project/functions/createProjectData";
 import { createProjectProgram } from "Project/functions/createProjectProgram";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
+import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
 import { setupProjectWatchProgram } from "Project/functions/setupProjectWatchProgram";
 import { LogService } from "Shared/classes/LogService";
 import { DEFAULT_PROJECT_OPTIONS, ProjectType } from "Shared/constants";
@@ -171,8 +172,28 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 				for (const diagnostic of emitResult.diagnostics) {
 					diagnosticReporter(diagnostic);
 				}
+				let containsErrors = false;
 				if (hasErrors(emitResult.diagnostics)) {
+					containsErrors = true;
 					process.exitCode = 1;
+				}
+
+				// Build types
+				if (!containsErrors) {
+					LogService.writeLine("Building types...");
+
+					fs.removeSync(`../../../Types~/${process.env.npm_package_name}`);
+
+					const { fileNames, options } = getParsedCommandLine(data);
+					const typesProgram = ts.createProgram(fileNames, {
+						declaration: true,
+						declarationDir: `../../../Types~/${process.env.npm_package_name}`,
+						outDir: "temp",
+					});
+					typesProgram.emit();
+					fs.removeSync("temp");
+					fs.createFileSync(`../../../Types~/${process.env.npm_package_name}/index.d.ts`);
+					LogService.writeLine("Finished building types!");
 				}
 			}
 		} catch (e) {
