@@ -1,9 +1,7 @@
 import path from "path";
-import { D_EXT, DTS_EXT, INDEX_NAME, INIT_NAME, LUA_EXT, ProjectType, TS_EXT, TSX_EXT } from "Shared/constants";
+import { D_EXT, DTS_EXT, INDEX_NAME, INIT_NAME, LUA_EXT, TS_EXT, TSX_EXT } from "Shared/constants";
 import { ProjectOptions } from "Shared/types";
 import { assert } from "Shared/util/assert";
-
-import { LogService } from "./LogService";
 
 // eslint-disable-next-line no-restricted-imports
 
@@ -64,35 +62,35 @@ export class PathTranslator {
 		const makeRelative = this.makeRelativeFactory();
 		// LogService.writeLine("filePath pre: " + filePath);
 
-		if (this.projectOptions.type !== ProjectType.AirshipBundle) {
-			if (filePath.includes("src/Shared")) {
-				filePath = filePath.replace("src/Shared", "src/Shared/Resources/TS");
-			} else if (filePath.includes("src/Server")) {
-				filePath = filePath.replace("src/Server", "src/Server/Resources/TS");
-			} else if (filePath.includes("src/Client")) {
-				filePath = filePath.replace("src/Client", "src/Client/Resources/TS");
-			} else if (filePath.includes("src/CoreClient")) {
-				filePath = filePath.replace("src/CoreClient", "src/CoreClient/Resources/TS");
-			} else if (filePath.includes("src/CoreServer")) {
-				filePath = filePath.replace("src/CoreServer", "src/CoreServer/Resources/TS");
-			} else if (filePath.includes("src/CoreShared")) {
-				filePath = filePath.replace("src/CoreShared", "src/CoreShared/Resources/TS");
-			}
-
-			filePath = filePath.replace("Typescript~/src/", "");
+		// if (this.projectOptions.type !== ProjectType.AirshipBundle) {
+		if (filePath.includes("src/Shared")) {
+			filePath = filePath.replace("src/Shared", "src/Shared/Resources/TS");
+		} else if (filePath.includes("src/Server")) {
+			filePath = filePath.replace("src/Server", "src/Server/Resources/TS");
+		} else if (filePath.includes("src/Client")) {
+			filePath = filePath.replace("src/Client", "src/Client/Resources/TS");
+		} else if (filePath.includes("src/CoreClient")) {
+			filePath = filePath.replace("src/CoreClient", "src/CoreClient/Resources/TS");
+		} else if (filePath.includes("src/CoreServer")) {
+			filePath = filePath.replace("src/CoreServer", "src/CoreServer/Resources/TS");
+		} else if (filePath.includes("src/CoreShared")) {
+			filePath = filePath.replace("src/CoreShared", "src/CoreShared/Resources/TS");
 		}
 
-		let hasImports = false;
-		if (filePath.includes("Imports/")) {
-			hasImports = true;
-			if (filePath.includes("/Shared")) {
-				filePath = filePath.replace("/Shared", "/Shared/Resources/TS");
-			} else if (filePath.includes("/Server")) {
-				filePath = filePath.replace("/Server", "/Server/Resources/TS");
-			} else if (filePath.includes("/Client")) {
-				filePath = filePath.replace("/Client", "/Client/Resources/TS");
-			}
-		}
+		filePath = filePath.replace("Typescript~/src/", "");
+		// }
+
+		// let hasImports = false;
+		// if (filePath.includes("Imports/")) {
+		// 	hasImports = true;
+		// 	if (filePath.includes("/Shared")) {
+		// 		filePath = filePath.replace("/Shared", "/Shared/Resources/TS");
+		// 	} else if (filePath.includes("/Server")) {
+		// 		filePath = filePath.replace("/Server", "/Server/Resources/TS");
+		// 	} else if (filePath.includes("/Client")) {
+		// 		filePath = filePath.replace("/Client", "/Client/Resources/TS");
+		// 	}
+		// }
 
 		const pathInfo = PathInfo.from(filePath);
 
@@ -199,8 +197,6 @@ export class PathTranslator {
 		possiblePaths.push(makeRelative(pathInfo));
 
 		possiblePaths = possiblePaths.map(filePath => {
-			LogService.writeLine("pre: " + filePath);
-
 			if (filePath.includes("Imports")) {
 				//
 			} else {

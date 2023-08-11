@@ -1,7 +1,6 @@
 import { RbxPath, RbxPathParent, RojoResolver } from "@easy-games/unity-rojo-resolver";
 import luau from "@roblox-ts/luau-ast";
 import path from "path";
-import { LogService } from "Shared/classes/LogService";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
@@ -234,22 +233,24 @@ export function createImportExpression(
 		moduleOutPath = split[1];
 		moduleOutPath = "Shared/Resources/rbxts_include/node_modules/" + moduleOutPath;
 	} else if (moduleOutPath.includes("Types~")) {
-		LogService.writeLine("types before=" + moduleOutPath);
 		let split = moduleOutPath.split("Types~");
 		moduleOutPath = "Imports" + split[1];
 
 		moduleOutPath = moduleOutPath.replace("Shared/", "Shared/Resources/TS/");
 		moduleOutPath = moduleOutPath.replace("Server/", "Server/Resources/TS/");
 		moduleOutPath = moduleOutPath.replace("Client/", "Client/Resources/TS/");
-		LogService.writeLine("types after.2=" + moduleOutPath);
 	} else {
-		let split = moduleOutPath.split("src/");
-		moduleOutPath = split[1];
-
+		// LogService.writeLine("path: " + moduleOutPath);
 		moduleOutPath = moduleOutPath.replace("Shared/", "Shared/Resources/TS/");
 		moduleOutPath = moduleOutPath.replace("Server/", "Server/Resources/TS/");
 		moduleOutPath = moduleOutPath.replace("Client/", "Client/Resources/TS/");
 	}
+
+	if (moduleOutPath.includes("/Assets/")) {
+		moduleOutPath = moduleOutPath.split("/Assets/")[1];
+	}
+
+	moduleOutPath = moduleOutPath.replace(".lua", "");
 
 	// LogService.writeLine("moduleOutPath after=" + moduleOutPath);
 	const parts = new Array<luau.Expression>();

@@ -209,8 +209,6 @@ export function compileFiles(
 							continue;
 						}
 					}
-					LogService.writeLine("no skip sourceFile: " + sourceFile.fileName);
-					LogService.writeLine("outPath: " + outPath);
 				}
 
 				fs.outputFileSync(outPath, source);
