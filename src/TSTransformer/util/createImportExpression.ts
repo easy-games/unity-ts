@@ -1,7 +1,6 @@
-import { NetworkType, RbxPath, RbxPathParent, RbxType, RojoResolver } from "@easy-games/unity-rojo-resolver";
+import { RbxPath, RbxPathParent, RojoResolver } from "@easy-games/unity-rojo-resolver";
 import luau from "@roblox-ts/luau-ast";
 import path from "path";
-import { NODE_MODULES, ProjectType } from "Shared/constants";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
@@ -12,20 +11,21 @@ import ts from "typescript";
 
 const NODE_MODULES_PATH = "Shared/rbxts_include/node_modules/";
 
-function getAbsoluteImport(moduleRbxPath: RbxPath) {
+function getAbsoluteImport(moduleRbxPath: string): Array<luau.Expression<luau.SyntaxKind>> {
+	// let split = moduleRbxPath.split("/");
 	const pathExpressions = new Array<luau.Expression>();
-	const serviceName = moduleRbxPath[0];
-	assert(serviceName);
+	// const serviceName = split[0];
+	// assert(serviceName);
 
-	let stringPath = "";
-	for (let i = 0; i < moduleRbxPath.length; i++) {
-		stringPath += moduleRbxPath[i];
-		if (i + 1 < moduleRbxPath.length) {
-			stringPath += "/";
-		}
-	}
+	// let stringPath = "";
+	// for (let i = 0; i < split.length; i++) {
+	// 	stringPath += split[i];
+	// 	if (i + 1 < split.length) {
+	// 		stringPath += "/";
+	// 	}
+	// }
 
-	pathExpressions.push(luau.string(stringPath));
+	pathExpressions.push(luau.string(moduleRbxPath));
 	return pathExpressions;
 }
 
@@ -87,127 +87,123 @@ function findRelativeRbxPath(moduleOutPath: string, pkgRojoResolvers: Array<Rojo
 	}
 }
 
-function getNodeModulesImportParts(
-	state: TransformState,
-	sourceFile: ts.SourceFile,
-	moduleSpecifier: ts.Expression,
-	moduleOutPath: string,
-) {
-	const moduleScope = path.relative(state.data.nodeModulesPath, moduleOutPath).split(path.sep)[0];
-	assert(moduleScope);
+// function getNodeModulesImportParts(
+// 	state: TransformState,
+// 	sourceFile: ts.SourceFile,
+// 	moduleSpecifier: ts.Expression,
+// 	moduleOutPath: string,
+// ) {
+// 	const moduleScope = path.relative(state.data.nodeModulesPath, moduleOutPath).split(path.sep)[0];
+// 	assert(moduleScope);
 
-	if (!moduleScope.startsWith("@")) {
-		DiagnosticService.addDiagnostic(errors.noUnscopedModule(moduleSpecifier));
-		return [];
-	}
+// 	if (!moduleScope.startsWith("@")) {
+// 		DiagnosticService.addDiagnostic(errors.noUnscopedModule(moduleSpecifier));
+// 		return [];
+// 	}
 
-	if (!validateModule(state, moduleScope)) {
-		DiagnosticService.addDiagnostic(errors.noInvalidModule(moduleSpecifier));
-		return [];
-	}
+// 	if (!validateModule(state, moduleScope)) {
+// 		DiagnosticService.addDiagnostic(errors.noInvalidModule(moduleSpecifier));
+// 		return [];
+// 	}
 
-	if (state.projectType === ProjectType.Package) {
-		const relativeRbxPath = findRelativeRbxPath(moduleOutPath, state.pkgRojoResolvers);
-		if (!relativeRbxPath) {
-			DiagnosticService.addDiagnostic(
-				errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath), true),
-			);
-			return [];
-		}
+// 	if (state.projectType === ProjectType.Package) {
+// 		const relativeRbxPath = findRelativeRbxPath(moduleOutPath, state.pkgRojoResolvers);
+// 		if (!relativeRbxPath) {
+// 			DiagnosticService.addDiagnostic(
+// 				errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath), true),
+// 			);
+// 			return [];
+// 		}
 
-		let modulePath = moduleOutPath.split("node_modules/")[1];
-		modulePath = modulePath.split(".lua")[0];
-		modulePath = NODE_MODULES_PATH + modulePath;
-		assert(modulePath);
-		// debugger;
+// 		let modulePath = moduleOutPath.split("node_modules/")[1];
+// 		modulePath = modulePath.split(".lua")[0];
+// 		modulePath = NODE_MODULES_PATH + modulePath;
+// 		assert(modulePath);
+// 		// debugger;
 
-		return [luau.string(modulePath)];
+// 		return [luau.string(modulePath)];
 
-		// const moduleName = relativeRbxPath[0];
-		// assert(moduleName);
+// 		// const moduleName = relativeRbxPath[0];
+// 		// assert(moduleName);
 
-		// debugger;
+// 		// debugger;
 
-		// return [
-		// 	propertyAccessExpressionChain(
-		// 		luau.call(state.TS(moduleSpecifier.parent, "getModule"), [
-		// 			luau.globals.script,
-		// 			luau.string(moduleScope),
-		// 			luau.string(moduleName),
-		// 		]),
-		// 		relativeRbxPath.slice(1),
-		// 	),
-		// ];
-	} else {
-		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
-		if (!moduleRbxPath) {
-			DiagnosticService.addDiagnostic(
-				errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath), true),
-			);
-			return [];
-		}
+// 		// return [
+// 		// 	propertyAccessExpressionChain(
+// 		// 		luau.call(state.TS(moduleSpecifier.parent, "getModule"), [
+// 		// 			luau.globals.script,
+// 		// 			luau.string(moduleScope),
+// 		// 			luau.string(moduleName),
+// 		// 		]),
+// 		// 		relativeRbxPath.slice(1),
+// 		// 	),
+// 		// ];
+// 	} else {
+// 		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
+// 		if (!moduleRbxPath) {
+// 			DiagnosticService.addDiagnostic(
+// 				errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath), true),
+// 			);
+// 			return [];
+// 		}
 
-		const indexOfScope = moduleRbxPath.indexOf(moduleScope);
-		if (indexOfScope === -1 || moduleRbxPath[indexOfScope - 1] !== NODE_MODULES) {
-			DiagnosticService.addDiagnostic(
-				errors.noPackageImportWithoutScope(
-					moduleSpecifier,
-					path.relative(state.data.projectPath, moduleOutPath),
-					moduleRbxPath,
-				),
-			);
-			return [];
-		}
+// 		const indexOfScope = moduleRbxPath.indexOf(moduleScope);
+// 		if (indexOfScope === -1 || moduleRbxPath[indexOfScope - 1] !== NODE_MODULES) {
+// 			DiagnosticService.addDiagnostic(
+// 				errors.noPackageImportWithoutScope(
+// 					moduleSpecifier,
+// 					path.relative(state.data.projectPath, moduleOutPath),
+// 					moduleRbxPath,
+// 				),
+// 			);
+// 			return [];
+// 		}
 
-		return getImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath);
-	}
-}
+// 		return getImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath);
+// 	}
+// }
 
-function getImportParts(
-	state: TransformState,
-	sourceFile: ts.SourceFile,
-	moduleSpecifier: ts.Expression,
-	moduleOutPath: string,
-	moduleRbxPath: RbxPath,
-) {
-	const moduleRbxType = state.rojoResolver.getRbxTypeFromFilePath(moduleOutPath);
-	if (moduleRbxType === RbxType.Script || moduleRbxType === RbxType.LocalScript) {
-		DiagnosticService.addDiagnostic(errors.noNonModuleImport(moduleSpecifier));
-		return [];
-	}
+// function getImportParts(
+// 	state: TransformState,
+// 	sourceFile: ts.SourceFile,
+// 	moduleSpecifier: ts.Expression,
+// 	moduleOutPath: string,
+// 	moduleRbxPath: RbxPath,
+// ) {
+// 	const moduleRbxType = state.rojoResolver.getRbxTypeFromFilePath(moduleOutPath);
+// 	if (moduleRbxType === RbxType.Script || moduleRbxType === RbxType.LocalScript) {
+// 		DiagnosticService.addDiagnostic(errors.noNonModuleImport(moduleSpecifier));
+// 		return [];
+// 	}
 
-	const sourceOutPath = state.pathTranslator.getOutputPath(sourceFile.fileName);
-	const sourceRbxPath = state.rojoResolver.getRbxPathFromFilePath(sourceOutPath);
-	if (!sourceRbxPath) {
-		DiagnosticService.addDiagnostic(
-			errors.noRojoData(sourceFile, path.relative(state.data.projectPath, sourceOutPath), false),
-		);
-		return [];
-	}
+// 	const sourceOutPath = state.pathTranslator.getOutputPath(sourceFile.fileName);
+// 	// const unityPath = state.pathTranslator.getUnityPathFromTSFilePath(sourceOutPath);
+// 	const sourceRbxPath = state.rojoResolver.getRbxPathFromFilePath(sourceOutPath);
+// 	// if (!sourceRbxPath) {
+// 	// 	DiagnosticService.addDiagnostic(
+// 	// 		errors.noRojoData(sourceFile, path.relative(state.data.projectPath, sourceOutPath), false),
+// 	// 	);
+// 	// 	return [];
+// 	// }
 
-	if (state.projectType === ProjectType.Game) {
-		if (
-			state.rojoResolver.getNetworkType(moduleRbxPath) === NetworkType.Server &&
-			state.rojoResolver.getNetworkType(sourceRbxPath) !== NetworkType.Server
-		) {
-			DiagnosticService.addDiagnostic(errors.noServerImport(moduleSpecifier));
-			return [];
-		}
+// 	return [];
+// 	// if (state.projectType === ProjectType.Game) {
+// 	// 	return getAbsoluteImport(moduleRbxPath);
+// 	// } else {
+// 	// 	return getRelativeImport(sourceRbxPath, moduleRbxPath);
+// 	// }
+// }
 
-		return getAbsoluteImport(moduleRbxPath);
-		// const fileRelation = state.rojoResolver.getFileRelation(sourceRbxPath, moduleRbxPath);
-		// if (fileRelation === FileRelation.OutToOut || fileRelation === FileRelation.InToOut) {
-		// 	return getAbsoluteImport(moduleRbxPath);
-		// } else if (fileRelation === FileRelation.InToIn) {
-		// 	return getRelativeImport(sourceRbxPath, moduleRbxPath);
-		// } else {
-		// 	DiagnosticService.addDiagnostic(errors.noIsolatedImport(moduleSpecifier));
-		// 	return [];
-		// }
-	} else {
-		return getRelativeImport(sourceRbxPath, moduleRbxPath);
-	}
-}
+// export function getAirshipImportParts(
+// 	state: TransformState,
+// 	sourceFile: ts.SourceFile,
+// 	moduleSpecifier: ts.Expression,
+// 	moduleOutPath: string,
+// ): Array<luau.Expression> {
+// 	LogService.writeLine("moduleOutPath: " + moduleOutPath);
+
+// 	return [];
+// }
 
 export function createImportExpression(
 	state: TransformState,
@@ -223,32 +219,60 @@ export function createImportExpression(
 	const virtualPath = state.guessVirtualPath(moduleFile.fileName);
 	const isInsideNodeModules = ts.isInsideNodeModules(virtualPath);
 
-	const moduleOutPath = isInsideNodeModules
+	let moduleOutPath = isInsideNodeModules
 		? state.pathTranslator.getImportPath(
 				state.nodeModulesPathMapping.get(getCanonicalFileName(path.normalize(virtualPath))) ?? virtualPath,
 				/* isNodeModule */ true,
 		  )
 		: state.pathTranslator.getImportPath(virtualPath);
 
-	const parts = new Array<luau.Expression>();
+	// LogService.writeLine("moduleOutPath before=" + moduleOutPath);
 
 	if (isInsideNodeModules) {
-		parts.push(...getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath));
-	} else {
-		if (moduleOutPath.includes("/TS/types/")) {
-			console.log("skipping types import.");
-			// return luau.none();
-		}
+		let split = moduleOutPath.split("node_modules/");
+		moduleOutPath = split[1];
+		moduleOutPath = "Shared/Resources/rbxts_include/node_modules/" + moduleOutPath;
+	} else if (moduleOutPath.includes("Types~")) {
+		let split = moduleOutPath.split("Types~");
+		moduleOutPath = "Imports" + split[1];
 
-		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
-		if (!moduleRbxPath) {
-			DiagnosticService.addDiagnostic(
-				errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath), false),
-			);
-			return luau.none();
-		}
-		parts.push(...getImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath));
+		moduleOutPath = moduleOutPath.replace("Shared/", "Shared/Resources/TS/");
+		moduleOutPath = moduleOutPath.replace("Server/", "Server/Resources/TS/");
+		moduleOutPath = moduleOutPath.replace("Client/", "Client/Resources/TS/");
+	} else {
+		// LogService.writeLine("path: " + moduleOutPath);
+		moduleOutPath = moduleOutPath.replace("Shared/", "Shared/Resources/TS/");
+		moduleOutPath = moduleOutPath.replace("Server/", "Server/Resources/TS/");
+		moduleOutPath = moduleOutPath.replace("Client/", "Client/Resources/TS/");
 	}
+
+	if (moduleOutPath.includes("/Assets/")) {
+		moduleOutPath = moduleOutPath.split("/Assets/")[1];
+	}
+
+	moduleOutPath = moduleOutPath.replace(".lua", "");
+
+	// LogService.writeLine("moduleOutPath after=" + moduleOutPath);
+	const parts = new Array<luau.Expression>();
+	parts.push(...getAbsoluteImport(moduleOutPath));
+
+	// if (isInsideNodeModules) {
+	// 	parts.push(...getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath));
+	// } else {
+	// 	if (moduleOutPath.includes("/TS/types/")) {
+	// 		console.log("skipping types import.");
+	// 		// return luau.none();
+	// 	}
+
+	// 	const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
+	// 	if (!moduleRbxPath) {
+	// 		DiagnosticService.addDiagnostic(
+	// 			errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath), false),
+	// 		);
+	// 		return luau.none();
+	// 	}
+	// 	parts.push(...getImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath));
+	// }
 
 	return luau.call(luau.globals.require, parts);
 }

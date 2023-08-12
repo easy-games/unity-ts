@@ -202,10 +202,12 @@ export function compileFiles(
 			for (const { sourceFile, source } of fileWriteQueue) {
 				const outPath = pathTranslator.getOutputPath(sourceFile.fileName);
 
-				if (data.writeOnlyChanged && fs.existsSync(outPath)) {
-					if (fs.readFileSync(outPath).toString() === source) {
-						skipCount++;
-						continue;
+				if (data.writeOnlyChanged) {
+					if (fs.existsSync(outPath)) {
+						if (fs.readFileSync(outPath).toString() === source) {
+							skipCount++;
+							continue;
+						}
 					}
 				}
 
@@ -219,7 +221,7 @@ export function compileFiles(
 					});
 				}
 			}
-			console.log(`\nwrote ${writeCount} compiled files (skipped ${skipCount})`);
+			LogService.writeLine(`\nwrote ${writeCount} compiled files (skipped ${skipCount})`);
 		});
 	}
 

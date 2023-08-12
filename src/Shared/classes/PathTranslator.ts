@@ -3,6 +3,8 @@ import { D_EXT, DTS_EXT, INDEX_NAME, INIT_NAME, LUA_EXT, ProjectType, TS_EXT, TS
 import { ProjectOptions } from "Shared/types";
 import { assert } from "Shared/util/assert";
 
+// eslint-disable-next-line no-restricted-imports
+
 class PathInfo {
 	private constructor(public dirName: string, public fileName: string, public exts: Array<string>) {}
 
@@ -37,6 +39,19 @@ export class PathTranslator {
 		return (pathInfo: PathInfo) => path.join(to, path.relative(from, pathInfo.join()));
 	}
 
+	// public getUnityPathFromTSFilePath(tsFilePath: string): string {
+	// 	LogService.writeLine("ts file path: " + tsFilePath);
+	// 	let unityPath = tsFilePath.replace(".ts", ".lua");
+
+	// 	unityPath = unityPath.replace("src/", "");
+	// 	unityPath = unityPath.replace("Client/", "Client/Resources/TS/");
+	// 	unityPath = unityPath.replace("Server/", "Server/Resources/TS/");
+	// 	unityPath = unityPath.replace("Shared/", "Shared/Resources/TS/");
+
+	// 	LogService.writeLine("unity file path: " + unityPath);
+	// 	return unityPath;
+	// }
+
 	/**
 	 * Maps an input path to an output path
 	 * - `.tsx?` && !`.d.tsx?` -> `.lua`
@@ -45,6 +60,7 @@ export class PathTranslator {
 	 */
 	public getOutputPath(filePath: string) {
 		const makeRelative = this.makeRelativeFactory();
+		// LogService.writeLine("filePath pre: " + filePath);
 
 		if (this.projectOptions.type !== ProjectType.AirshipBundle) {
 			if (filePath.includes(path.join("src", "Shared"))) {
@@ -88,6 +104,7 @@ export class PathTranslator {
 		}
 
 		let relative = makeRelative(pathInfo);
+		// LogService.writeLine("filePath post: " + relative);
 		return relative;
 	}
 
@@ -178,6 +195,12 @@ export class PathTranslator {
 		possiblePaths.push(makeRelative(pathInfo));
 
 		possiblePaths = possiblePaths.map(filePath => {
+			if (filePath.includes("Imports")) {
+				//
+			} else {
+				filePath = filePath.replace(path.join("Assets/"), path.join("Assets/Typescript~/src/"));
+			}
+
 			if (filePath.includes(path.join("src/Shared/Resources/TS"))) {
 				filePath = filePath.replace(path.join("src/Shared/Resources/TS"), path.join("src/Shared"));
 			} else if (filePath.includes(path.join("src/Server/Resources/TS"))) {

@@ -1,6 +1,7 @@
 import { CLIError } from "CLI/errors/CLIError";
 import fs from "fs-extra";
 import path from "path";
+import { buildTypes } from "Project/functions/buildTypes";
 import { cleanup } from "Project/functions/cleanup";
 import { compileFiles } from "Project/functions/compileFiles";
 import { copyFiles } from "Project/functions/copyFiles";
@@ -171,8 +172,15 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 				for (const diagnostic of emitResult.diagnostics) {
 					diagnosticReporter(diagnostic);
 				}
+				let containsErrors = false;
 				if (hasErrors(emitResult.diagnostics)) {
+					containsErrors = true;
 					process.exitCode = 1;
+				}
+
+				// Build types
+				if (!containsErrors) {
+					buildTypes(data);
 				}
 			}
 		} catch (e) {

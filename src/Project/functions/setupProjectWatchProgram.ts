@@ -1,11 +1,12 @@
 import chokidar from "chokidar";
 import fs from "fs-extra";
 import { ProjectData } from "Project";
+import { buildTypes } from "Project/functions/buildTypes";
 import { checkFileName } from "Project/functions/checkFileName";
 import { cleanup } from "Project/functions/cleanup";
 import { compileFiles } from "Project/functions/compileFiles";
 import { copyFiles } from "Project/functions/copyFiles";
-import { copyInclude } from "Project/functions/copyInclude";
+import { copyInclude, copyNodeModules } from "Project/functions/copyInclude";
 import { copyItem } from "Project/functions/copyItem";
 import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProgramFactory } from "Project/functions/createProgramFactory";
@@ -15,6 +16,7 @@ import { tryRemoveOutput } from "Project/functions/tryRemoveOutput";
 import { isCompilableFile } from "Project/util/isCompilableFile";
 import { walkDirectorySync } from "Project/util/walkDirectorySync";
 import { PathTranslator } from "Shared/classes/PathTranslator";
+import { ProjectType } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { assert } from "Shared/util/assert";
 import { getRootDirs } from "Shared/util/getRootDirs";
@@ -81,11 +83,20 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		refreshProgram();
 		assert(program && pathTranslator);
 		cleanup(pathTranslator, data.projectOptions);
-		copyInclude(data);
+		if (data.projectOptions.type !== ProjectType.AirshipBundle) {
+			copyInclude(data);
+			copyNodeModules(data)
+				.then(() => {})
+				.catch(err => {
+					console.error(err);
+				});
+		}
 		copyFiles(data, pathTranslator, new Set(getRootDirs(options)));
 		const sourceFiles = getChangedSourceFiles(program);
 		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, sourceFiles);
 		if (!emitResult.emitSkipped) {
+			buildTypes(data);
+
 			initialCompileCompleted = true;
 		}
 		return emitResult;
@@ -144,6 +155,8 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		for (const fsPath of filesToCopy) {
 			copyItem(data, pathTranslator, fsPath);
 		}
+
+		buildTypes(data);
 
 		filesToCompile.clear();
 		filesToCopy.clear();

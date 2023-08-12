@@ -26,7 +26,7 @@ export function copyItem(data: ProjectData, pathTranslator: PathTranslator, item
 				!fs.lstatSync(src).isDirectory() &&
 				fs.readFileSync(src).toString() === fs.readFileSync(dest).toString()
 			) {
-				// console.log("skipping copy: " + src);
+				console.log("skipping copy: " + src);
 				return false;
 			}
 
@@ -36,9 +36,9 @@ export function copyItem(data: ProjectData, pathTranslator: PathTranslator, item
 
 			// console.log(`${src} is compatible: ${isCompilableFile(src)}. output: ` + dest);
 			let result = !isCompilableFile(src);
-			// if (result) {
-			// 	console.log("allowing " + src + "\n");
-			// }
+			if (result) {
+				console.log("allowing " + src + "\n");
+			}
 			return result;
 		},
 		dereference: true,
