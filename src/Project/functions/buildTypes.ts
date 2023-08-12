@@ -1,6 +1,7 @@
 import fs from "fs-extra";
 import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
 import { LogService } from "Shared/classes/LogService";
+import { ProjectType } from "Shared/constants";
 import { ProjectData, ProjectOptions } from "Shared/types";
 import ts from "typescript";
 
@@ -15,6 +16,11 @@ function getTsConfigProjectOptions(tsConfigPath?: string): Partial<ProjectOption
 }
 
 export function buildTypes(data: ProjectData) {
+	if (data.projectOptions.type !== ProjectType.Game && data.projectOptions.type !== ProjectType.AirshipBundle) {
+		LogService.writeLine("Skipping types build.");
+		return;
+	}
+
 	LogService.writeLine("Building types...");
 
 	fs.removeSync(`../../../Types~/${process.env.npm_package_name}`);
