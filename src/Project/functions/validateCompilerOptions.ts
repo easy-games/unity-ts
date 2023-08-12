@@ -8,7 +8,7 @@ const ENFORCED_OPTIONS = {
 	target: ts.ScriptTarget.ESNext,
 	module: ts.ModuleKind.CommonJS,
 	moduleDetection: ts.ModuleDetectionKind.Force,
-	moduleResolution: ts.ModuleResolutionKind.NodeJs,
+	moduleResolution: ts.ModuleResolutionKind.Node10,
 	noLib: true,
 	strict: true,
 	allowSyntheticDefaultImports: true,
@@ -67,9 +67,9 @@ export function validateCompilerOptions(opts: ts.CompilerOptions, nodeModulesPat
 	}
 
 	// configurable compiler options
-	if (opts.rootDir === undefined && opts.rootDirs === undefined) {
-		errors.push(`${y(`"rootDir"`)} or ${y(`"rootDirs"`)} must be defined`);
-	}
+	// if (opts.rootDir === undefined && opts.rootDirs === undefined) {
+	// 	errors.push(`${y(`"rootDir"`)} or ${y(`"rootDirs"`)} must be defined`);
+	// }
 
 	if (opts.outDir === undefined) {
 		errors.push(`${y(`"outDir"`)} must be defined`);

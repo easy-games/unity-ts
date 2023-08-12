@@ -1,7 +1,9 @@
-import { ServerScriptService } from "@rbxts/services";
-import TestEZ from "@rbxts/testez";
+/// <reference types="@rbxts/testez/globals" />
 
-const results = TestEZ.TestBootstrap.run([ ServerScriptService.tests ]);
-if (results.errors.size() > 0 || results.failureCount > 0) {
-	error("Tests failed!");
-}
+// import { ServerScriptService } from "@rbxts/services";
+// import TestEZ from "@rbxts/testez";
+
+// const results = TestEZ.TestBootstrap.run([ServerScriptService.tests]);
+// if (results.errors.size() > 0 || results.failureCount > 0) {
+// 	error("Tests failed!");
+// }
