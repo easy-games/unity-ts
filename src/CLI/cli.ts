@@ -6,7 +6,7 @@ import yargs from "yargs";
 
 yargs
 	// help
-	.usage("roblox-ts - A TypeScript-to-Luau Compiler for Roblox")
+	.usage("unity-ts - A TypeScript-to-Luau Compiler for Unity")
 	.help("help")
 	.alias("h", "help")
 	.describe("help", "show help information")

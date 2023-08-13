@@ -253,8 +253,8 @@ export function createImportExpression(
 		moduleOutPath = moduleOutPath.replace("Client/", "Client/Resources/TS/");
 	}
 
-	if (moduleOutPath.includes("/Assets/")) {
-		moduleOutPath = moduleOutPath.split("/Assets/")[1];
+	if (moduleOutPath.includes("/Assets/Bundles/Imports")) {
+		moduleOutPath = moduleOutPath.split("/Assets/Bundles/")[1];
 	}
 
 	moduleOutPath = moduleOutPath.replace(".lua", "");
