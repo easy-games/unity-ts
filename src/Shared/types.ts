@@ -13,6 +13,7 @@ export interface ProjectOptions {
 	writeOnlyChanged: boolean;
 	optimizedLoops: boolean;
 	allowCommentDirectives: boolean;
+	nodePackageName: string | undefined;
 }
 
 export interface ProjectData {

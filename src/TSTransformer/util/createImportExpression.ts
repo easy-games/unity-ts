@@ -1,6 +1,8 @@
 import { RbxPath, RbxPathParent, RojoResolver } from "@easy-games/unity-rojo-resolver";
 import luau from "@roblox-ts/luau-ast";
 import path from "path";
+import { LogService } from "Shared/classes/LogService";
+import { ProjectType } from "Shared/constants";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
@@ -228,7 +230,12 @@ export function createImportExpression(
 
 	// LogService.writeLine("moduleOutPath before=" + moduleOutPath);
 
-	if (isInsideNodeModules) {
+	if (state.projectType === ProjectType.Package) {
+		const packageName = state.data.projectOptions.nodePackageName!;
+		LogService.writeLine("packageName=" + packageName);
+		const split = moduleOutPath.split(packageName);
+		moduleOutPath = "Shared/Resources/rbxts_include/node_modules/@easy-games/" + packageName + split[1];
+	} else if (isInsideNodeModules) {
 		let split = moduleOutPath.split("node_modules/");
 		moduleOutPath = split[1];
 		moduleOutPath = "Shared/Resources/rbxts_include/node_modules/" + moduleOutPath;
