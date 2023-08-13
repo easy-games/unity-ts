@@ -1,4 +1,5 @@
-import { findTsConfigPath, getTsConfigProjectOptions } from "CLI/util/findTsConfigPath";
+import { findTsConfigPath, getPackageJson, getTsConfigProjectOptions } from "CLI/util/findTsConfigPath";
+import { writeFileSync } from "fs-extra";
 import { buildTypes } from "Project/functions/buildTypes";
 import { cleanup } from "Project/functions/cleanup";
 import { compileFiles } from "Project/functions/compileFiles";
@@ -129,6 +130,12 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 			const diagnosticReporter = ts.createDiagnosticReporter(ts.sys, true);
 
 			const data = createProjectData(tsConfigPath, projectOptions);
+
+			if (data.projectOptions.type === ProjectType.AirshipBundle) {
+				const packageName = getPackageJson().name;
+				writeFileSync(`../../../Types~/${packageName}/index.d.ts`, "");
+			}
+
 			if (projectOptions.watch) {
 				setupProjectWatchProgram(data, projectOptions.usePolling);
 			} else {
