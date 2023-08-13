@@ -11,6 +11,29 @@ interface Flags {}
 export = ts.identity<yargs.CommandModule<{}, Flags & Partial<ProjectOptions>>>({
 	command: ["$0", "postTypes"],
 
+	builder: {
+		project: {
+			alias: "p",
+			string: true,
+			default: ".",
+			describe: "project path",
+		},
+		verbose: {
+			boolean: true,
+			describe: "enable verbose logs",
+		},
+		watch: {
+			alias: "w",
+			boolean: true,
+			describe: "enable watch mode",
+		},
+		writeOnlyChanged: {
+			alias: "writeOnlyChanged",
+			boolean: true,
+			describe: "enable to only write changed files",
+		},
+	},
+
 	handler: async argv => {
 		const packageName: string = getPackageJson().name;
 		rmSync(`temp`, {
