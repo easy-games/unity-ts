@@ -1,6 +1,4 @@
-import { CLIError } from "CLI/errors/CLIError";
-import fs from "fs-extra";
-import path from "path";
+import { findTsConfigPath, getTsConfigProjectOptions } from "CLI/util/findTsConfigPath";
 import { buildTypes } from "Project/functions/buildTypes";
 import { cleanup } from "Project/functions/cleanup";
 import { compileFiles } from "Project/functions/compileFiles";
@@ -19,27 +17,6 @@ import { getRootDirs } from "Shared/util/getRootDirs";
 import { hasErrors } from "Shared/util/hasErrors";
 import ts from "typescript";
 import yargs from "yargs";
-
-function getTsConfigProjectOptions(tsConfigPath?: string): Partial<ProjectOptions> | undefined {
-	if (tsConfigPath !== undefined) {
-		const rawJson = ts.sys.readFile(tsConfigPath);
-		if (rawJson !== undefined) {
-			const t = ts.parseConfigFileTextToJson(tsConfigPath, rawJson).config.rbxts;
-			return t;
-		}
-	}
-}
-
-function findTsConfigPath(projectPath: string) {
-	let tsConfigPath: string | undefined = path.resolve(projectPath);
-	if (!fs.existsSync(tsConfigPath) || !fs.statSync(tsConfigPath).isFile()) {
-		tsConfigPath = ts.findConfigFile(tsConfigPath, ts.sys.fileExists);
-		if (tsConfigPath === undefined) {
-			throw new CLIError("Unable to find tsconfig.json!");
-		}
-	}
-	return path.resolve(process.cwd(), tsConfigPath);
-}
 
 interface BuildFlags {
 	project: string;
