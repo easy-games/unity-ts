@@ -1,5 +1,5 @@
 import { getPackageJson } from "CLI/util/findTsConfigPath";
-import { rmSync } from "fs";
+import { existsSync, rmSync } from "fs";
 import path from "path";
 import { ProjectOptions } from "Project";
 import { LogService } from "Shared/classes/LogService";
@@ -40,9 +40,13 @@ export = ts.identity<yargs.CommandModule<{}, Flags & Partial<ProjectOptions>>>({
 
 		const packageJson = getPackageJson();
 		const packageName = path.basename(packageJson.name);
-		rmSync(path.join("..", "..", "..", "Types~", packageName), {
-			recursive: true,
-			force: true,
-		});
+
+		const typesPath = path.join("..", "..", "..", "Types~", packageName);
+		if (existsSync(typesPath)) {
+			rmSync(typesPath, {
+				recursive: true,
+				force: true,
+			});
+		}
 	},
 });
