@@ -1,5 +1,6 @@
 import { findTsConfigPath, getPackageJson, getTsConfigProjectOptions } from "CLI/util/findTsConfigPath";
 import { writeFileSync } from "fs-extra";
+import path from "path";
 import { buildTypes } from "Project/functions/buildTypes";
 import { cleanup } from "Project/functions/cleanup";
 import { compileFiles } from "Project/functions/compileFiles";
@@ -133,7 +134,7 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 
 			if (data.projectOptions.type === ProjectType.AirshipBundle) {
 				const packageName = getPackageJson().name;
-				writeFileSync(`../../../Types~/${packageName}/index.d.ts`, "");
+				writeFileSync(path.join("..", "..", "..", "Types~", packageName, "index.d.ts"), "");
 			}
 
 			if (projectOptions.watch) {

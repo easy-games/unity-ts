@@ -40,7 +40,7 @@ export = ts.identity<yargs.CommandModule<{}, Flags & Partial<ProjectOptions>>>({
 
 		const packageJson = getPackageJson();
 		const packageName = path.basename(packageJson.name);
-		rmSync(`../../../Types~/${packageName}`, {
+		rmSync(path.join("..", "..", "..", "Types~", packageName), {
 			recursive: true,
 			force: true,
 		});
