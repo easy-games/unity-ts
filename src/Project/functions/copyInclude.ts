@@ -1,5 +1,6 @@
 import copyfiles from "copyfiles";
 import fs from "fs-extra";
+import path from "path";
 import { INCLUDE_PATH, ProjectType } from "Shared/constants";
 import { ProjectData } from "Shared/types";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
@@ -18,13 +19,9 @@ export function copyInclude(data: ProjectData) {
 
 export async function copyNodeModules(data: ProjectData) {
 	return new Promise<void>((resolve, reject) => {
-		const nodeModules = data.includePath + "/../rbxts_include";
-		// fs.copySync("node_modules/@easy-games/", nodeModules, {
-		// 	dereference: true,
-		// });
+		const nodeModules = path.join(data.projectPath, "..", "Bundles", "Shared", "Resources", "rbxts_include");
 		copyfiles(["node_modules/@easy-games/**/*.lua", nodeModules], err => {
 			resolve();
 		});
-		resolve();
 	});
 }

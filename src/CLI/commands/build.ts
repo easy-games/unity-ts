@@ -142,7 +142,7 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 				const program = createProjectProgram(data);
 				const pathTranslator = createPathTranslator(program, projectOptions);
 				cleanup(pathTranslator, projectOptions);
-				if (projectOptions.type !== ProjectType.AirshipBundle) {
+				if (projectOptions.type === ProjectType.Game) {
 					copyInclude(data);
 					await copyNodeModules(data);
 				}
