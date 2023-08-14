@@ -228,7 +228,7 @@ export function createImportExpression(
 		  )
 		: state.pathTranslator.getImportPath(virtualPath);
 
-	LogService.writeLine("moduleOutPath before=" + moduleOutPath);
+	// LogService.writeLine("moduleOutPath before=" + moduleOutPath);
 
 	if (state.projectType === ProjectType.Package) {
 		const packageName = state.data.projectOptions.nodePackageName!;
