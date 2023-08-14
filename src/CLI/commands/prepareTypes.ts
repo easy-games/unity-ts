@@ -10,7 +10,7 @@ interface Flags {}
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export = ts.identity<yargs.CommandModule<{}, Flags & Partial<ProjectOptions>>>({
-	command: ["$0", "prepareTypes"],
+	command: "prepareTypes",
 
 	builder: {
 		project: {

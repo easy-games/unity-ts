@@ -28,7 +28,7 @@ interface BuildFlags {
  */
 // eslint-disable-next-line @typescript-eslint/ban-types
 export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions>>>({
-	command: ["$0", "build"],
+	command: "build",
 
 	describe: "Build a project",
 

@@ -1,5 +1,6 @@
 import { getPackageJson } from "CLI/util/findTsConfigPath";
-import { rmSync, writeFileSync } from "fs";
+import { copyFileSync, readdirSync, rmSync, writeFileSync } from "fs";
+import path from "path";
 import { ProjectOptions } from "Project";
 import { LogService } from "Shared/classes/LogService";
 import ts from "typescript";
@@ -9,7 +10,7 @@ interface Flags {}
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export = ts.identity<yargs.CommandModule<{}, Flags & Partial<ProjectOptions>>>({
-	command: ["$0", "postTypes"],
+	command: "postTypes",
 
 	builder: {
 		project: {
@@ -41,6 +42,26 @@ export = ts.identity<yargs.CommandModule<{}, Flags & Partial<ProjectOptions>>>({
 			force: true,
 		});
 		writeFileSync(`../../../Types~/${packageName}/index.d.ts`, "");
+
+		// copy manually written d.ts files from source
+		const checkDir = (dir: string, depth = 0) => {
+			const files = readdirSync(dir, {
+				withFileTypes: true,
+			});
+			for (const file of files) {
+				if (file.name.includes(".d.ts")) {
+					let sourcePath = path.join(dir, file.name);
+					LogService.writeLine("copying " + sourcePath);
+
+					let targetPath = sourcePath.replace("src/", `../../../Types~/${packageName}/`);
+					copyFileSync(sourcePath, targetPath);
+				}
+			}
+		};
+		checkDir(path.join("src", "Server"));
+		checkDir(path.join("src", "Client"));
+		checkDir(path.join("src", "Shared"));
+
 		LogService.writeLine("Finished building types!");
 	},
 });
