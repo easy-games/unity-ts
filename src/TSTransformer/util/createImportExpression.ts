@@ -253,7 +253,7 @@ export function createImportExpression(
 		moduleOutPath = moduleOutPath.replace("Client/", "Client/Resources/TS/");
 	}
 
-	if (moduleOutPath.includes("/Assets/Bundles/Imports")) {
+	if (moduleOutPath.includes("/Assets/Bundles/")) {
 		moduleOutPath = moduleOutPath.split("/Assets/Bundles/")[1];
 	}
 
