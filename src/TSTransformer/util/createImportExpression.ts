@@ -234,7 +234,17 @@ export function createImportExpression(
 		const packageName = state.data.projectOptions.nodePackageName!;
 		LogService.writeLine("packageName=" + packageName);
 		const split = moduleOutPath.split(packageName);
-		moduleOutPath = "Shared/Resources/rbxts_include/node_modules/@easy-games/" + packageName + split[1];
+
+		/**
+		 * Special case: Github Actions
+		 * Example path: /home/runner/work/flamework-core/flamework-core/out/modding.lua
+		 */
+		if (split.length >= 3) {
+			moduleOutPath =
+				"Shared/Resources/rbxts_include/node_modules/@easy-games/" + packageName + split[split.length - 1];
+		} else {
+			moduleOutPath = "Shared/Resources/rbxts_include/node_modules/@easy-games/" + packageName + split[1];
+		}
 	} else if (isInsideNodeModules) {
 		let split = moduleOutPath.split("node_modules/");
 		moduleOutPath = split[1];
