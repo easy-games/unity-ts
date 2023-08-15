@@ -60,7 +60,7 @@ export class PathTranslator {
 	 */
 	public getOutputPath(filePath: string) {
 		const makeRelative = this.makeRelativeFactory();
-		// LogService.writeLine("filePath pre: " + filePath);
+		filePath = path.join(filePath);
 
 		if (this.projectOptions.type !== ProjectType.AirshipBundle) {
 			if (filePath.includes(path.join("src", "Shared"))) {
@@ -79,14 +79,14 @@ export class PathTranslator {
 		}
 
 		let hasImports = false;
-		if (filePath.includes("Imports" + path.sep)) {
+		if (filePath.includes(path.join("Imports/"))) {
 			hasImports = true;
-			if (filePath.includes(path.sep + "Shared")) {
-				filePath = filePath.replace(path.sep + "Shared", path.sep + path.join("Shared/Resources/TS"));
-			} else if (filePath.includes(path.sep + "Server")) {
-				filePath = filePath.replace(path.sep + "Server", path.sep + path.join("Server/Resources/TS"));
-			} else if (filePath.includes(path.sep + "Client")) {
-				filePath = filePath.replace(path.sep + "Client", path.sep + path.join("Client/Resources/TS"));
+			if (filePath.includes(path.join("/Shared"))) {
+				filePath = filePath.replace(path.join("/Shared"), path.join("/Shared/Resources/TS"));
+			} else if (filePath.includes(path.join("/Server"))) {
+				filePath = filePath.replace(path.join("/Server"), path.join("/Server/Resources/TS"));
+			} else if (filePath.includes(path.join("/Client"))) {
+				filePath = filePath.replace(path.join("/Client"), path.join("/Client/Resources/TS"));
 			}
 		}
 
@@ -104,7 +104,6 @@ export class PathTranslator {
 		}
 
 		let relative = makeRelative(pathInfo);
-		// LogService.writeLine("filePath post: " + relative);
 		return relative;
 	}
 
