@@ -23,7 +23,7 @@ export async function copyNodeModules(data: ProjectData) {
 		LogService.writeLine("Copying node_modules...");
 		const nodeModules = path.join(data.projectPath, "..", "Bundles", "Shared", "Resources", "rbxts_include");
 		copyfiles(
-			["node_modules/@easy-games/**/*.lua", nodeModules],
+			[path.join("node_modules/@easy-games/**/*.lua"), nodeModules],
 			{
 				soft: false,
 			},

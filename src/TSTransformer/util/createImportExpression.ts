@@ -1,7 +1,6 @@
 import { RbxPath, RbxPathParent, RojoResolver } from "@easy-games/unity-rojo-resolver";
 import luau from "@roblox-ts/luau-ast";
 import path from "path";
-import { LogService } from "Shared/classes/LogService";
 import { ProjectType } from "Shared/constants";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
@@ -10,6 +9,8 @@ import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
 import ts from "typescript";
+
+import { makePosixPath } from "./makePosixPath";
 
 const NODE_MODULES_PATH = "Shared/rbxts_include/node_modules/";
 
@@ -228,11 +229,12 @@ export function createImportExpression(
 		  )
 		: state.pathTranslator.getImportPath(virtualPath);
 
-	// LogService.writeLine("moduleOutPath before=" + moduleOutPath);
+	moduleOutPath = makePosixPath(moduleOutPath);
+	// LogService.writeLine("import before=" + moduleOutPath);
 
 	if (state.projectType === ProjectType.Package) {
 		const packageName = state.data.projectOptions.nodePackageName!;
-		LogService.writeLine("packageName=" + packageName);
+		// LogService.writeLine("packageName=" + packageName);
 		const split = moduleOutPath.split(packageName);
 
 		/**
@@ -269,7 +271,7 @@ export function createImportExpression(
 
 	moduleOutPath = moduleOutPath.replace(".lua", "");
 
-	// LogService.writeLine("moduleOutPath after=" + moduleOutPath);
+	// LogService.writeLine("import after=" + moduleOutPath);
 	const parts = new Array<luau.Expression>();
 	parts.push(...getAbsoluteImport(moduleOutPath));
 

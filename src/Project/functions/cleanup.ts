@@ -1,6 +1,8 @@
+import { existsSync, writeFileSync } from "fs";
 import fs from "fs-extra";
 import path from "path";
 import { tryRemoveOutput } from "Project/functions/tryRemoveOutput";
+import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { ProjectType } from "Shared/constants";
 import { ProjectOptions } from "Shared/types";
@@ -45,6 +47,28 @@ export function cleanup(pathTranslator: PathTranslator, projectOptions: ProjectO
 	for (let dir of dirsToCleanup) {
 		if (fs.pathExistsSync(dir)) {
 			cleanupDirRecursively(pathTranslator, dir);
+		}
+	}
+
+	addPackageIndexFiles(pathTranslator, projectOptions);
+}
+function addPackageIndexFiles(pathTranslator: PathTranslator, projectOptions: ProjectOptions): void {
+	let typesDir: string;
+	if (projectOptions.type === ProjectType.AirshipBundle) {
+		typesDir = path.join("../../../Types~/");
+	} else if (projectOptions.type === ProjectType.Game) {
+		typesDir = path.join("../Bundles/Types~/");
+	} else {
+		LogService.writeLine("Skipping package index file gen.");
+		return;
+	}
+	const files = fs.readdirSync(typesDir, { withFileTypes: true });
+	for (const file of files) {
+		if (!file.isDirectory()) continue;
+
+		const indexPath = path.join(typesDir, file.name, "index.d.ts");
+		if (!existsSync(indexPath)) {
+			writeFileSync(indexPath, "");
 		}
 	}
 }
