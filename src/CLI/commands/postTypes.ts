@@ -1,5 +1,5 @@
 import { getPackageJson } from "CLI/util/findTsConfigPath";
-import { copyFileSync, readdirSync, rmSync, writeFileSync } from "fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "fs";
 import path from "path";
 import { ProjectOptions } from "Project";
 import { LogService } from "Shared/classes/LogService";
@@ -57,6 +57,10 @@ export = ts.identity<yargs.CommandModule<{}, Flags & Partial<ProjectOptions>>>({
 						"src" + path.sep,
 						path.join("..", "..", "..", "Types~", packageName) + path.sep,
 					);
+					let targetPathDir = path.dirname(targetPath);
+					if (!existsSync(targetPathDir)) {
+						mkdirSync(targetPathDir);
+					}
 					copyFileSync(sourcePath, targetPath);
 				}
 			}
@@ -64,6 +68,7 @@ export = ts.identity<yargs.CommandModule<{}, Flags & Partial<ProjectOptions>>>({
 		checkDir(path.join("src", "Server"));
 		checkDir(path.join("src", "Client"));
 		checkDir(path.join("src", "Shared"));
+		checkDir(path.join("src", "Shared", "Types"));
 
 		LogService.writeLine("Finished building types!");
 	},
