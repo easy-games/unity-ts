@@ -45,6 +45,9 @@ export = ts.identity<yargs.CommandModule<{}, Flags & Partial<ProjectOptions>>>({
 
 		// copy manually written d.ts files from source
 		const checkDir = (dir: string, depth = 0) => {
+			if (!existsSync(dir)) {
+				return;
+			}
 			const files = readdirSync(dir, {
 				withFileTypes: true,
 			});
