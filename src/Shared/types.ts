@@ -14,6 +14,7 @@ export interface ProjectOptions {
 	optimizedLoops: boolean;
 	allowCommentDirectives: boolean;
 	nodePackageName: string | undefined;
+	copyNodeModules: boolean;
 }
 
 export interface ProjectData {

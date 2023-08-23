@@ -21,7 +21,7 @@ export function copyInclude(data: ProjectData) {
 export async function copyNodeModules(data: ProjectData) {
 	return new Promise<void>((resolve, reject) => {
 		LogService.writeLine("Copying node_modules...");
-		const nodeModules = path.join(data.projectPath, "..", "Bundles", "Shared", "Resources", "rbxts_include");
+		const nodeModules = path.join(data.projectPath, "..", "Shared", "Resources", "TSExtra");
 		copyfiles(
 			[path.join("node_modules/@easy-games/**/*.lua"), nodeModules],
 			{

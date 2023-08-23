@@ -6,7 +6,7 @@ import { checkFileName } from "Project/functions/checkFileName";
 import { cleanup } from "Project/functions/cleanup";
 import { compileFiles } from "Project/functions/compileFiles";
 import { copyFiles } from "Project/functions/copyFiles";
-import { copyInclude, copyNodeModules } from "Project/functions/copyInclude";
+import { copyNodeModules } from "Project/functions/copyInclude";
 import { copyItem } from "Project/functions/copyItem";
 import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProgramFactory } from "Project/functions/createProgramFactory";
@@ -84,7 +84,9 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		assert(program && pathTranslator);
 		cleanup(pathTranslator, data.projectOptions);
 		if (data.projectOptions.type !== ProjectType.AirshipBundle) {
-			copyInclude(data);
+			// copyInclude(data);
+		}
+		if (data.projectOptions.copyNodeModules) {
 			copyNodeModules(data)
 				.then(() => {})
 				.catch(err => {

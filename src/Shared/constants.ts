@@ -54,4 +54,5 @@ export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	optimizedLoops: false,
 	allowCommentDirectives: false,
 	nodePackageName: undefined,
+	copyNodeModules: false,
 };

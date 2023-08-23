@@ -8,11 +8,8 @@ import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
+import { makePosixPath } from "TSTransformer/util/makePosixPath";
 import ts from "typescript";
-
-import { makePosixPath } from "./makePosixPath";
-
-const NODE_MODULES_PATH = "Shared/rbxts_include/node_modules/";
 
 function getAbsoluteImport(moduleRbxPath: string): Array<luau.Expression<luau.SyntaxKind>> {
 	// let split = moduleRbxPath.split("/");
@@ -243,14 +240,16 @@ export function createImportExpression(
 		 */
 		if (split.length >= 3) {
 			moduleOutPath =
-				"Shared/Resources/rbxts_include/node_modules/@easy-games/" + packageName + split[split.length - 1];
+				"Imports/Core/Shared/Resources/TSExtra/node_modules/@easy-games/" +
+				packageName +
+				split[split.length - 1];
 		} else {
-			moduleOutPath = "Shared/Resources/rbxts_include/node_modules/@easy-games/" + packageName + split[1];
+			moduleOutPath = "Imports/Core/Shared/Resources/TSExtra/node_modules/@easy-games/" + packageName + split[1];
 		}
 	} else if (isInsideNodeModules) {
 		let split = moduleOutPath.split("node_modules/");
 		moduleOutPath = split[1];
-		moduleOutPath = "Shared/Resources/rbxts_include/node_modules/" + moduleOutPath;
+		moduleOutPath = "Imports/Core/Shared/Resources/TSExtra/node_modules/" + moduleOutPath;
 	} else if (moduleOutPath.includes("Types~")) {
 		let split = moduleOutPath.split("Types~");
 		moduleOutPath = "Imports" + split[1];
