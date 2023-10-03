@@ -1,3 +1,4 @@
+export * from "TSTransformer/classes/AirshipSymbolManager";
 export * from "TSTransformer/classes/MacroManager";
 export * from "TSTransformer/classes/MultiTransformState";
 export * from "TSTransformer/classes/RoactSymbolManager";
