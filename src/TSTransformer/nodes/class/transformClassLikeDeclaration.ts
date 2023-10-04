@@ -22,7 +22,7 @@ import { getKindName } from "TSTransformer/util/getKindName";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
-import ts from "typescript";
+import ts, { ModifierFlags, factory } from "typescript";
 
 const MAGIC_TO_STRING_METHOD = "toString";
 
@@ -149,7 +149,7 @@ function createBoilerplate(
 			}),
 		);
 
-		if (extendsNode) {
+		if (extendsNode && !extendsAirshipBehaviour(state, node)) {
 			const extendsDec = getExtendsDeclaration(state, extendsNode.expression);
 			if (extendsDec && extendsRoactComponent(state, extendsDec)) {
 				DiagnosticService.addDiagnostic(errors.noRoactInheritance(node));
@@ -367,7 +367,11 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	}
 
 	if (extendsAirshipBehaviour(state, node)) {
-		generateMetaForAirshipBehaviour(state, node);
+		const isDefault = (node.modifierFlagsCache & ModifierFlags.Default) !== 0;
+		const isExport = (node.modifierFlagsCache & ModifierFlags.Export) !== 0;
+		if (isDefault && isExport) {
+			generateMetaForAirshipBehaviour(state, node);
+		}
 	}
 
 	const isRoact = extendsRoactComponent(state, node);
