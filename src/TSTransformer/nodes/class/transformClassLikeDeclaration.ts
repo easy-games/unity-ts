@@ -10,17 +10,19 @@ import { transformPropertyDeclaration } from "TSTransformer/nodes/class/transfor
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
+import {
+	isPublicWritablePropertyDeclaration,
+	isValidAirshipBehaviourExportType,
+} from "TSTransformer/util/airshipBehaviourUtils";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { extendsAirshipBehaviour } from "TSTransformer/util/extendsAirshipBehaviour";
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
-import { isValidAirshipBehaviourExportType } from "TSTransformer/util/airshipBehaviourUtils";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
-import { Transform } from "stream";
-import ts, { identity, symbolName } from "typescript";
+import ts from "typescript";
 
 const MAGIC_TO_STRING_METHOD = "toString";
 
@@ -291,7 +293,11 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 
 	// iter props
 	for (const classElement of node.members) {
-		if (!ts.isPropertyDeclaration(classElement)) continue; // skip any non-fields
+		// skip anything that's not a property
+		if (!ts.isPropertyDeclaration(classElement)) continue;
+
+		// skip private, protected properties
+		if (!isPublicWritablePropertyDeclaration(classElement)) continue;
 
 		// only do valid exports
 		if (!isValidAirshipBehaviourExportType(state, classElement)) continue;
@@ -301,7 +307,7 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 		metadata.properties.push({
 			name: classElement.name.text,
 			type: state.typeChecker.typeToString(state.getType(classElement)),
-			modifiers: [], // TODO: in v2
+			modifiers: [], // TODO in v2
 		});
 	}
 
