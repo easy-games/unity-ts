@@ -1,14 +1,6 @@
 import { TransformState } from "TSTransformer";
 import ts from "typescript";
 
-function isPrimitiveType(typeChecker: ts.TypeChecker, type: ts.Type) {
-	return (
-		type === typeChecker.getStringType() ||
-		type === typeChecker.getNumberType() ||
-		type === typeChecker.getBooleanType()
-	);
-}
-
 export function isPublicWritablePropertyDeclaration(node: ts.PropertyDeclaration) {
 	// If no modifiers, then it's public by default anyway
 	if (!node.modifiers) return true;
@@ -33,5 +25,5 @@ export function getAllTypes(type: ts.Type) {
 
 export function isValidAirshipBehaviourExportType(state: TransformState, node: ts.Node) {
 	const nodeType = state.getType(node);
-	return isPrimitiveType(state.typeChecker, nodeType); // TODO: Complex types later.
+	return state.services.airshipSymbolManager.isTypeSerializable(nodeType);
 }

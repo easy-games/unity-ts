@@ -1,7 +1,9 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
-import { AirshipBehaviourJson } from "Shared/types";
+import { DiagnosticError } from "Shared/errors/DiagnosticError";
+import { AirshipBehaviourJson, AirshipBehaviourMemberModifier } from "Shared/types";
 import { assert } from "Shared/util/assert";
+import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformClassConstructor } from "TSTransformer/nodes/class/transformClassConstructor";
@@ -22,7 +24,7 @@ import { getKindName } from "TSTransformer/util/getKindName";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
-import ts, { ModifierFlags, factory } from "typescript";
+import ts, { factory, ModifierFlags } from "typescript";
 
 const MAGIC_TO_STRING_METHOD = "toString";
 
@@ -293,6 +295,8 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 
 	// iter props
 	for (const classElement of node.members) {
+		const elementType = state.getType(classElement);
+
 		// skip anything that's not a property
 		if (!ts.isPropertyDeclaration(classElement)) continue;
 
@@ -301,14 +305,28 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 
 		// only do valid exports
 		if (!isValidAirshipBehaviourExportType(state, classElement)) continue;
+
 		// can't add weird properties
 		if (!ts.isIdentifier(classElement.name)) continue;
 
-		metadata.properties.push({
-			name: classElement.name.text,
-			type: state.typeChecker.typeToString(state.getType(classElement)),
-			modifiers: [], // TODO in v2
-		});
+		const modifiers = new Array<AirshipBehaviourMemberModifier>(); // TODO in v2
+
+		// Handle array case
+		if (state.typeChecker.isArrayType(elementType)) {
+			// TODO:
+			// const innerType = state.typeChecker.getElementTypeOfArrayType(elementType)!;
+			// metadata.properties.push({
+			// 	name: classElement.name.text,
+			//	type or type + items? tbd
+			// 	modifiers,
+			// });
+		} else {
+			metadata.properties.push({
+				name: classElement.name.text,
+				type: state.typeChecker.typeToString(elementType),
+				modifiers,
+			});
+		}
 	}
 
 	state.sourceFileBehaviourMetaJson = metadata;
