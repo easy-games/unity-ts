@@ -74,3 +74,18 @@ export interface SourceFileWithTextRange {
 	sourceFile: ts.SourceFile;
 	range: ts.ReadonlyTextRange;
 }
+
+export interface AirshipBehaviourJson {
+	readonly properties: Array<AirshipBehaviourMemberExport>;
+}
+
+export interface AirshipBehaviourMemberExport {
+	readonly name: string;
+	readonly type: string; // May need to discuss things like TS enums and how to handle those if we want to
+	readonly modifiers: ReadonlyArray<AirshipBehaviourMemberModifier>;
+}
+
+export interface AirshipBehaviourMemberModifier {
+	readonly name: string;
+	readonly parameters: ReadonlyArray<unknown>;
+}

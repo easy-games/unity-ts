@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
+import { AirshipBehaviourJson } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
@@ -10,13 +11,16 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { extendsAirshipBehaviour } from "TSTransformer/util/extendsAirshipBehaviour";
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
+import { isValidAirshipBehaviourExportType } from "TSTransformer/util/airshipBehaviourUtils";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
-import ts from "typescript";
+import { Transform } from "stream";
+import ts, { identity, symbolName } from "typescript";
 
 const MAGIC_TO_STRING_METHOD = "toString";
 
@@ -280,6 +284,31 @@ function isClassHoisted(state: TransformState, node: ts.ClassLikeDeclaration) {
 	return false;
 }
 
+function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLikeDeclaration) {
+	const metadata: AirshipBehaviourJson = {
+		properties: [],
+	};
+
+	// iter props
+	for (const classElement of node.members) {
+		if (!ts.isPropertyDeclaration(classElement)) continue; // skip any non-fields
+
+		// only do valid exports
+		if (!isValidAirshipBehaviourExportType(state, classElement)) continue;
+		// can't add weird properties
+		if (!ts.isIdentifier(classElement.name)) continue;
+
+		metadata.properties.push({
+			name: classElement.name.text,
+			type: state.typeChecker.typeToString(state.getType(classElement)),
+			modifiers: [], // TODO: in v2
+		});
+	}
+
+	state.sourceFileBehaviourMetaJson = metadata;
+	console.log(node.getSourceFile().fileName, metadata);
+}
+
 export function transformClassLikeDeclaration(state: TransformState, node: ts.ClassLikeDeclaration) {
 	const isClassExpression = ts.isClassExpression(node);
 	const statements = luau.list.make<luau.Statement>();
@@ -330,6 +359,10 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 
 	if (extendsMacroClass(state, node)) {
 		DiagnosticService.addDiagnostic(errors.noMacroExtends(node));
+	}
+
+	if (extendsAirshipBehaviour(state, node)) {
+		generateMetaForAirshipBehaviour(state, node);
 	}
 
 	const isRoact = extendsRoactComponent(state, node);
