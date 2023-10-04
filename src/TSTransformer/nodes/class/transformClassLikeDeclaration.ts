@@ -312,7 +312,6 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 	}
 
 	state.sourceFileBehaviourMetaJson = metadata;
-	console.log(node.getSourceFile().fileName, metadata);
 }
 
 export function transformClassLikeDeclaration(state: TransformState, node: ts.ClassLikeDeclaration) {
