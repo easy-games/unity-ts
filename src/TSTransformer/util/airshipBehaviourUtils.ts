@@ -16,7 +16,8 @@ export function isPublicWritablePropertyDeclaration(node: ts.PropertyDeclaration
 		f =>
 			f.kind === ts.SyntaxKind.PrivateKeyword ||
 			f.kind === ts.SyntaxKind.ProtectedKeyword ||
-			f.kind === ts.SyntaxKind.ReadonlyKeyword,
+			f.kind === ts.SyntaxKind.ReadonlyKeyword ||
+			f.kind === ts.SyntaxKind.StaticKeyword,
 	);
 
 	return !isPrivateOrProtected;
