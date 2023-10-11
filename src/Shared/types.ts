@@ -75,17 +75,61 @@ export interface SourceFileWithTextRange {
 	range: ts.ReadonlyTextRange;
 }
 
+/**
+ * The main JSON structure of the `AirshipBehaviour`
+ */
 export interface AirshipBehaviourJson {
-	readonly properties: Array<AirshipBehaviourMemberExport>;
+	/**
+	 * The name of the behaviour class
+	 */
+	readonly name: string | undefined;
+	/**
+	 * The AirshipBehaviour supported public serializable properties of the behaviour class
+	 */
+	readonly properties: Array<AirshipBehaviourFieldExport>;
 }
 
-export interface AirshipBehaviourMemberExport {
+/**
+ * Metadata about a public serializable member in the AirshipBehaviour
+ */
+export interface AirshipBehaviourFieldExport {
+	/**
+	 * The name of the property
+	 */
 	readonly name: string;
-	readonly type: string; // May need to discuss things like TS enums and how to handle those if we want to
-	readonly modifiers: ReadonlyArray<AirshipBehaviourMemberModifier>;
+	/**
+	 * The type of the property
+	 */
+	readonly type: string;
+	/**
+	 * Item information about multi-item types such as Arrays
+	 * - If `type` is `Array`: Will contain information about the array - `items.type` will be the array item type
+	 */
+	readonly items:
+		| {
+				type: string;
+		  }
+		| undefined;
+	/**
+	 * Applied attributes (in TS, decorators) of this property
+	 * @deprecated Not yet implemented
+	 */
+	readonly decorators: ReadonlyArray<AirshipBehaviourFieldDecorator>;
 }
 
-export interface AirshipBehaviourMemberModifier {
+/**
+ * A decorator on the airship behaviour member
+ */
+export interface AirshipBehaviourFieldDecorator {
+	/**
+	 * The name of the attribute
+	 */
 	readonly name: string;
-	readonly parameters: ReadonlyArray<unknown>;
+	/**
+	 * The parameters of the attribute
+	 *
+	 * - If the decorator is a call e.g. `@decorator(...)` - `parameters` will be an array of the given arguments
+	 * - If the decorator is a simple decorator, e.g. `@decorator` - `parameters` will be `undefined`.
+	 */
+	readonly parameters: ReadonlyArray<unknown> | undefined;
 }

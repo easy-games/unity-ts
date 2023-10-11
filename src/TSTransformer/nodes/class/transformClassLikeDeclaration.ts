@@ -1,7 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
-import { AirshipBehaviourJson, AirshipBehaviourMemberModifier } from "Shared/types";
+import { AirshipBehaviourJson, AirshipBehaviourFieldDecorator } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
@@ -289,7 +289,10 @@ function isClassHoisted(state: TransformState, node: ts.ClassLikeDeclaration) {
 }
 
 function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLikeDeclaration) {
+	const typeChecker = state.typeChecker;
+
 	const metadata: AirshipBehaviourJson = {
+		name: node.name?.text,
 		properties: [],
 	};
 
@@ -309,22 +312,29 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 		// can't add weird properties
 		if (!ts.isIdentifier(classElement.name)) continue;
 
-		const modifiers = new Array<AirshipBehaviourMemberModifier>(); // TODO in v2
+		const decorators = new Array<AirshipBehaviourFieldDecorator>(); // TODO in v2
+		const name = classElement.name.text;
 
 		// Handle array case
-		if (state.typeChecker.isArrayType(elementType)) {
-			// TODO:
-			// const innerType = state.typeChecker.getElementTypeOfArrayType(elementType)!;
-			// metadata.properties.push({
-			// 	name: classElement.name.text,
-			//	type or type + items? tbd
-			// 	modifiers,
-			// });
-		} else {
+		if (typeChecker.isArrayType(elementType)) {
+			const innerType = typeChecker.getElementTypeOfArrayType(elementType)!;
+			const typeString = typeChecker.typeToString(innerType);
+
 			metadata.properties.push({
-				name: classElement.name.text,
-				type: state.typeChecker.typeToString(elementType),
-				modifiers,
+				name,
+				type: "Array",
+				items: {
+					type: typeString,
+				},
+				decorators,
+			});
+		} else {
+			const typeString = typeChecker.typeToString(elementType);
+			metadata.properties.push({
+				name,
+				items: undefined,
+				type: typeString,
+				decorators,
 			});
 		}
 	}
