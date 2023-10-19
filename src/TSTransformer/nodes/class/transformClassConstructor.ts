@@ -7,6 +7,7 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
+import { extendsAirshipBehaviour } from "TSTransformer/util/extendsAirshipBehaviour";
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getStatements } from "TSTransformer/util/getStatements";
@@ -22,8 +23,9 @@ export function transformClassConstructor(
 
 	let bodyStatements = originNode ? getStatements(originNode.body) : [];
 
+	const isAirshipBehaviour = extendsAirshipBehaviour(state, node);
 	const isRoact = extendsRoactComponent(state, node);
-	let removeFirstSuper = isRoact;
+	let removeFirstSuper = isRoact || isAirshipBehaviour;
 
 	let parameters = luau.list.make<luau.AnyIdentifier>();
 	let hasDotDotDot = false;
@@ -36,7 +38,7 @@ export function transformClassConstructor(
 		luau.list.pushList(statements, paramStatements);
 		parameters = constructorParams;
 		hasDotDotDot = constructorHasDotDotDot;
-	} else if (!isRoact && getExtendsNode(node)) {
+	} else if (!isRoact && getExtendsNode(node) && !isAirshipBehaviour) {
 		// if extends + no constructor:
 		// - add ... to params
 		// - add super.constructor(self, ...)

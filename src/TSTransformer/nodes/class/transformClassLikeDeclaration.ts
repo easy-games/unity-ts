@@ -1,6 +1,9 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
+import { DiagnosticError } from "Shared/errors/DiagnosticError";
+import { AirshipBehaviourJson, AirshipBehaviourFieldDecorator } from "Shared/types";
 import { assert } from "Shared/util/assert";
+import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformClassConstructor } from "TSTransformer/nodes/class/transformClassConstructor";
@@ -9,14 +12,19 @@ import { transformPropertyDeclaration } from "TSTransformer/nodes/class/transfor
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
+import {
+	isPublicWritablePropertyDeclaration,
+	isValidAirshipBehaviourExportType,
+} from "TSTransformer/util/airshipBehaviourUtils";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { extendsAirshipBehaviour } from "TSTransformer/util/extendsAirshipBehaviour";
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
-import ts from "typescript";
+import ts, { factory, ModifierFlags } from "typescript";
 
 const MAGIC_TO_STRING_METHOD = "toString";
 
@@ -143,7 +151,7 @@ function createBoilerplate(
 			}),
 		);
 
-		if (extendsNode) {
+		if (extendsNode && !extendsAirshipBehaviour(state, node)) {
 			const extendsDec = getExtendsDeclaration(state, extendsNode.expression);
 			if (extendsDec && extendsRoactComponent(state, extendsDec)) {
 				DiagnosticService.addDiagnostic(errors.noRoactInheritance(node));
@@ -280,6 +288,60 @@ function isClassHoisted(state: TransformState, node: ts.ClassLikeDeclaration) {
 	return false;
 }
 
+function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLikeDeclaration) {
+	const typeChecker = state.typeChecker;
+
+	const metadata: AirshipBehaviourJson = {
+		name: node.name?.text,
+		properties: [],
+	};
+
+	// iter props
+	for (const classElement of node.members) {
+		const elementType = state.getType(classElement);
+
+		// skip anything that's not a property
+		if (!ts.isPropertyDeclaration(classElement)) continue;
+
+		// skip private, protected properties
+		if (!isPublicWritablePropertyDeclaration(classElement)) continue;
+
+		// only do valid exports
+		if (!isValidAirshipBehaviourExportType(state, classElement)) continue;
+
+		// can't add weird properties
+		if (!ts.isIdentifier(classElement.name)) continue;
+
+		const decorators = new Array<AirshipBehaviourFieldDecorator>(); // TODO in v2
+		const name = classElement.name.text;
+
+		// Handle array case
+		if (typeChecker.isArrayType(elementType)) {
+			const innerType = typeChecker.getElementTypeOfArrayType(elementType)!;
+			const typeString = typeChecker.typeToString(innerType);
+
+			metadata.properties.push({
+				name,
+				type: "Array",
+				items: {
+					type: typeString,
+				},
+				decorators,
+			});
+		} else {
+			const typeString = typeChecker.typeToString(elementType);
+			metadata.properties.push({
+				name,
+				items: undefined,
+				type: typeString,
+				decorators,
+			});
+		}
+	}
+
+	state.sourceFileBehaviourMetaJson = metadata;
+}
+
 export function transformClassLikeDeclaration(state: TransformState, node: ts.ClassLikeDeclaration) {
 	const isClassExpression = ts.isClassExpression(node);
 	const statements = luau.list.make<luau.Statement>();
@@ -330,6 +392,14 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 
 	if (extendsMacroClass(state, node)) {
 		DiagnosticService.addDiagnostic(errors.noMacroExtends(node));
+	}
+
+	if (extendsAirshipBehaviour(state, node)) {
+		const isDefault = (node.modifierFlagsCache & ModifierFlags.Default) !== 0;
+		const isExport = (node.modifierFlagsCache & ModifierFlags.Export) !== 0;
+		if (isDefault && isExport) {
+			generateMetaForAirshipBehaviour(state, node);
+		}
 	}
 
 	const isRoact = extendsRoactComponent(state, node);

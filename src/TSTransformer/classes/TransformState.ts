@@ -4,7 +4,7 @@ import path from "path";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { PARENT_FIELD, ProjectType } from "Shared/constants";
 import { errors, warnings } from "Shared/diagnostics";
-import { ProjectData } from "Shared/types";
+import { AirshipBehaviourJson, ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { MultiTransformState } from "TSTransformer";
@@ -21,6 +21,7 @@ import ts from "typescript";
  */
 export class TransformState {
 	private readonly sourceFileText: string;
+	public sourceFileBehaviourMetaJson: AirshipBehaviourJson | undefined;
 	public hasExportEquals = false;
 	public hasExportFrom = false;
 

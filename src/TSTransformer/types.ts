@@ -1,7 +1,8 @@
-import { MacroManager, RoactSymbolManager } from "TSTransformer";
+import { AirshipSymbolManager, MacroManager, RoactSymbolManager } from "TSTransformer";
 
 export interface TransformServices {
 	macroManager: MacroManager;
+	airshipSymbolManager: AirshipSymbolManager;
 	roactSymbolManager: RoactSymbolManager | undefined;
 }
 

@@ -14,7 +14,7 @@ import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagno
 import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { ProjectType } from "Shared/constants";
-import { ProjectData } from "Shared/types";
+import { AirshipBehaviourJson, ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
@@ -118,6 +118,8 @@ export function compileFiles(
 	LogService.writeLineIfVerbose(`compiling as ${projectType}..`);
 
 	const fileWriteQueue = new Array<{ sourceFile: ts.SourceFile; source: string }>();
+	const fileMetadataWriteQueue = new Map<ts.SourceFile, string>();
+
 	const progressMaxLength = `${sourceFiles.length}/${sourceFiles.length}`.length;
 
 	let proxyProgram = program;
@@ -189,6 +191,14 @@ export function compileFiles(
 			const source = renderAST(luauAST);
 
 			fileWriteQueue.push({ sourceFile, source });
+
+			// If assoc. metadata, then write it
+			if (transformState.sourceFileBehaviourMetaJson) {
+				fileMetadataWriteQueue.set(
+					sourceFile,
+					JSON.stringify(transformState.sourceFileBehaviourMetaJson, null, "\t"),
+				);
+			}
 		});
 	}
 
@@ -219,6 +229,11 @@ export function compileFiles(
 					proxyProgram.emit(sourceFile, ts.sys.writeFile, undefined, true, {
 						afterDeclarations: [transformTypeReferenceDirectives, transformPaths],
 					});
+				}
+
+				if (fileMetadataWriteQueue.has(sourceFile)) {
+					const metadataPathOutPath = outPath + ".json~";
+					fs.outputFileSync(metadataPathOutPath, fileMetadataWriteQueue.get(sourceFile));
 				}
 			}
 			LogService.writeLine(`\nwrote ${writeCount} compiled files (skipped ${skipCount})`);
