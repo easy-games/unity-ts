@@ -79,7 +79,7 @@ export class PathTranslator {
 		}
 
 		let hasImports = false;
-		if (filePath.includes(path.join("Imports/"))) {
+		if (filePath.includes(path.join("@"))) {
 			hasImports = true;
 			if (filePath.includes(path.join("/Shared"))) {
 				filePath = filePath.replace(path.join("/Shared"), path.join("/Shared/Resources/TS"));
@@ -214,7 +214,7 @@ export class PathTranslator {
 				filePath = filePath.replace(path.join("src/CoreClient/Resources/TS"), path.join("src/CoreClient"));
 			}
 
-			if (filePath.includes("Imports/")) {
+			if (filePath.includes("@")) {
 				if (filePath.includes(path.join("/Shared/Resources/TS"))) {
 					filePath = filePath.replace(path.join("/Shared/Resources/TS"), path.join("/Shared"));
 				} else if (filePath.includes(path.join("/Server/Resources/TS"))) {

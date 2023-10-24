@@ -264,7 +264,7 @@ export class TransformState {
 			return luau.create(luau.SyntaxKind.VariableDeclaration, {
 				left: luau.globals.TS,
 				right: luau.call(luau.globals.require, [
-					luau.string("Imports/Core/Shared/Resources/TS/Runtime/RuntimeLib"),
+					luau.string("@Easy/Core/Shared/Resources/TS/Runtime/RuntimeLib"),
 				]),
 			});
 			// return luau.create(luau.SyntaxKind.VariableDeclaration, {

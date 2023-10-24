@@ -240,19 +240,17 @@ export function createImportExpression(
 		 */
 		if (split.length >= 3) {
 			moduleOutPath =
-				"Imports/Core/Shared/Resources/TSExtra/node_modules/@easy-games/" +
-				packageName +
-				split[split.length - 1];
+				"@Easy/Core/Shared/Resources/TSExtra/node_modules/@easy-games/" + packageName + split[split.length - 1];
 		} else {
-			moduleOutPath = "Imports/Core/Shared/Resources/TSExtra/node_modules/@easy-games/" + packageName + split[1];
+			moduleOutPath = "@Easy/Core/Shared/Resources/TSExtra/node_modules/@easy-games/" + packageName + split[1];
 		}
 	} else if (isInsideNodeModules) {
 		let split = moduleOutPath.split("node_modules/");
 		moduleOutPath = split[1];
-		moduleOutPath = "Imports/Core/Shared/Resources/TSExtra/node_modules/" + moduleOutPath;
+		moduleOutPath = "@Easy/Core/Shared/Resources/TSExtra/node_modules/" + moduleOutPath;
 	} else if (moduleOutPath.includes("Types~")) {
 		let split = moduleOutPath.split("Types~");
-		moduleOutPath = "Imports" + split[1];
+		moduleOutPath = split[1];
 
 		moduleOutPath = moduleOutPath.replace("Shared/", "Shared/Resources/TS/");
 		moduleOutPath = moduleOutPath.replace("Server/", "Server/Resources/TS/");
