@@ -1,4 +1,3 @@
-import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
 import ts from "typescript";
 
@@ -34,7 +33,9 @@ export class AirshipSymbolManager {
 			if (symbol) {
 				this.symbols.set(symbolName, symbol);
 			} else {
-				throw new ProjectError(`MacroManager could not find symbol for ${symbolName}` + TYPES_NOTICE);
+				// throw new ProjectError(`MacroManager could not find symbol for ${symbolName}` + TYPES_NOTICE);
+				console.log(`MacroManager could not find symbol for ${symbolName}` + TYPES_NOTICE);
+				continue;
 			}
 		}
 
@@ -58,7 +59,8 @@ export class AirshipSymbolManager {
 					this.serializedTypes.add(interfaceType);
 				}
 			} else {
-				throw new ProjectError(`MacroManager could not find symbol for ${symbolName}` + TYPES_NOTICE);
+				// throw new ProjectError(`MacroManager could not find symbol for ${symbolName}` + TYPES_NOTICE);
+				console.log(`MacroManager could not find symbol for ${symbolName}` + TYPES_NOTICE);
 			}
 		}
 	}
