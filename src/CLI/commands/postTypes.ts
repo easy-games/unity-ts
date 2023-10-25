@@ -41,7 +41,8 @@ export = ts.identity<yargs.CommandModule<{}, Flags & Partial<ProjectOptions>>>({
 			recursive: true,
 			force: true,
 		});
-		writeFileSync(path.join("..", "..", "..", "Types~", packageName, "index.d.ts"), "");
+		const split = packageName.split("/");
+		writeFileSync(path.join("..", "..", "..", "Types~", split[0], split[1], "index.d.ts"), "");
 
 		// copy manually written d.ts files from source
 		const checkDir = (dir: string, depth = 0) => {
@@ -58,7 +59,7 @@ export = ts.identity<yargs.CommandModule<{}, Flags & Partial<ProjectOptions>>>({
 
 					let targetPath = sourcePath.replace(
 						"src" + path.sep,
-						path.join("..", "..", "..", "Types~", packageName) + path.sep,
+						path.join("..", "..", "..", "Types~", split[0], split[1]) + path.sep,
 					);
 					let targetPathDir = path.dirname(targetPath);
 					if (!existsSync(targetPathDir)) {

@@ -134,11 +134,14 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 			const data = createProjectData(tsConfigPath, projectOptions);
 
 			if (data.projectOptions.type === ProjectType.AirshipBundle) {
-				const packageName = getPackageJson().name;
-				const indexPath = path.join("..", "..", "..", "Types~", packageName, "index.d.ts");
+				const json = getPackageJson();
+				const split = json.name.split("/");
+				const indexPath = path.join("..", "..", "..", "Types~", split[0], split[1], "index.d.ts");
 				const indexPathDir = path.dirname(indexPath);
 				if (!existsSync(indexPathDir)) {
-					mkdirSync(indexPathDir);
+					mkdirSync(indexPathDir, {
+						recursive: true,
+					});
 				}
 				writeFileSync(indexPath, "");
 			}

@@ -39,9 +39,11 @@ export = ts.identity<yargs.CommandModule<{}, Flags & Partial<ProjectOptions>>>({
 		LogService.writeLine("Building types...");
 
 		const packageJson = getPackageJson();
-		const packageName = path.basename(packageJson.name);
+		const packageName = packageJson.name;
 
-		const typesPath = path.join("..", "..", "..", "Types~", packageName);
+		const split = packageName.split("/");
+
+		const typesPath = path.join("..", "..", "..", "Types~", split[0], split[1]);
 		if (existsSync(typesPath)) {
 			rmSync(typesPath, {
 				recursive: true,
