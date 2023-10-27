@@ -30,19 +30,19 @@ export function cleanup(pathTranslator: PathTranslator, projectOptions: ProjectO
 		path.join(outDir, "Shared", "Resources", "TS"),
 	];
 
-	if (projectOptions.type === ProjectType.Game) {
-		const importsDir = path.join(outDir, "Imports");
-		if (!fs.existsSync(importsDir)) {
-			fs.mkdirSync(importsDir);
-		}
-		const files = fs.readdirSync(importsDir, { withFileTypes: true });
-		for (const file of files) {
-			if (file.isDirectory()) {
-				console.log("found bundle: " + file + "\n");
-				dirsToCleanup.push(file.name);
-			}
-		}
-	}
+	// if (projectOptions.type === ProjectType.Game) {
+	// 	const importsDir = path.join(outDir, "Imports");
+	// 	if (!fs.existsSync(importsDir)) {
+	// 		fs.mkdirSync(importsDir);
+	// 	}
+	// 	const files = fs.readdirSync(importsDir, { withFileTypes: true });
+	// 	for (const file of files) {
+	// 		if (file.isDirectory()) {
+	// 			console.log("found bundle: " + file + "\n");
+	// 			dirsToCleanup.push(file.name);
+	// 		}
+	// 	}
+	// }
 
 	for (let dir of dirsToCleanup) {
 		if (fs.pathExistsSync(dir)) {
