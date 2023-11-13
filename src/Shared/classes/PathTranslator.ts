@@ -197,7 +197,7 @@ export class PathTranslator {
 			if (filePath.includes("Imports")) {
 				//
 			} else {
-				filePath = filePath.replace(path.join("Assets/"), path.join("Assets/Typescript~/src/"));
+				filePath = filePath.replace(path.join("Assets/Bundles/"), path.join("Assets/Typescript~/src/"));
 			}
 
 			if (filePath.includes(path.join("src/Shared/Resources/TS"))) {
