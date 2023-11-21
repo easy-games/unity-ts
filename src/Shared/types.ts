@@ -112,7 +112,14 @@ export interface AirshipBehaviourFieldExport {
 	 */
 	readonly items:
 		| {
+				/**
+				 * The type of items in the collection (i.e. `Array`)
+				 */
 				type: string;
+				/**
+				 * If type is `object` (i.e. UnityEngine.Object) - will contain the matching type
+				 */
+				objectType: string | undefined;
 		  }
 		| undefined;
 	/**

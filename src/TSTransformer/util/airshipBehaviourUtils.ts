@@ -53,5 +53,13 @@ export function isUnityObjectType(state: TransformState, nodeType: ts.Type) {
 
 export function isValidAirshipBehaviourExportType(state: TransformState, node: ts.Node) {
 	const nodeType = state.getType(node);
-	return state.services.airshipSymbolManager.isTypeSerializable(nodeType);
+	if (state.typeChecker.isArrayType(nodeType)) {
+		const innerArrayType = state.typeChecker.getElementTypeOfArrayType(nodeType)!;
+		return (
+			state.services.airshipSymbolManager.isTypeSerializable(innerArrayType) ||
+			isUnityObjectType(state, innerArrayType)
+		);
+	} else {
+		return state.services.airshipSymbolManager.isTypeSerializable(nodeType) || isUnityObjectType(state, nodeType);
+	}
 }
