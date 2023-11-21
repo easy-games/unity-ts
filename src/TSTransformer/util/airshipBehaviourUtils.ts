@@ -31,12 +31,6 @@ export function getInheritance(state: TransformState, nodeType: ts.Type) {
 
 	const baseTypes = nodeType.getBaseTypes();
 
-	console.log(
-		"TYPES",
-		state.typeChecker.typeToString(nodeType),
-		baseTypes?.map(v => state.typeChecker.typeToString(v)).join(", "),
-	);
-
 	if (baseTypes) {
 		return [nodeType.symbol, ...baseTypes.map(type => type.symbol)];
 	} else {
