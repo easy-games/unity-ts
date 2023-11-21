@@ -1,7 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
-import { AirshipBehaviourJson, AirshipBehaviourFieldDecorator } from "Shared/types";
+import { AirshipBehaviourJson, AirshipBehaviourFieldDecorator, AirshipBehaviourFieldExport } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
@@ -14,6 +14,7 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import {
 	isPublicWritablePropertyDeclaration,
+	isUnityObjectType,
 	isValidAirshipBehaviourExportType,
 } from "TSTransformer/util/airshipBehaviourUtils";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
@@ -279,6 +280,9 @@ function extendsMacroClass(state: TransformState, node: ts.ClassLikeDeclaration)
 	return false;
 }
 
+/** Make all properties in T non-readonly. */
+type Writable<T> = { -readonly [P in keyof T]: T[P] };
+
 function isClassHoisted(state: TransformState, node: ts.ClassLikeDeclaration) {
 	if (node.name) {
 		const symbol = state.typeChecker.getSymbolAtLocation(node.name);
@@ -288,9 +292,45 @@ function isClassHoisted(state: TransformState, node: ts.ClassLikeDeclaration) {
 	return false;
 }
 
-function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLikeDeclaration) {
+function createAirshipProperty(
+	state: TransformState,
+	name: string,
+	type: ts.Type,
+	decorators: Array<AirshipBehaviourFieldDecorator>,
+): AirshipBehaviourFieldExport {
 	const typeChecker = state.typeChecker;
+	const isArray = typeChecker.isArrayType(type);
+	const isObject = isUnityObjectType(state, type);
+	const typeString = typeChecker.typeToString(type);
 
+	const prop = {
+		name,
+	} as Writable<AirshipBehaviourFieldExport>;
+
+	if (isObject) {
+		const nonNullableTypeString = typeChecker.typeToString(type.getNonNullableType());
+
+		prop.objectType = nonNullableTypeString;
+		prop.type = isArray ? "Array" : "object";
+	} else if (isArray) {
+		const arrayItemType = typeChecker.getElementTypeOfArrayType(type)!;
+		const typeString = typeChecker.typeToString(arrayItemType);
+		const isObject = isUnityObjectType(state, arrayItemType);
+
+		prop.type = "Array";
+		prop.items = {
+			type: isObject ? "object" : typeString,
+			objectType: isObject ? typeString : undefined,
+		};
+	} else {
+		prop.type = typeString;
+	}
+
+	prop.decorators = decorators;
+	return prop;
+}
+
+function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLikeDeclaration) {
 	const metadata: AirshipBehaviourJson = {
 		name: node.name?.text,
 		properties: [],
@@ -314,29 +354,7 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 
 		const decorators = new Array<AirshipBehaviourFieldDecorator>(); // TODO in v2
 		const name = classElement.name.text;
-
-		// Handle array case
-		if (typeChecker.isArrayType(elementType)) {
-			const innerType = typeChecker.getElementTypeOfArrayType(elementType)!;
-			const typeString = typeChecker.typeToString(innerType);
-
-			metadata.properties.push({
-				name,
-				type: "Array",
-				items: {
-					type: typeString,
-				},
-				decorators,
-			});
-		} else {
-			const typeString = typeChecker.typeToString(elementType);
-			metadata.properties.push({
-				name,
-				items: undefined,
-				type: typeString,
-				decorators,
-			});
-		}
+		metadata.properties.push(createAirshipProperty(state, name, elementType, decorators));
 	}
 
 	state.sourceFileBehaviourMetaJson = metadata;
