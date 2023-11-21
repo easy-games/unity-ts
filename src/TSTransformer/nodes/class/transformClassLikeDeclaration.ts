@@ -347,7 +347,7 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 		if (!isPublicWritablePropertyDeclaration(classElement)) continue;
 
 		// only do valid exports
-		if (!isValidAirshipBehaviourExportType(state, classElement) && !isUnityObjectType(state, elementType)) continue;
+		if (!isValidAirshipBehaviourExportType(state, classElement)) continue;
 
 		// can't add weird properties
 		if (!ts.isIdentifier(classElement.name)) continue;
