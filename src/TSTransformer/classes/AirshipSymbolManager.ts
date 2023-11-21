@@ -16,7 +16,8 @@ const AIRSHIP_SERIALIZE_TYPES = {
 	Color: "Color",
 	Rect: "Rect",
 	LayerMask: "LayerMask",
-	GameObject: "GameObject",
+	// GameObject: "GameObject",
+	Object: "Object",
 } as const;
 
 /**

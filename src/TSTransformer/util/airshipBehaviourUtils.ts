@@ -23,6 +23,34 @@ export function getAllTypes(type: ts.Type) {
 	}
 }
 
+export function getInheritance(state: TransformState, nodeType: ts.Type) {
+	// ensure non-nullable (e.g. if `GameObject | undefined` - make `GameObject`)
+	if (nodeType.isNullableType()) {
+		nodeType = nodeType.getNonNullableType();
+	}
+
+	const baseTypes = nodeType.getBaseTypes();
+
+	console.log(
+		"TYPES",
+		state.typeChecker.typeToString(nodeType),
+		baseTypes?.map(v => state.typeChecker.typeToString(v)).join(", "),
+	);
+
+	if (baseTypes) {
+		return [nodeType.symbol, ...baseTypes.map(type => type.symbol)];
+	} else {
+		return [nodeType.symbol];
+	}
+}
+
+export function isUnityObjectType(state: TransformState, nodeType: ts.Type) {
+	const objectSymbol = state.services.airshipSymbolManager.getSymbolOrThrow("Object");
+
+	const objectInheritanceTree = getInheritance(state, nodeType);
+	return objectInheritanceTree.includes(objectSymbol);
+}
+
 export function isValidAirshipBehaviourExportType(state: TransformState, node: ts.Node) {
 	const nodeType = state.getType(node);
 	return state.services.airshipSymbolManager.isTypeSerializable(nodeType);
