@@ -59,7 +59,7 @@ function createBinaryAdd(left: luau.Expression, leftType: ts.Type, right: luau.E
 	}
 }
 
-function createUndefinedEqualityBinaryFromUnityObject(
+function createBinaryFromUnityObjectUndefinedEquality(
 	state: TransformState,
 	objectExpression: luau.Expression,
 	check: boolean,
@@ -97,14 +97,14 @@ export function createBinaryFromOperator(
 	// Object related equality with undefined - requires our
 	if (isUnityObjectType(state, leftType) && isEqualityOperator(operatorKind) && isUndefinedType(rightType)) {
 		// gameObject !== undefined || gameObject === undefined
-		return createUndefinedEqualityBinaryFromUnityObject(
+		return createBinaryFromUnityObjectUndefinedEquality(
 			state,
 			left,
 			operatorKind === ts.SyntaxKind.ExclamationEqualsEqualsToken,
 		);
 	} else if (isUndefinedType(leftType) && isEqualityOperator(operatorKind) && isUnityObjectType(state, rightType)) {
 		// undefined === gameObject || undefined !== gameobject
-		return createUndefinedEqualityBinaryFromUnityObject(
+		return createBinaryFromUnityObjectUndefinedEquality(
 			state,
 			right,
 			operatorKind === ts.SyntaxKind.ExclamationEqualsEqualsToken,
