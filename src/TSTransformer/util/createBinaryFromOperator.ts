@@ -2,9 +2,13 @@ import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { getKindName } from "TSTransformer/util/getKindName";
-import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
+import { isDefinitelyType, isStringType, isUndefinedType } from "TSTransformer/util/types";
 import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
 import ts from "typescript";
+import { isUnityObjectType } from "./airshipBehaviourUtils";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { convertToIndexableExpression } from "./convertToIndexableExpression";
+import { isEqualityOperator } from "./operators";
 
 const OPERATOR_MAP = new Map<ts.SyntaxKind, luau.BinaryOperator>([
 	// comparison
@@ -55,6 +59,32 @@ function createBinaryAdd(left: luau.Expression, leftType: ts.Type, right: luau.E
 	}
 }
 
+function createUndefinedEqualityBinaryFromUnityObject(
+	state: TransformState,
+	objectExpression: luau.Expression,
+	check: boolean,
+) {
+	const objectDestroyCheck = luau.create(luau.SyntaxKind.MethodCallExpression, {
+		expression: convertToIndexableExpression(objectExpression),
+		name: "IsDestroyed",
+		args: luau.list.make(),
+	});
+
+	if (check) {
+		return luau.create(luau.SyntaxKind.ParenthesizedExpression, {
+			expression: luau.binary(
+				luau.binary(objectExpression, "~=", luau.nil()),
+				"and",
+				luau.unary("not", objectDestroyCheck),
+			),
+		});
+	} else {
+		return luau.create(luau.SyntaxKind.ParenthesizedExpression, {
+			expression: luau.binary(luau.binary(objectExpression, "==", luau.nil()), "or", objectDestroyCheck),
+		});
+	}
+}
+
 export function createBinaryFromOperator(
 	state: TransformState,
 	node: ts.Node,
@@ -64,6 +94,23 @@ export function createBinaryFromOperator(
 	right: luau.Expression,
 	rightType: ts.Type,
 ): luau.Expression {
+	// Object related equality with undefined - requires our
+	if (isUnityObjectType(state, leftType) && isEqualityOperator(operatorKind) && isUndefinedType(rightType)) {
+		// gameObject !== undefined || gameObject === undefined
+		return createUndefinedEqualityBinaryFromUnityObject(
+			state,
+			left,
+			operatorKind === ts.SyntaxKind.ExclamationEqualsEqualsToken,
+		);
+	} else if (isUndefinedType(leftType) && isEqualityOperator(operatorKind) && isUnityObjectType(state, rightType)) {
+		// undefined === gameObject || undefined !== gameobject
+		return createUndefinedEqualityBinaryFromUnityObject(
+			state,
+			right,
+			operatorKind === ts.SyntaxKind.ExclamationEqualsEqualsToken,
+		);
+	}
+
 	// simple
 	const operator = OPERATOR_MAP.get(operatorKind);
 	if (operator !== undefined) {

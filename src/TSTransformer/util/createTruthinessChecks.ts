@@ -42,7 +42,7 @@ export function createTruthinessChecks(state: TransformState, exp: luau.Expressi
 		checks.push(luau.binary(exp, "~=", luau.string("")));
 	}
 
-	if (isUnityType && luau.isIndexableExpression(exp)) {
+	if (isUnityType) {
 		checks.push(luau.binary(exp, "~=", luau.nil()));
 		checks.push(
 			luau.unary(
