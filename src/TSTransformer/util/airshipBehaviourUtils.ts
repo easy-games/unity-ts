@@ -1,6 +1,8 @@
-import { AirshipBehaviourCallType } from "Shared/types";
+import { AirshipBehaviourCallValue, AirshipBehaviourStaticMemberValue } from "Shared/types";
 import { TransformState } from "TSTransformer";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import ts, { NumericLiteral, StringLiteral } from "typescript";
+import luau, { RenderState, render, renderAST } from "@roblox-ts/luau-ast";
 
 export function isPublicWritablePropertyDeclaration(node: ts.PropertyDeclaration) {
 	// If no modifiers, then it's public by default anyway
@@ -69,7 +71,7 @@ export function isValidAirshipBehaviourExportType(state: TransformState, node: t
 export function getUnityObjectConstructor(
 	state: TransformState,
 	initializer: ts.Expression,
-): AirshipBehaviourCallType | undefined {
+): AirshipBehaviourCallValue | AirshipBehaviourStaticMemberValue | string | undefined {
 	if (ts.isNewExpression(initializer)) {
 		const constructableType = state.typeChecker.getSymbolAtLocation(initializer.expression);
 		if (!constructableType) return undefined;
@@ -94,9 +96,18 @@ export function getUnityObjectConstructor(
 			}),
 		};
 	} else if (ts.isPropertyAccessExpression(initializer)) {
-		return undefined;
+		const constructableType = state.typeChecker.getSymbolAtLocation(initializer.expression);
+		if (!constructableType) return undefined;
+
+		const constructing = state.services.airshipSymbolManager.getTypeFromSymbol(constructableType);
+		if (!constructing) return undefined;
+
+		return {
+			target: "property",
+			type: state.typeChecker.typeToString(constructing),
+			member: initializer.name.text,
+		};
 	} else {
-		console.log(ts.SyntaxKind[initializer.kind]);
 		return undefined;
 	}
 }
