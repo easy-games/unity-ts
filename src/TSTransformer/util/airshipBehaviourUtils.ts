@@ -68,7 +68,7 @@ export function isValidAirshipBehaviourExportType(state: TransformState, node: t
 	}
 }
 
-export function getUnityObjectConstructor(
+export function getUnityObjectInitializerDefaultValue(
 	state: TransformState,
 	initializer: ts.Expression,
 ): AirshipBehaviourCallValue | AirshipBehaviourStaticMemberValue | string | undefined {

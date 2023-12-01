@@ -12,7 +12,7 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import {
 	getAncestorTypeSymbols,
-	getUnityObjectConstructor,
+	getUnityObjectInitializerDefaultValue,
 	isPublicWritablePropertyDeclaration,
 	isUnityObjectType,
 	isValidAirshipBehaviourExportType,
@@ -365,10 +365,8 @@ function pushPropertyMetadataForAirshipBehaviour(
 			} else if (ts.isBooleanLiteral(initializer)) {
 				property.default = initializer.kind === ts.SyntaxKind.TrueKeyword;
 			} else {
-				const object = getUnityObjectConstructor(state, initializer);
-				if (object) {
-					property.default = object;
-				}
+				const objectInitializer = getUnityObjectInitializerDefaultValue(state, initializer);
+				if (objectInitializer) property.default = objectInitializer;
 			}
 		}
 
