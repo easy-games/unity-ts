@@ -25,6 +25,7 @@ const AIRSHIP_SERIALIZE_TYPES = {
  */
 export class AirshipSymbolManager {
 	private symbols = new Map<string, ts.Symbol>();
+	private symbolsToType = new Map<ts.Symbol, ts.Type>();
 	private serializedTypes = new Set<ts.Type>();
 
 	constructor(private typeChecker: ts.TypeChecker) {
@@ -58,6 +59,8 @@ export class AirshipSymbolManager {
 				if (interfaceDeclaration) {
 					const interfaceType = typeChecker.getTypeAtLocation(interfaceDeclaration);
 					this.serializedTypes.add(interfaceType);
+
+					this.symbolsToType.set(symbol, interfaceType);
 				}
 			} else {
 				// throw new ProjectError(`MacroManager could not find symbol for ${symbolName}` + TYPES_NOTICE);
@@ -70,6 +73,10 @@ export class AirshipSymbolManager {
 		const symbol = this.symbols.get(name);
 		assert(symbol);
 		return symbol;
+	}
+
+	public getTypeFromSymbol(constructorSymbol: ts.Symbol) {
+		return this.symbolsToType.get(constructorSymbol);
 	}
 
 	public isTypeSerializable(type: ts.Type) {

@@ -89,6 +89,20 @@ export interface AirshipBehaviourJson {
 	readonly properties: Array<AirshipBehaviourFieldExport>;
 }
 
+export interface AirshipBehaviourStaticMemberValue {
+	target: "property";
+	type: string;
+	member: string;
+	computed?: unknown;
+}
+
+export interface AirshipBehaviourCallValue {
+	target: "constructor";
+	type: string;
+	arguments: Array<unknown>;
+	computed?: unknown;
+}
+
 /**
  * Metadata about a public serializable member in the AirshipBehaviour
  */
@@ -101,6 +115,14 @@ export interface AirshipBehaviourFieldExport {
 	 * The type of the property
 	 */
 	readonly type: string;
+
+	readonly default:
+		| string
+		| number
+		| boolean
+		| AirshipBehaviourCallValue
+		| AirshipBehaviourStaticMemberValue
+		| undefined;
 
 	/**
 	 * If type is `object` (i.e. UnityEngine.Object) - will contain the matching type

@@ -1,5 +1,8 @@
+import { AirshipBehaviourCallValue, AirshipBehaviourStaticMemberValue } from "Shared/types";
 import { TransformState } from "TSTransformer";
-import ts from "typescript";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import ts, { NumericLiteral, StringLiteral } from "typescript";
+import luau, { RenderState, render, renderAST } from "@roblox-ts/luau-ast";
 
 export function isPublicWritablePropertyDeclaration(node: ts.PropertyDeclaration) {
 	// If no modifiers, then it's public by default anyway
@@ -62,5 +65,49 @@ export function isValidAirshipBehaviourExportType(state: TransformState, node: t
 		);
 	} else {
 		return state.services.airshipSymbolManager.isTypeSerializable(nodeType) || isUnityObjectType(state, nodeType);
+	}
+}
+
+export function getUnityObjectInitializerDefaultValue(
+	state: TransformState,
+	initializer: ts.Expression,
+): AirshipBehaviourCallValue | AirshipBehaviourStaticMemberValue | string | undefined {
+	if (ts.isNewExpression(initializer)) {
+		const constructableType = state.typeChecker.getSymbolAtLocation(initializer.expression);
+		if (!constructableType) return undefined;
+
+		const constructing = state.services.airshipSymbolManager.getTypeFromSymbol(constructableType);
+		if (!constructing) return undefined;
+
+		const allLiterals = initializer.arguments?.every((argument): argument is ts.StringLiteral | ts.NumericLiteral =>
+			ts.isStringOrNumericLiteralLike(argument),
+		);
+		if (!allLiterals) return undefined;
+
+		return {
+			target: "constructor",
+			type: state.typeChecker.typeToString(constructing),
+			arguments: initializer.arguments.map(v => {
+				if (ts.isNumericLiteral(v)) {
+					return parseFloat(v.text);
+				} else if (ts.isStringLiteral(v)) {
+					return v.text;
+				}
+			}),
+		};
+	} else if (ts.isPropertyAccessExpression(initializer)) {
+		const constructableType = state.typeChecker.getSymbolAtLocation(initializer.expression);
+		if (!constructableType) return undefined;
+
+		const constructing = state.services.airshipSymbolManager.getTypeFromSymbol(constructableType);
+		if (!constructing) return undefined;
+
+		return {
+			target: "property",
+			type: state.typeChecker.typeToString(constructing),
+			member: initializer.name.text,
+		};
+	} else {
+		return undefined;
 	}
 }
