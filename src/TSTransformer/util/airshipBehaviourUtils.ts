@@ -1,5 +1,6 @@
+import { AirshipBehaviourCallType } from "Shared/types";
 import { TransformState } from "TSTransformer";
-import ts from "typescript";
+import ts, { NumericLiteral, StringLiteral } from "typescript";
 
 export function isPublicWritablePropertyDeclaration(node: ts.PropertyDeclaration) {
 	// If no modifiers, then it's public by default anyway
@@ -62,5 +63,40 @@ export function isValidAirshipBehaviourExportType(state: TransformState, node: t
 		);
 	} else {
 		return state.services.airshipSymbolManager.isTypeSerializable(nodeType) || isUnityObjectType(state, nodeType);
+	}
+}
+
+export function getUnityObjectConstructor(
+	state: TransformState,
+	initializer: ts.Expression,
+): AirshipBehaviourCallType | undefined {
+	if (ts.isNewExpression(initializer)) {
+		const constructableType = state.typeChecker.getSymbolAtLocation(initializer.expression);
+		if (!constructableType) return undefined;
+
+		const constructing = state.services.airshipSymbolManager.getTypeFromSymbol(constructableType);
+		if (!constructing) return undefined;
+
+		const allLiterals = initializer.arguments?.every((argument): argument is ts.StringLiteral | ts.NumericLiteral =>
+			ts.isStringOrNumericLiteralLike(argument),
+		);
+		if (!allLiterals) return undefined;
+
+		return {
+			target: "constructor",
+			type: state.typeChecker.typeToString(constructing),
+			arguments: initializer.arguments.map(v => {
+				if (ts.isNumericLiteral(v)) {
+					return parseFloat(v.text);
+				} else if (ts.isStringLiteral(v)) {
+					return v.text;
+				}
+			}),
+		};
+	} else if (ts.isPropertyAccessExpression(initializer)) {
+		return undefined;
+	} else {
+		console.log(ts.SyntaxKind[initializer.kind]);
+		return undefined;
 	}
 }

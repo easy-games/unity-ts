@@ -12,6 +12,7 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import {
 	getAncestorTypeSymbols,
+	getUnityObjectConstructor,
 	isPublicWritablePropertyDeclaration,
 	isUnityObjectType,
 	isValidAirshipBehaviourExportType,
@@ -296,7 +297,7 @@ function createAirshipProperty(
 	name: string,
 	type: ts.Type,
 	decorators: Array<AirshipBehaviourFieldDecorator>,
-): AirshipBehaviourFieldExport {
+): Writable<AirshipBehaviourFieldExport> {
 	const typeChecker = state.typeChecker;
 	const isArray = typeChecker.isArrayType(type);
 	const isObject = isUnityObjectType(state, type);
@@ -352,7 +353,26 @@ function pushPropertyMetadataForAirshipBehaviour(
 
 		const decorators = new Array<AirshipBehaviourFieldDecorator>(); // TODO in v2
 		const name = classElement.name.text;
-		metadata.properties.push(createAirshipProperty(state, name, elementType, decorators));
+
+		const property = createAirshipProperty(state, name, elementType, decorators);
+
+		const initializer = classElement.initializer;
+		if (initializer) {
+			if (ts.isStringLiteral(initializer)) {
+				property.default = initializer.text;
+			} else if (ts.isNumericLiteral(initializer)) {
+				property.default = parseFloat(initializer.text);
+			} else if (ts.isBooleanLiteral(initializer)) {
+				property.default = initializer.kind === ts.SyntaxKind.TrueKeyword;
+			} else {
+				const object = getUnityObjectConstructor(state, initializer);
+				if (object) {
+					property.default = object;
+				}
+			}
+		}
+
+		metadata.properties.push(property);
 	}
 }
 
