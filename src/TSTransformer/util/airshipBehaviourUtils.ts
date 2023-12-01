@@ -23,7 +23,29 @@ export function getAllTypes(type: ts.Type) {
 	}
 }
 
-export function getInheritance(state: TransformState, nodeType: ts.Type) {
+export function getAncestorTypeSymbols(state: TransformState, nodeType: ts.Type) {
+	// ensure non-nullable (e.g. if `GameObject | undefined` - make `GameObject`)
+	if (nodeType.isNullableType()) {
+		nodeType = nodeType.getNonNullableType();
+	}
+
+	const baseTypes = nodeType.getBaseTypes();
+	if (baseTypes) {
+		const symbols = new Array<ts.Symbol>();
+		for (const baseType of baseTypes) {
+			symbols.push(baseType.symbol);
+
+			for (const parentSymbol of getAncestorTypeSymbols(state, baseType)) {
+				symbols.push(parentSymbol);
+			}
+		}
+		return symbols;
+	} else {
+		return [];
+	}
+}
+
+export function getAssociatedTypeSymbols(state: TransformState, nodeType: ts.Type, skipSelf = false) {
 	// ensure non-nullable (e.g. if `GameObject | undefined` - make `GameObject`)
 	if (nodeType.isNullableType()) {
 		nodeType = nodeType.getNonNullableType();
@@ -32,16 +54,20 @@ export function getInheritance(state: TransformState, nodeType: ts.Type) {
 	const baseTypes = nodeType.getBaseTypes();
 
 	if (baseTypes) {
-		return [nodeType.symbol, ...baseTypes.map(type => type.symbol)];
+		const symbols = baseTypes.map(type => type.symbol);
+		if (!skipSelf) {
+			symbols.unshift(nodeType.symbol);
+		}
+		return symbols;
 	} else {
-		return [nodeType.symbol];
+		return skipSelf ? [] : [nodeType.symbol];
 	}
 }
 
 export function isUnityObjectType(state: TransformState, nodeType: ts.Type) {
 	const objectSymbol = state.services.airshipSymbolManager.getSymbolOrThrow("Object");
 
-	const objectInheritanceTree = getInheritance(state, nodeType);
+	const objectInheritanceTree = getAncestorTypeSymbols(state, nodeType);
 	return objectInheritanceTree.includes(objectSymbol);
 }
 

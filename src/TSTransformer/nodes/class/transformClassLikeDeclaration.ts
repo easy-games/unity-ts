@@ -1,9 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
-import { DiagnosticError } from "Shared/errors/DiagnosticError";
-import { AirshipBehaviourJson, AirshipBehaviourFieldDecorator, AirshipBehaviourFieldExport } from "Shared/types";
+import { AirshipBehaviourFieldDecorator, AirshipBehaviourFieldExport, AirshipBehaviourJson } from "Shared/types";
 import { assert } from "Shared/util/assert";
-import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformClassConstructor } from "TSTransformer/nodes/class/transformClassConstructor";
@@ -13,19 +11,21 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import {
+	getAncestorTypeSymbols,
+	getAssociatedTypeSymbols,
 	isPublicWritablePropertyDeclaration,
 	isUnityObjectType,
 	isValidAirshipBehaviourExportType,
 } from "TSTransformer/util/airshipBehaviourUtils";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
-import { extendsAirshipBehaviour } from "TSTransformer/util/extendsAirshipBehaviour";
+import { isAirshipBehaviourClass } from "TSTransformer/util/extendsAirshipBehaviour";
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
-import ts, { factory, ModifierFlags } from "typescript";
+import ts, { ClassDeclaration, ClassLikeDeclaration, ModifierFlags } from "typescript";
 
 const MAGIC_TO_STRING_METHOD = "toString";
 
@@ -152,7 +152,7 @@ function createBoilerplate(
 			}),
 		);
 
-		if (extendsNode && !extendsAirshipBehaviour(state, node)) {
+		if (extendsNode && !isAirshipBehaviourClass(state, node)) {
 			const extendsDec = getExtendsDeclaration(state, extendsNode.expression);
 			if (extendsDec && extendsRoactComponent(state, extendsDec)) {
 				DiagnosticService.addDiagnostic(errors.noRoactInheritance(node));
@@ -330,12 +330,11 @@ function createAirshipProperty(
 	return prop;
 }
 
-function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLikeDeclaration) {
-	const metadata: AirshipBehaviourJson = {
-		name: node.name?.text,
-		properties: [],
-	};
-
+function pushPropertyMetadataForAirshipBehaviour(
+	state: TransformState,
+	node: ts.ClassLikeDeclaration,
+	metadata: AirshipBehaviourJson,
+) {
 	// iter props
 	for (const classElement of node.members) {
 		const elementType = state.getType(classElement);
@@ -355,6 +354,27 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 		const decorators = new Array<AirshipBehaviourFieldDecorator>(); // TODO in v2
 		const name = classElement.name.text;
 		metadata.properties.push(createAirshipProperty(state, name, elementType, decorators));
+	}
+}
+
+function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLikeDeclaration) {
+	const classType = state.typeChecker.getTypeAtLocation(node);
+
+	const metadata: AirshipBehaviourJson = {
+		name: node.name?.text,
+		properties: [],
+	};
+
+	pushPropertyMetadataForAirshipBehaviour(state, node, metadata);
+
+	// Inheritance
+	const inheritance = getAncestorTypeSymbols(state, classType);
+	for (const inherited of inheritance) {
+		const valueDeclaration = inherited.valueDeclaration;
+		if (!valueDeclaration) continue;
+		if (!ts.isClassLike(valueDeclaration)) continue;
+
+		pushPropertyMetadataForAirshipBehaviour(state, valueDeclaration, metadata);
 	}
 
 	state.sourceFileBehaviourMetaJson = metadata;
@@ -412,7 +432,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		DiagnosticService.addDiagnostic(errors.noMacroExtends(node));
 	}
 
-	if (extendsAirshipBehaviour(state, node)) {
+	if (isAirshipBehaviourClass(state, node)) {
 		const isDefault = (node.modifierFlagsCache & ModifierFlags.Default) !== 0;
 		const isExport = (node.modifierFlagsCache & ModifierFlags.Export) !== 0;
 		if (isDefault && isExport) {
