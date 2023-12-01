@@ -12,7 +12,6 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import {
 	getAncestorTypeSymbols,
-	getAssociatedTypeSymbols,
 	isPublicWritablePropertyDeclaration,
 	isUnityObjectType,
 	isValidAirshipBehaviourExportType,
@@ -25,7 +24,7 @@ import { getKindName } from "TSTransformer/util/getKindName";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
-import ts, { ClassDeclaration, ClassLikeDeclaration, ModifierFlags } from "typescript";
+import ts, { ModifierFlags } from "typescript";
 
 const MAGIC_TO_STRING_METHOD = "toString";
 

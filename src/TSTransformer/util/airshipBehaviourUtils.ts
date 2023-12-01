@@ -45,25 +45,6 @@ export function getAncestorTypeSymbols(state: TransformState, nodeType: ts.Type)
 	}
 }
 
-export function getAssociatedTypeSymbols(state: TransformState, nodeType: ts.Type, skipSelf = false) {
-	// ensure non-nullable (e.g. if `GameObject | undefined` - make `GameObject`)
-	if (nodeType.isNullableType()) {
-		nodeType = nodeType.getNonNullableType();
-	}
-
-	const baseTypes = nodeType.getBaseTypes();
-
-	if (baseTypes) {
-		const symbols = baseTypes.map(type => type.symbol);
-		if (!skipSelf) {
-			symbols.unshift(nodeType.symbol);
-		}
-		return symbols;
-	} else {
-		return skipSelf ? [] : [nodeType.symbol];
-	}
-}
-
 export function isUnityObjectType(state: TransformState, nodeType: ts.Type) {
 	const objectSymbol = state.services.airshipSymbolManager.getSymbolOrThrow("Object");
 
