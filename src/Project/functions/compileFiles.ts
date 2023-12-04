@@ -238,21 +238,33 @@ export function compileFiles(
 
 				if (fileMetadataWriteQueue.has(sourceFile)) {
 					const metadataPathOutPath = outPath + ".json~";
-					fs.outputFileSync(metadataPathOutPath, fileMetadataWriteQueue.get(sourceFile));
+					const source = fileMetadataWriteQueue.get(sourceFile);
+
+					if (data.writeOnlyChanged && fs.existsSync(metadataPathOutPath)) {
+						const currentSource = fs.readFileSync(metadataPathOutPath).toString();
+
+						if (currentSource === source) {
+							continue; // skip AirshipBehaviour gen if duplicate
+						}
+					}
+
+					fs.outputFileSync(metadataPathOutPath, source);
 					metadataCount++;
 				}
 			}
 
-			if (LogService.verbose) {
-				LogService.writeLine(
-					`\nCompiled ${writeCount} TypeScript file(s) and generated ${metadataCount} AirshipBehaviour(s) (${
-						Date.now() - startTime
-					}ms)`,
-				);
+			LogService.writeLineIfVerbose(`\nCompiled ${writeCount} TypeScript file${writeCount !== 1 ? "s" : ""}`);
 
-				if (skipCount > 0) {
-					LogService.writeLine(`\tSkipped ${skipCount} files not changed since last compile.`);
-				}
+			if (metadataCount > 0) {
+				LogService.writeLineIfVerbose(
+					`Generated ${metadataCount} AirshipBehaviour${metadataCount !== 1 ? "s" : ""}`,
+				);
+			}
+
+			if (skipCount > 0) {
+				LogService.writeLineIfVerbose(
+					`Skipped ${skipCount} ${skipCount !== 1 ? "s" : ""} not changed since last compile.`,
+				);
 			}
 		});
 	}
