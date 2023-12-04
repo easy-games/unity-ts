@@ -1,4 +1,4 @@
-import fs from "fs-extra";
+import fs, { outputFile } from "fs-extra";
 import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { DTS_EXT } from "Shared/constants";
@@ -32,11 +32,9 @@ function isOutputFileOrphaned(pathTranslator: PathTranslator, filePath: string) 
 
 export function tryRemoveOutput(pathTranslator: PathTranslator, outPath: string) {
 	if (outPath.includes("Scenes/")) {
-		// console.log("skipping " + outPath);
 		return;
 	}
 	if (isOutputFileOrphaned(pathTranslator, outPath)) {
 		fs.removeSync(outPath);
-		LogService.writeLineIfVerbose(`remove ${outPath}`);
 	}
 }

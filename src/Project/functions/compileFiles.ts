@@ -115,7 +115,8 @@ export function compileFiles(
 
 	if (DiagnosticService.hasErrors()) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
 
-	LogService.writeLineIfVerbose(`compiling as ${projectType}..`);
+	LogService.writeLineIfVerbose(`Now running TypeScript compiler:`);
+	const startTime = Date.now();
 
 	const fileWriteQueue = new Array<{ sourceFile: ts.SourceFile; source: string }>();
 	const fileMetadataWriteQueue = new Map<ts.SourceFile, string>();
@@ -198,6 +199,8 @@ export function compileFiles(
 					sourceFile,
 					JSON.stringify(transformState.sourceFileBehaviourMetaJson, null, "\t"),
 				);
+
+				LogService.writeIfVerbose(` with assoc. AirshipBehaviour metadata`);
 			}
 		});
 	}
@@ -209,6 +212,8 @@ export function compileFiles(
 		benchmarkIfVerbose("writing compiled files", () => {
 			let skipCount = 0;
 			let writeCount = 0;
+			let metadataCount = 0;
+
 			for (const { sourceFile, source } of fileWriteQueue) {
 				const outPath = pathTranslator.getOutputPath(sourceFile.fileName);
 
@@ -233,10 +238,34 @@ export function compileFiles(
 
 				if (fileMetadataWriteQueue.has(sourceFile)) {
 					const metadataPathOutPath = outPath + ".json~";
-					fs.outputFileSync(metadataPathOutPath, fileMetadataWriteQueue.get(sourceFile));
+					const source = fileMetadataWriteQueue.get(sourceFile);
+
+					if (data.writeOnlyChanged && fs.existsSync(metadataPathOutPath)) {
+						const currentSource = fs.readFileSync(metadataPathOutPath).toString();
+
+						if (currentSource === source) {
+							continue; // skip AirshipBehaviour gen if duplicate
+						}
+					}
+
+					fs.outputFileSync(metadataPathOutPath, source);
+					metadataCount++;
 				}
 			}
-			LogService.writeLine(`\nwrote ${writeCount} compiled files (skipped ${skipCount})`);
+
+			LogService.writeLineIfVerbose(`\nCompiled ${writeCount} TypeScript file${writeCount !== 1 ? "s" : ""}`);
+
+			if (metadataCount > 0) {
+				LogService.writeLineIfVerbose(
+					`Generated ${metadataCount} AirshipBehaviour${metadataCount !== 1 ? "s" : ""}`,
+				);
+			}
+
+			if (skipCount > 0) {
+				LogService.writeLineIfVerbose(
+					`Skipped ${skipCount} file${skipCount !== 1 ? "s" : ""} not changed since last compile.`,
+				);
+			}
 		});
 	}
 

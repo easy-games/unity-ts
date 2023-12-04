@@ -6,6 +6,7 @@ import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { ProjectType } from "Shared/constants";
 import { ProjectOptions } from "Shared/types";
+import { benchmarkIfVerbose } from "Shared/util/benchmark";
 
 function cleanupDirRecursively(pathTranslator: PathTranslator, dir: string) {
 	if (fs.pathExistsSync(dir)) {
@@ -23,34 +24,36 @@ function cleanupDirRecursively(pathTranslator: PathTranslator, dir: string) {
 }
 
 export function cleanup(pathTranslator: PathTranslator, projectOptions: ProjectOptions) {
-	const outDir = pathTranslator.outDir;
-	const dirsToCleanup = [
-		path.join(outDir, "Client", "Resources", "TS"),
-		path.join(outDir, "Server", "Resources", "TS"),
-		path.join(outDir, "Shared", "Resources", "TS"),
-	];
+	benchmarkIfVerbose(`cleanup orphaned files`, () => {
+		const outDir = pathTranslator.outDir;
+		const dirsToCleanup = [
+			path.join(outDir, "Client", "Resources", "TS"),
+			path.join(outDir, "Server", "Resources", "TS"),
+			path.join(outDir, "Shared", "Resources", "TS"),
+		];
 
-	// if (projectOptions.type === ProjectType.Game) {
-	// 	const importsDir = path.join(outDir, "Imports");
-	// 	if (!fs.existsSync(importsDir)) {
-	// 		fs.mkdirSync(importsDir);
-	// 	}
-	// 	const files = fs.readdirSync(importsDir, { withFileTypes: true });
-	// 	for (const file of files) {
-	// 		if (file.isDirectory()) {
-	// 			console.log("found bundle: " + file + "\n");
-	// 			dirsToCleanup.push(file.name);
-	// 		}
-	// 	}
-	// }
+		// if (projectOptions.type === ProjectType.Game) {
+		// 	const importsDir = path.join(outDir, "Imports");
+		// 	if (!fs.existsSync(importsDir)) {
+		// 		fs.mkdirSync(importsDir);
+		// 	}
+		// 	const files = fs.readdirSync(importsDir, { withFileTypes: true });
+		// 	for (const file of files) {
+		// 		if (file.isDirectory()) {
+		// 			console.log("found bundle: " + file + "\n");
+		// 			dirsToCleanup.push(file.name);
+		// 		}
+		// 	}
+		// }
 
-	for (let dir of dirsToCleanup) {
-		if (fs.pathExistsSync(dir)) {
-			cleanupDirRecursively(pathTranslator, dir);
+		for (let dir of dirsToCleanup) {
+			if (fs.pathExistsSync(dir)) {
+				cleanupDirRecursively(pathTranslator, dir);
+			}
 		}
-	}
 
-	addPackageIndexFiles(pathTranslator, projectOptions);
+		addPackageIndexFiles(pathTranslator, projectOptions);
+	});
 }
 function addPackageIndexFiles(pathTranslator: PathTranslator, projectOptions: ProjectOptions): void {
 	let typesDir: string;
