@@ -263,7 +263,7 @@ export function compileFiles(
 
 			if (skipCount > 0) {
 				LogService.writeLineIfVerbose(
-					`Skipped ${skipCount} ${skipCount !== 1 ? "s" : ""} not changed since last compile.`,
+					`Skipped ${skipCount} file${skipCount !== 1 ? "s" : ""} not changed since last compile.`,
 				);
 			}
 		});
