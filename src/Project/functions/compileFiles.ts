@@ -115,7 +115,8 @@ export function compileFiles(
 
 	if (DiagnosticService.hasErrors()) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
 
-	LogService.writeLineIfVerbose(`compiling as ${projectType}..`);
+	LogService.writeLineIfVerbose(`Now running TypeScript compiler:`);
+	const startTime = Date.now();
 
 	const fileWriteQueue = new Array<{ sourceFile: ts.SourceFile; source: string }>();
 	const fileMetadataWriteQueue = new Map<ts.SourceFile, string>();
@@ -198,6 +199,8 @@ export function compileFiles(
 					sourceFile,
 					JSON.stringify(transformState.sourceFileBehaviourMetaJson, null, "\t"),
 				);
+
+				LogService.writeIfVerbose(` with assoc. AirshipBehaviour metadata`);
 			}
 		});
 	}
@@ -209,6 +212,8 @@ export function compileFiles(
 		benchmarkIfVerbose("writing compiled files", () => {
 			let skipCount = 0;
 			let writeCount = 0;
+			let metadataCount = 0;
+
 			for (const { sourceFile, source } of fileWriteQueue) {
 				const outPath = pathTranslator.getOutputPath(sourceFile.fileName);
 
@@ -234,9 +239,21 @@ export function compileFiles(
 				if (fileMetadataWriteQueue.has(sourceFile)) {
 					const metadataPathOutPath = outPath + ".json~";
 					fs.outputFileSync(metadataPathOutPath, fileMetadataWriteQueue.get(sourceFile));
+					metadataCount++;
 				}
 			}
-			LogService.writeLine(`\nwrote ${writeCount} compiled files (skipped ${skipCount})`);
+
+			if (LogService.verbose) {
+				LogService.writeLine(
+					`\nCompiled ${writeCount} TypeScript file(s) and generated ${metadataCount} AirshipBehaviour(s) (${
+						Date.now() - startTime
+					}ms)`,
+				);
+
+				if (skipCount > 0) {
+					LogService.writeLine(`\tSkipped ${skipCount} files not changed since last compile.`);
+				}
+			}
 		});
 	}
 

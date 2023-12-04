@@ -1,5 +1,15 @@
 import path from "path";
-import { D_EXT, DTS_EXT, INDEX_NAME, INIT_NAME, LUA_EXT, ProjectType, TS_EXT, TSX_EXT } from "Shared/constants";
+import {
+	D_EXT,
+	DTS_EXT,
+	INDEX_NAME,
+	INIT_NAME,
+	JSON_META_EXT,
+	LUA_EXT,
+	ProjectType,
+	TS_EXT,
+	TSX_EXT,
+} from "Shared/constants";
 import { ProjectOptions } from "Shared/types";
 import { assert } from "Shared/util/assert";
 
@@ -92,7 +102,12 @@ export class PathTranslator {
 
 		const pathInfo = PathInfo.from(filePath);
 
-		if ((pathInfo.extsPeek() === TS_EXT || pathInfo.extsPeek() === TSX_EXT) && pathInfo.extsPeek(1) !== D_EXT) {
+		if (
+			(pathInfo.extsPeek() === TS_EXT ||
+				pathInfo.extsPeek() === JSON_META_EXT ||
+				pathInfo.extsPeek() === TSX_EXT) &&
+			pathInfo.extsPeek(1) !== D_EXT
+		) {
 			pathInfo.exts.pop(); // pop .tsx?
 
 			// index -> init
@@ -194,12 +209,6 @@ export class PathTranslator {
 		possiblePaths.push(makeRelative(pathInfo));
 
 		possiblePaths = possiblePaths.map(filePath => {
-			if (filePath.includes("Imports")) {
-				//
-			} else {
-				filePath = filePath.replace(path.join("Assets/Bundles/"), path.join("Assets/Typescript~/src/"));
-			}
-
 			if (filePath.includes(path.join("src/Shared/Resources/TS"))) {
 				filePath = filePath.replace(path.join("src/Shared/Resources/TS"), path.join("src/Shared"));
 			} else if (filePath.includes(path.join("src/Server/Resources/TS"))) {

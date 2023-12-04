@@ -18,6 +18,12 @@ export class LogService {
 		}
 	}
 
+	static writeIfVerbose(message: string) {
+		if (this.verbose) {
+			this.write(message);
+		}
+	}
+
 	static writeLineIfVerbose(...messages: Array<unknown>) {
 		if (this.verbose) {
 			this.writeLine(...messages);
