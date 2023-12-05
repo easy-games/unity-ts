@@ -4,6 +4,20 @@ import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import ts from "typescript";
 
+export function isRootAirshipBehaviourClass(state: TransformState, node: ts.ClassLikeDeclaration) {
+	const extendsNode = getExtendsNode(node);
+	if (extendsNode) {
+		const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipBehaviourSymbolOrThrow();
+
+		const symbol = getOriginalSymbolOfNode(state.typeChecker, extendsNode.expression);
+		if (symbol === airshipBehaviourSymbol) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 export function isAirshipBehaviourClass(state: TransformState, node: ts.ClassLikeDeclaration) {
 	const extendsNode = getExtendsNode(node);
 	if (extendsNode) {

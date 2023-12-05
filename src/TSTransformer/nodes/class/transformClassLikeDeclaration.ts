@@ -18,7 +18,7 @@ import {
 	isValidAirshipBehaviourExportType,
 } from "TSTransformer/util/airshipBehaviourUtils";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
-import { isAirshipBehaviourClass } from "TSTransformer/util/extendsAirshipBehaviour";
+import { isAirshipBehaviourClass, isRootAirshipBehaviourClass } from "TSTransformer/util/extendsAirshipBehaviour";
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getKindName } from "TSTransformer/util/getKindName";
@@ -152,7 +152,7 @@ function createBoilerplate(
 			}),
 		);
 
-		if (extendsNode && !isAirshipBehaviourClass(state, node)) {
+		if (extendsNode && !isRootAirshipBehaviourClass(state, node)) {
 			const extendsDec = getExtendsDeclaration(state, extendsNode.expression);
 			if (extendsDec && extendsRoactComponent(state, extendsDec)) {
 				DiagnosticService.addDiagnostic(errors.noRoactInheritance(node));

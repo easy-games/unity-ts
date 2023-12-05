@@ -7,7 +7,7 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
-import { isAirshipBehaviourClass } from "TSTransformer/util/extendsAirshipBehaviour";
+import { isRootAirshipBehaviourClass } from "TSTransformer/util/extendsAirshipBehaviour";
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getStatements } from "TSTransformer/util/getStatements";
@@ -23,7 +23,7 @@ export function transformClassConstructor(
 
 	let bodyStatements = originNode ? getStatements(originNode.body) : [];
 
-	const isAirshipBehaviour = isAirshipBehaviourClass(state, node);
+	const isAirshipBehaviour = isRootAirshipBehaviourClass(state, node);
 	const isRoact = extendsRoactComponent(state, node);
 	let removeFirstSuper = isRoact || isAirshipBehaviour;
 
