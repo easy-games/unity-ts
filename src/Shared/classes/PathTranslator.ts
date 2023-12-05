@@ -185,6 +185,22 @@ export class PathTranslator {
 			pathInfo.exts.push(LUA_EXT);
 		}
 
+		// Check for .lua.json~ "sources" (should be the relevant .ts files)
+		if (pathInfo.extsPeek() == JSON_META_EXT && pathInfo.extsPeek(1) == LUA_EXT) {
+			pathInfo.exts.pop();
+			pathInfo.exts.pop();
+
+			// ts
+			pathInfo.exts.push(TS_EXT);
+			possiblePaths.push(makeRelative(pathInfo));
+			pathInfo.exts.pop();
+
+			// tsx
+			pathInfo.exts.push(TSX_EXT);
+			possiblePaths.push(makeRelative(pathInfo));
+			pathInfo.exts.pop();
+		}
+
 		if (this.declaration) {
 			if ((pathInfo.extsPeek() === TS_EXT || pathInfo.extsPeek() === TSX_EXT) && pathInfo.extsPeek(1) === D_EXT) {
 				const tsExt = pathInfo.exts.pop(); // pop .tsx?
