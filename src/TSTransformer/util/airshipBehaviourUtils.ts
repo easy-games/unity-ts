@@ -1,8 +1,6 @@
 import { AirshipBehaviourCallValue, AirshipBehaviourStaticMemberValue } from "Shared/types";
 import { TransformState } from "TSTransformer";
-import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import ts, { NumericLiteral, StringLiteral } from "typescript";
-import luau, { RenderState, render, renderAST } from "@roblox-ts/luau-ast";
+import ts from "typescript";
 
 export function isPublicWritablePropertyDeclaration(node: ts.PropertyDeclaration) {
 	// If no modifiers, then it's public by default anyway
@@ -46,6 +44,17 @@ export function getAncestorTypeSymbols(state: TransformState, nodeType: ts.Type)
 	} else {
 		return [];
 	}
+}
+
+export function isAirshipDecorator(state: TransformState, decorator: ts.Decorator) {
+	const expression = decorator.expression;
+	if (!ts.isCallExpression(expression)) return false;
+
+	const aliasSymbol = state.typeChecker.getTypeAtLocation(expression).aliasSymbol;
+	if (!aliasSymbol) return false;
+
+	const airshipFieldSymbol = state.services.airshipSymbolManager.getSymbolOrThrow("AirshipDecorator");
+	return airshipFieldSymbol === aliasSymbol;
 }
 
 export function isUnityObjectType(state: TransformState, nodeType: ts.Type) {

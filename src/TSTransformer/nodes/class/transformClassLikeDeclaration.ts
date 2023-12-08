@@ -330,6 +330,37 @@ function createAirshipProperty(
 	return prop;
 }
 
+function getPropertyDecorators(
+	state: TransformState,
+	propertyNode: ts.PropertyDeclaration,
+): Array<AirshipBehaviourFieldDecorator> {
+	const decorators = ts.hasDecorators(propertyNode) ? ts.getDecorators(propertyNode) : undefined;
+	if (decorators) {
+		const items = new Array<AirshipBehaviourFieldDecorator>();
+
+		for (const decorator of decorators) {
+			const expression = decorator.expression;
+			if (!ts.isCallExpression(expression)) continue;
+
+			const aliasSymbol = state.typeChecker.getTypeAtLocation(expression).aliasSymbol;
+			if (!aliasSymbol) continue;
+
+			const airshipFieldSymbol = state.services.airshipSymbolManager.getSymbolOrThrow("AirshipDecorator");
+
+			if (aliasSymbol === airshipFieldSymbol) {
+				items.push({
+					name: expression.expression.getText(),
+					parameters: [],
+				});
+			}
+		}
+
+		return items;
+	} else {
+		return [];
+	}
+}
+
 function pushPropertyMetadataForAirshipBehaviour(
 	state: TransformState,
 	node: ts.ClassLikeDeclaration,
@@ -342,8 +373,15 @@ function pushPropertyMetadataForAirshipBehaviour(
 		// skip anything that's not a property
 		if (!ts.isPropertyDeclaration(classElement)) continue;
 
+		const decorators = getPropertyDecorators(state, classElement);
+		const isSerializeField = decorators.find(f => f.name === "SerializeField");
+
 		// skip private, protected properties
-		if (!isPublicWritablePropertyDeclaration(classElement)) continue;
+		if (!isPublicWritablePropertyDeclaration(classElement) && !isSerializeField) {
+			continue;
+		}
+
+		if (decorators.find(f => f.name === "NonSerialized")) continue;
 
 		// only do valid exports
 		if (!isValidAirshipBehaviourExportType(state, classElement)) continue;
@@ -351,9 +389,10 @@ function pushPropertyMetadataForAirshipBehaviour(
 		// can't add weird properties
 		if (!ts.isIdentifier(classElement.name)) continue;
 
-		const decorators = new Array<AirshipBehaviourFieldDecorator>(); // TODO in v2
-		const name = classElement.name.text;
+		// remove serialize field - doesn't need to be included
+		if (isSerializeField) decorators.splice(decorators.indexOf(isSerializeField), 1);
 
+		const name = classElement.name.text;
 		const property = createAirshipProperty(state, name, elementType, decorators);
 
 		const initializer = classElement.initializer;
