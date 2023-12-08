@@ -1,8 +1,6 @@
 import { AirshipBehaviourCallValue, AirshipBehaviourStaticMemberValue } from "Shared/types";
 import { TransformState } from "TSTransformer";
-import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import ts, { NumericLiteral, StringLiteral } from "typescript";
-import luau, { RenderState, render, renderAST } from "@roblox-ts/luau-ast";
+import ts from "typescript";
 
 export function isPublicWritablePropertyDeclaration(node: ts.PropertyDeclaration) {
 	// If no modifiers, then it's public by default anyway
