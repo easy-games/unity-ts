@@ -434,8 +434,6 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 	}
 
 	state.sourceFileBehaviourMetaJson = metadata;
-
-	return node;
 }
 
 export function transformClassLikeDeclaration(state: TransformState, node: ts.ClassLikeDeclaration) {
@@ -494,7 +492,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		const isDefault = (node.modifierFlagsCache & ModifierFlags.Default) !== 0;
 		const isExport = (node.modifierFlagsCache & ModifierFlags.Export) !== 0;
 		if (isDefault && isExport) {
-			node = generateMetaForAirshipBehaviour(state, node);
+			generateMetaForAirshipBehaviour(state, node);
 		}
 	}
 
