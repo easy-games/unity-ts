@@ -48,6 +48,17 @@ export function getAncestorTypeSymbols(state: TransformState, nodeType: ts.Type)
 	}
 }
 
+export function isAirshipDecorator(state: TransformState, decorator: ts.Decorator) {
+	const expression = decorator.expression;
+	if (!ts.isCallExpression(expression)) return false;
+
+	const aliasSymbol = state.typeChecker.getTypeAtLocation(expression).aliasSymbol;
+	if (!aliasSymbol) return false;
+
+	const airshipFieldSymbol = state.services.airshipSymbolManager.getSymbolOrThrow("AirshipDecorator");
+	return airshipFieldSymbol === aliasSymbol;
+}
+
 export function isUnityObjectType(state: TransformState, nodeType: ts.Type) {
 	const objectSymbol = state.services.airshipSymbolManager.getSymbolOrThrow("Object");
 

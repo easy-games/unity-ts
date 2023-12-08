@@ -11,8 +11,10 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import {
+	getAllTypes,
 	getAncestorTypeSymbols,
 	getUnityObjectInitializerDefaultValue,
+	isAirshipDecorator,
 	isPublicWritablePropertyDeclaration,
 	isUnityObjectType,
 	isValidAirshipBehaviourExportType,
@@ -25,7 +27,7 @@ import { getKindName } from "TSTransformer/util/getKindName";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
-import ts, { ModifierFlags } from "typescript";
+import ts, { factory, ModifierFlags } from "typescript";
 
 const MAGIC_TO_STRING_METHOD = "toString";
 
@@ -330,6 +332,37 @@ function createAirshipProperty(
 	return prop;
 }
 
+function getPropertyDecorators(
+	state: TransformState,
+	propertyNode: ts.PropertyDeclaration,
+): Array<AirshipBehaviourFieldDecorator> {
+	const decorators = ts.hasDecorators(propertyNode) ? ts.getDecorators(propertyNode) : undefined;
+	if (decorators) {
+		const items = new Array<AirshipBehaviourFieldDecorator>();
+
+		for (const decorator of decorators) {
+			const expression = decorator.expression;
+			if (!ts.isCallExpression(expression)) continue;
+
+			const aliasSymbol = state.typeChecker.getTypeAtLocation(expression).aliasSymbol;
+			if (!aliasSymbol) continue;
+
+			const airshipFieldSymbol = state.services.airshipSymbolManager.getSymbolOrThrow("AirshipDecorator");
+
+			if (aliasSymbol === airshipFieldSymbol) {
+				items.push({
+					name: expression.expression.getText(),
+					parameters: [],
+				});
+			}
+		}
+
+		return items;
+	} else {
+		return [];
+	}
+}
+
 function pushPropertyMetadataForAirshipBehaviour(
 	state: TransformState,
 	node: ts.ClassLikeDeclaration,
@@ -342,8 +375,14 @@ function pushPropertyMetadataForAirshipBehaviour(
 		// skip anything that's not a property
 		if (!ts.isPropertyDeclaration(classElement)) continue;
 
+		const decorators = getPropertyDecorators(state, classElement);
+
 		// skip private, protected properties
-		if (!isPublicWritablePropertyDeclaration(classElement)) continue;
+		if (!isPublicWritablePropertyDeclaration(classElement) && !decorators.find(f => f.name === "SerializeField")) {
+			continue;
+		}
+
+		if (decorators.find(f => f.name === "NonSerialized")) continue;
 
 		// only do valid exports
 		if (!isValidAirshipBehaviourExportType(state, classElement)) continue;
@@ -351,9 +390,7 @@ function pushPropertyMetadataForAirshipBehaviour(
 		// can't add weird properties
 		if (!ts.isIdentifier(classElement.name)) continue;
 
-		const decorators = new Array<AirshipBehaviourFieldDecorator>(); // TODO in v2
 		const name = classElement.name.text;
-
 		const property = createAirshipProperty(state, name, elementType, decorators);
 
 		const initializer = classElement.initializer;
@@ -395,6 +432,8 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 	}
 
 	state.sourceFileBehaviourMetaJson = metadata;
+
+	return node;
 }
 
 export function transformClassLikeDeclaration(state: TransformState, node: ts.ClassLikeDeclaration) {
@@ -453,7 +492,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		const isDefault = (node.modifierFlagsCache & ModifierFlags.Default) !== 0;
 		const isExport = (node.modifierFlagsCache & ModifierFlags.Export) !== 0;
 		if (isDefault && isExport) {
-			generateMetaForAirshipBehaviour(state, node);
+			node = generateMetaForAirshipBehaviour(state, node);
 		}
 	}
 

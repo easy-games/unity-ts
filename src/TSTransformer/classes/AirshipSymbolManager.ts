@@ -1,3 +1,4 @@
+import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
 import ts from "typescript";
 
@@ -5,6 +6,8 @@ const TYPES_NOTICE = "\nYou may need to update your @easy-games/compiler-types!"
 
 export const AIRSHIP_SYMBOL_NAMES = {
 	AirshipBehaviour: "AirshipBehaviour",
+	AirshipDecorator: "AirshipDecorator",
+	AirshipBehaviourFieldDecorator: "AirshipBehaviourFieldDecorator",
 } as const;
 
 const AIRSHIP_SERIALIZE_TYPES = {
@@ -35,9 +38,7 @@ export class AirshipSymbolManager {
 			if (symbol) {
 				this.symbols.set(symbolName, symbol);
 			} else {
-				// throw new ProjectError(`MacroManager could not find symbol for ${symbolName}` + TYPES_NOTICE);
-				console.log(`MacroManager could not find symbol for ${symbolName}` + TYPES_NOTICE);
-				continue;
+				throw new ProjectError(`AirshipSymbolManager could not find symbol for ${symbolName}` + TYPES_NOTICE);
 			}
 		}
 
@@ -67,6 +68,12 @@ export class AirshipSymbolManager {
 				console.log(`MacroManager could not find symbol for ${symbolName}` + TYPES_NOTICE);
 			}
 		}
+	}
+
+	public getNamedSymbolOrThrow(name: keyof typeof AIRSHIP_SYMBOL_NAMES) {
+		const symbol = this.symbols.get(name);
+		assert(symbol);
+		return symbol;
 	}
 
 	public getSymbolOrThrow(name: string) {

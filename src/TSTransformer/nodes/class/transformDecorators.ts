@@ -3,6 +3,7 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
+import { isAirshipDecorator } from "TSTransformer/util/airshipBehaviourUtils";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import ts from "typescript";
 
@@ -21,6 +22,11 @@ function transformMemberDecorators(
 	if (!name || ts.isPrivateIdentifier(name)) return result;
 
 	for (const decorator of decorators ?? []) {
+		// Skip emitting Airship related decorators
+		if (isAirshipDecorator(state, decorator)) {
+			continue;
+		}
+
 		// eslint-disable-next-line no-autofix/prefer-const
 		let [expression, prereqs] = state.capture(() => transformExpression(state, decorator.expression));
 
