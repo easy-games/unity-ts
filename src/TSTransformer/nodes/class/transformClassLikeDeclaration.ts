@@ -374,9 +374,10 @@ function pushPropertyMetadataForAirshipBehaviour(
 		if (!ts.isPropertyDeclaration(classElement)) continue;
 
 		const decorators = getPropertyDecorators(state, classElement);
+		const isSerializeField = decorators.find(f => f.name === "SerializeField");
 
 		// skip private, protected properties
-		if (!isPublicWritablePropertyDeclaration(classElement) && !decorators.find(f => f.name === "SerializeField")) {
+		if (!isPublicWritablePropertyDeclaration(classElement) && !isSerializeField) {
 			continue;
 		}
 
@@ -387,6 +388,9 @@ function pushPropertyMetadataForAirshipBehaviour(
 
 		// can't add weird properties
 		if (!ts.isIdentifier(classElement.name)) continue;
+
+		// remove serialize field - doesn't need to be included
+		if (isSerializeField) decorators.splice(decorators.indexOf(isSerializeField), 1);
 
 		const name = classElement.name.text;
 		const property = createAirshipProperty(state, name, elementType, decorators);
