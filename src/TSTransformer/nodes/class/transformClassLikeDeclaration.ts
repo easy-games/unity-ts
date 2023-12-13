@@ -23,6 +23,7 @@ import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent"
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
+import { asNonNullableType } from "TSTransformer/util/types";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
 import ts, { ModifierFlags } from "typescript";
@@ -301,6 +302,7 @@ function createAirshipProperty(
 	const typeChecker = state.typeChecker;
 	const isArray = typeChecker.isArrayType(type);
 	const isObject = isUnityObjectType(state, type);
+	const typeString = typeChecker.typeToString(type.getNonNullableType());
 
 	const prop = {
 		name,
@@ -327,6 +329,7 @@ function createAirshipProperty(
 	} else {
 		if (type.isNullableType()) prop.nullable = true;
 		prop.nullable = type.isNullableType();
+		prop.type = typeString;
 	}
 
 	prop.decorators = decorators;
