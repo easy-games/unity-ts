@@ -116,6 +116,8 @@ export interface AirshipBehaviourFieldExport {
 	 */
 	readonly type: string;
 
+	readonly nullable?: boolean;
+
 	readonly default:
 		| string
 		| number

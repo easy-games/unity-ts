@@ -301,7 +301,6 @@ function createAirshipProperty(
 	const typeChecker = state.typeChecker;
 	const isArray = typeChecker.isArrayType(type);
 	const isObject = isUnityObjectType(state, type);
-	const typeString = typeChecker.typeToString(type);
 
 	const prop = {
 		name,
@@ -311,6 +310,7 @@ function createAirshipProperty(
 		const nonNullableTypeString = typeChecker.typeToString(type.getNonNullableType());
 
 		prop.objectType = nonNullableTypeString;
+		if (type.isNullableType()) prop.nullable = true;
 		prop.type = isArray ? "Array" : "object";
 	} else if (isArray) {
 		const arrayItemType = typeChecker.getElementTypeOfArrayType(type)!;
@@ -318,12 +318,15 @@ function createAirshipProperty(
 		const isObject = isUnityObjectType(state, arrayItemType);
 
 		prop.type = "Array";
+
+		if (type.isNullableType()) prop.nullable = true;
 		prop.items = {
 			type: isObject ? "object" : typeString,
 			objectType: isObject ? typeString : undefined,
 		};
 	} else {
-		prop.type = typeString;
+		if (type.isNullableType()) prop.nullable = true;
+		prop.nullable = type.isNullableType();
 	}
 
 	prop.decorators = decorators;

@@ -86,12 +86,12 @@ export class AirshipSymbolManager {
 		return this.symbolsToType.get(constructorSymbol);
 	}
 
-	public isTypeSerializable(type: ts.Type) {
+	public isTypeSerializable(type: ts.Type): boolean {
 		if (this.typeChecker.isArrayType(type)) {
 			type = this.typeChecker.getElementTypeOfArrayType(type)!;
 		}
 
-		return this.serializedTypes.has(type);
+		return this.serializedTypes.has(type.getNonNullableType());
 	}
 
 	public hasSymbol(name: string) {
