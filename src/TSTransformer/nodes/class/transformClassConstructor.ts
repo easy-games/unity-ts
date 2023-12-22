@@ -93,6 +93,23 @@ export function transformClassConstructor(
 			}
 
 			const initializer = member.initializer;
+			if (!initializer && isAirshipBehaviour) {
+				const [index, airshipPropPrereq] = state.capture(() => transformPropertyName(state, name));
+				luau.list.pushList(statements, airshipPropPrereq);
+				luau.list.push(
+					statements,
+					luau.create(luau.SyntaxKind.Assignment, {
+						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+							expression: luau.globals.self,
+							index,
+						}),
+						operator: "=",
+						right: luau.nil(),
+					}),
+				);
+				continue;
+			}
+
 			if (!initializer) {
 				continue;
 			}
