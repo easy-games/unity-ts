@@ -216,10 +216,17 @@ export function compileFiles(
 
 			for (const { sourceFile, source } of fileWriteQueue) {
 				const outPath = pathTranslator.getOutputPath(sourceFile.fileName);
+				const hasMetadata = fileMetadataWriteQueue.has(sourceFile);
+				const metadataPathOutPath = outPath + ".json~";
 
 				if (data.writeOnlyChanged) {
 					if (fs.existsSync(outPath)) {
-						if (fs.readFileSync(outPath).toString() === source) {
+						const isSourceUnchanged = fs.readFileSync(outPath).toString() === source;
+						const isMetadataSourceUnchanged =
+							!hasMetadata ||
+							fileMetadataWriteQueue.get(sourceFile) === fs.readFileSync(metadataPathOutPath).toString();
+
+						if (isSourceUnchanged && isMetadataSourceUnchanged) {
 							skipCount++;
 							continue;
 						}
@@ -236,18 +243,8 @@ export function compileFiles(
 					});
 				}
 
-				if (fileMetadataWriteQueue.has(sourceFile)) {
-					const metadataPathOutPath = outPath + ".json~";
+				if (hasMetadata) {
 					const source = fileMetadataWriteQueue.get(sourceFile);
-
-					if (data.writeOnlyChanged && fs.existsSync(metadataPathOutPath)) {
-						const currentSource = fs.readFileSync(metadataPathOutPath).toString();
-
-						if (currentSource === source) {
-							continue; // skip AirshipBehaviour gen if duplicate
-						}
-					}
-
 					fs.outputFileSync(metadataPathOutPath, source);
 					metadataCount++;
 				}
