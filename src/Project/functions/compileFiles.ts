@@ -224,7 +224,9 @@ export function compileFiles(
 						const isSourceUnchanged = fs.readFileSync(outPath).toString() === source;
 						const isMetadataSourceUnchanged =
 							!hasMetadata ||
-							fileMetadataWriteQueue.get(sourceFile) === fs.readFileSync(metadataPathOutPath).toString();
+							(fs.existsSync(metadataPathOutPath) &&
+								fileMetadataWriteQueue.get(sourceFile) ===
+									fs.readFileSync(metadataPathOutPath).toString());
 
 						if (isSourceUnchanged && isMetadataSourceUnchanged) {
 							skipCount++;
