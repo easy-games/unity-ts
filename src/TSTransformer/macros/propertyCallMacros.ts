@@ -7,7 +7,7 @@ import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
 import { isDefinitelyType, isNumberType, isStringType } from "TSTransformer/util/types";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
-import ts from "typescript";
+import ts, { getCommentRange } from "typescript";
 
 function makeMathMethod(operator: luau.BinaryOperator): PropertyCallMacro {
 	return (state, node, expression, args) => {
@@ -924,6 +924,89 @@ const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
 		}),
 };
 
+const getComponentMacro: PropertyCallMacro = (state, node, expression, args) => {
+	if (node.typeArguments) {
+		const [componentType] = node.typeArguments;
+
+		return luau.create(luau.SyntaxKind.MethodCallExpression, {
+			expression: convertToIndexableExpression(expression),
+			name: "GetComponent",
+			args: luau.list.make(luau.string(state.typeChecker.typeToString(state.getType(componentType)))),
+		});
+	} else {
+		return luau.create(luau.SyntaxKind.MethodCallExpression, {
+			expression: convertToIndexableExpression(expression),
+			name: "GetComponent",
+			args: luau.list.make(...args),
+		});
+	}
+};
+
+const getComponentsInChildrenMacro: PropertyCallMacro = (state, node, expression, args) => {
+	if (node.typeArguments) {
+		const [componentType] = node.typeArguments;
+
+		return luau.create(luau.SyntaxKind.MethodCallExpression, {
+			expression: convertToIndexableExpression(expression),
+			name: "GetComponentsInChildren",
+			args: luau.list.make(luau.string(state.typeChecker.typeToString(state.getType(componentType)))),
+		});
+	} else {
+		return luau.create(luau.SyntaxKind.MethodCallExpression, {
+			expression: convertToIndexableExpression(expression),
+			name: "GetComponentsInChildren",
+			args: luau.list.make(...args),
+		});
+	}
+};
+
+const getComponentsMacro: PropertyCallMacro = (state, node, expression, args) => {
+	if (node.typeArguments) {
+		const [componentType] = node.typeArguments;
+
+		return luau.create(luau.SyntaxKind.MethodCallExpression, {
+			expression: convertToIndexableExpression(expression),
+			name: "GetComponentsInChildren",
+			args: luau.list.make(luau.string(state.typeChecker.typeToString(state.getType(componentType)))),
+		});
+	} else {
+		return luau.create(luau.SyntaxKind.MethodCallExpression, {
+			expression: convertToIndexableExpression(expression),
+			name: "GetComponentsInChildren",
+			args: luau.list.make(...args),
+		});
+	}
+};
+
+const getComponentIfExists: PropertyCallMacro = (state, node, expression, args) => {
+	if (node.typeArguments) {
+		const [componentType] = node.typeArguments;
+
+		return luau.create(luau.SyntaxKind.MethodCallExpression, {
+			expression: convertToIndexableExpression(expression),
+			name: "GetComponentsIfExists",
+			args: luau.list.make(luau.string(state.typeChecker.typeToString(state.getType(componentType)))),
+		});
+	} else {
+		return luau.create(luau.SyntaxKind.MethodCallExpression, {
+			expression: convertToIndexableExpression(expression),
+			name: "GetComponentsIfExists",
+			args: luau.list.make(...args),
+		});
+	}
+};
+
+const UNITY_GAMEOBJECT_METHODS: MacroList<PropertyCallMacro> = {
+	GetComponent: getComponentMacro,
+	GetComponents: getComponentsMacro,
+	GetComponentIfExists: getComponentIfExists,
+	GetComponentsInChildren: getComponentsInChildrenMacro,
+};
+const UNITY_COMPONENT_METHODS: MacroList<PropertyCallMacro> = {
+	GetComponent: getComponentMacro,
+	GetComponents: getComponentsMacro,
+};
+
 export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCallMacro> } = {
 	// math classes
 	// CFrame: makeMathSet("+", "-", "*"),
@@ -947,6 +1030,9 @@ export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCall
 	CSDictionary: DICTIONARY_METHODS,
 	// CSKeyCollection: KEY_COLLECTION_METHODS,
 	Promise: PROMISE_METHODS,
+
+	GameObject: UNITY_GAMEOBJECT_METHODS,
+	Component: UNITY_COMPONENT_METHODS,
 };
 
 // comment logic
