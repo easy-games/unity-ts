@@ -1,5 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
+import { errors, warnings } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
@@ -7,7 +9,7 @@ import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
 import { isDefinitelyType, isNumberType, isStringType } from "TSTransformer/util/types";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
-import ts from "typescript";
+import ts, { getCommentRange } from "typescript";
 
 function makeMathMethod(operator: luau.BinaryOperator): PropertyCallMacro {
 	return (state, node, expression, args) => {
@@ -924,6 +926,54 @@ const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
 		}),
 };
 
+const makeTypeArgumentAsStringMacro =
+	(method: string, requiresArgument = true, defaultTypeName?: string): PropertyCallMacro =>
+	(state, node, expression, args) => {
+		let type: ts.Type | undefined;
+
+		if (node.typeArguments) {
+			type = state.getType(node.typeArguments[0]);
+		} else if (ts.isAsExpression(node.parent)) {
+			type = state.getType(node.parent.type);
+			DiagnosticService.addDiagnostic(
+				warnings.unityMacroAsExpressionWarning(method, state.typeChecker.typeToString(type))(node.parent),
+			);
+		}
+
+		if (requiresArgument && !defaultTypeName && !type && args.length === 0) {
+			DiagnosticService.addSingleDiagnostic(errors.unityMacroTypeArgumentRequired(node, method));
+		}
+
+		if (type) {
+			return luau.create(luau.SyntaxKind.MethodCallExpression, {
+				expression: convertToIndexableExpression(expression),
+				name: method,
+				args: luau.list.make(luau.string(state.typeChecker.typeToString(type))),
+			});
+		} else {
+			return luau.create(luau.SyntaxKind.MethodCallExpression, {
+				expression: convertToIndexableExpression(expression),
+				name: method,
+				args: defaultTypeName ? luau.list.make(luau.string(defaultTypeName)) : luau.list.make(...args),
+			});
+		}
+	};
+
+const UNITY_GAMEOBJECT_METHODS: MacroList<PropertyCallMacro> = {
+	GetComponent: makeTypeArgumentAsStringMacro("GetComponent"),
+	GetComponents: makeTypeArgumentAsStringMacro("GetComponents"),
+	GetComponentIfExists: makeTypeArgumentAsStringMacro("GetComponentIfExists"),
+	AddComponent: makeTypeArgumentAsStringMacro("AddComponent"),
+	GetComponentsInChildren: makeTypeArgumentAsStringMacro("GetComponentsInChildren"),
+};
+const UNITY_STATIC_GAMEOBJECT_METHODS: MacroList<PropertyCallMacro> = {
+	FindObjectOfType: makeTypeArgumentAsStringMacro("FindObjectOfType"),
+};
+const UNITY_COMPONENT_METHODS: MacroList<PropertyCallMacro> = {
+	GetComponent: makeTypeArgumentAsStringMacro("GetComponent"),
+	GetComponents: makeTypeArgumentAsStringMacro("GetComponents"),
+};
+
 export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCallMacro> } = {
 	// math classes
 	// CFrame: makeMathSet("+", "-", "*"),
@@ -947,6 +997,10 @@ export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCall
 	CSDictionary: DICTIONARY_METHODS,
 	// CSKeyCollection: KEY_COLLECTION_METHODS,
 	Promise: PROMISE_METHODS,
+
+	GameObject: UNITY_GAMEOBJECT_METHODS,
+	GameObjectConstructor: UNITY_STATIC_GAMEOBJECT_METHODS,
+	Component: UNITY_COMPONENT_METHODS,
 };
 
 // comment logic
