@@ -924,87 +924,39 @@ const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
 		}),
 };
 
-const getComponentMacro: PropertyCallMacro = (state, node, expression, args) => {
-	if (node.typeArguments) {
-		const [componentType] = node.typeArguments;
+const makeTypeArgumentAsStringMacro =
+	(method: string): PropertyCallMacro =>
+	(state, node, expression, args) => {
+		if (node.typeArguments) {
+			const [componentType] = node.typeArguments;
 
-		return luau.create(luau.SyntaxKind.MethodCallExpression, {
-			expression: convertToIndexableExpression(expression),
-			name: "GetComponent",
-			args: luau.list.make(luau.string(state.typeChecker.typeToString(state.getType(componentType)))),
-		});
-	} else {
-		return luau.create(luau.SyntaxKind.MethodCallExpression, {
-			expression: convertToIndexableExpression(expression),
-			name: "GetComponent",
-			args: luau.list.make(...args),
-		});
-	}
-};
-
-const getComponentsInChildrenMacro: PropertyCallMacro = (state, node, expression, args) => {
-	if (node.typeArguments) {
-		const [componentType] = node.typeArguments;
-
-		return luau.create(luau.SyntaxKind.MethodCallExpression, {
-			expression: convertToIndexableExpression(expression),
-			name: "GetComponentsInChildren",
-			args: luau.list.make(luau.string(state.typeChecker.typeToString(state.getType(componentType)))),
-		});
-	} else {
-		return luau.create(luau.SyntaxKind.MethodCallExpression, {
-			expression: convertToIndexableExpression(expression),
-			name: "GetComponentsInChildren",
-			args: luau.list.make(...args),
-		});
-	}
-};
-
-const getComponentsMacro: PropertyCallMacro = (state, node, expression, args) => {
-	if (node.typeArguments) {
-		const [componentType] = node.typeArguments;
-
-		return luau.create(luau.SyntaxKind.MethodCallExpression, {
-			expression: convertToIndexableExpression(expression),
-			name: "GetComponentsInChildren",
-			args: luau.list.make(luau.string(state.typeChecker.typeToString(state.getType(componentType)))),
-		});
-	} else {
-		return luau.create(luau.SyntaxKind.MethodCallExpression, {
-			expression: convertToIndexableExpression(expression),
-			name: "GetComponentsInChildren",
-			args: luau.list.make(...args),
-		});
-	}
-};
-
-const getComponentIfExists: PropertyCallMacro = (state, node, expression, args) => {
-	if (node.typeArguments) {
-		const [componentType] = node.typeArguments;
-
-		return luau.create(luau.SyntaxKind.MethodCallExpression, {
-			expression: convertToIndexableExpression(expression),
-			name: "GetComponentsIfExists",
-			args: luau.list.make(luau.string(state.typeChecker.typeToString(state.getType(componentType)))),
-		});
-	} else {
-		return luau.create(luau.SyntaxKind.MethodCallExpression, {
-			expression: convertToIndexableExpression(expression),
-			name: "GetComponentsIfExists",
-			args: luau.list.make(...args),
-		});
-	}
-};
+			return luau.create(luau.SyntaxKind.MethodCallExpression, {
+				expression: convertToIndexableExpression(expression),
+				name: method,
+				args: luau.list.make(luau.string(state.typeChecker.typeToString(state.getType(componentType)))),
+			});
+		} else {
+			return luau.create(luau.SyntaxKind.MethodCallExpression, {
+				expression: convertToIndexableExpression(expression),
+				name: method,
+				args: luau.list.make(...args),
+			});
+		}
+	};
 
 const UNITY_GAMEOBJECT_METHODS: MacroList<PropertyCallMacro> = {
-	GetComponent: getComponentMacro,
-	GetComponents: getComponentsMacro,
-	GetComponentIfExists: getComponentIfExists,
-	GetComponentsInChildren: getComponentsInChildrenMacro,
+	GetComponent: makeTypeArgumentAsStringMacro("GetComponent"),
+	GetComponents: makeTypeArgumentAsStringMacro("GetComponents"),
+	GetComponentIfExists: makeTypeArgumentAsStringMacro("GetComponentIfExists"),
+	AddComponent: makeTypeArgumentAsStringMacro("AddComponent"),
+	GetComponentsInChildren: makeTypeArgumentAsStringMacro("GetComponentsInChildren"),
+};
+const UNITY_STATIC_GAMEOBJECT_METHODS: MacroList<PropertyCallMacro> = {
+	FindObjectOfType: makeTypeArgumentAsStringMacro("FindObjectOfType"),
 };
 const UNITY_COMPONENT_METHODS: MacroList<PropertyCallMacro> = {
-	GetComponent: getComponentMacro,
-	GetComponents: getComponentsMacro,
+	GetComponent: makeTypeArgumentAsStringMacro("GetComponent"),
+	GetComponents: makeTypeArgumentAsStringMacro("GetComponents"),
 };
 
 export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCallMacro> } = {
@@ -1032,6 +984,7 @@ export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCall
 	Promise: PROMISE_METHODS,
 
 	GameObject: UNITY_GAMEOBJECT_METHODS,
+	GameObjectConstructor: UNITY_STATIC_GAMEOBJECT_METHODS,
 	Component: UNITY_COMPONENT_METHODS,
 };
 
