@@ -215,6 +215,13 @@ export const errors = {
 	expectedMethodGotFunction: error("Attempted to assign non-method where method was expected."),
 	expectedFunctionGotMethod: error("Attempted to assign method where non-method was expected."),
 
+	unityMacroTypeArgumentRequired: errorWithContext((methodName: string) => {
+		return [
+			`Macro ${methodName}<T>() requires a type argument at T`,
+			suggestion("Try adding a type argument to the function call"),
+		];
+	}),
+
 	// files
 	noRojoData: errorWithContext((path: string, isPackage: boolean) => [
 		`Could not find Rojo data. There is no $path in your Rojo config that covers ${path}`,
@@ -250,6 +257,10 @@ export const errors = {
 export const warnings = {
 	truthyChange: (checksStr: string) => warning(`Value will be checked against ${checksStr}`),
 	stringOffsetChange: (text: string) => warning(`String macros no longer offset inputs: ${text}`),
+
+	unityMacroAsExpressionWarning: (methodName: string, typeName: string) =>
+		warning(`The call to ${methodName}() should be written as ${methodName}<${typeName}>()`),
+
 	transformerNotFound: (name: string, err: unknown) =>
 		warningText(
 			`Transformer \`${name}\` was not found!`,

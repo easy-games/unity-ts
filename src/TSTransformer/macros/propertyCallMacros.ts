@@ -1,5 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
+import { errors, warnings } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
@@ -925,21 +927,34 @@ const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
 };
 
 const makeTypeArgumentAsStringMacro =
-	(method: string): PropertyCallMacro =>
+	(method: string, requiresArgument = true, defaultTypeName?: string): PropertyCallMacro =>
 	(state, node, expression, args) => {
-		if (node.typeArguments) {
-			const [componentType] = node.typeArguments;
+		let type: ts.Type | undefined;
 
+		if (node.typeArguments) {
+			type = state.getType(node.typeArguments[0]);
+		} else if (ts.isAsExpression(node.parent)) {
+			type = state.getType(node.parent.type);
+			DiagnosticService.addDiagnostic(
+				warnings.unityMacroAsExpressionWarning(method, state.typeChecker.typeToString(type))(node.parent),
+			);
+		}
+
+		if (requiresArgument && !defaultTypeName && !type && args.length === 0) {
+			DiagnosticService.addSingleDiagnostic(errors.unityMacroTypeArgumentRequired(node, method));
+		}
+
+		if (type) {
 			return luau.create(luau.SyntaxKind.MethodCallExpression, {
 				expression: convertToIndexableExpression(expression),
 				name: method,
-				args: luau.list.make(luau.string(state.typeChecker.typeToString(state.getType(componentType)))),
+				args: luau.list.make(luau.string(state.typeChecker.typeToString(type))),
 			});
 		} else {
 			return luau.create(luau.SyntaxKind.MethodCallExpression, {
 				expression: convertToIndexableExpression(expression),
 				name: method,
-				args: luau.list.make(...args),
+				args: defaultTypeName ? luau.list.make(luau.string(defaultTypeName)) : luau.list.make(...args),
 			});
 		}
 	};

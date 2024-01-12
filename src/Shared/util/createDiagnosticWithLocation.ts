@@ -7,7 +7,7 @@ export function createDiagnosticWithLocation(
 	category: ts.DiagnosticCategory,
 	node: ts.Node | SourceFileWithTextRange,
 ): ts.DiagnosticWithLocation {
-	const code = " roblox-ts" as never;
+	const code = " unity-ts" as never;
 	const diagnosticType = 0;
 	if ("kind" in node) {
 		return {
