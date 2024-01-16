@@ -84,6 +84,10 @@ export interface AirshipBehaviourJson {
 	 */
 	readonly name: string | undefined;
 	/**
+	 * The hash of this AirshipBehaviour
+	 */
+	readonly hash: string;
+	/**
 	 * The AirshipBehaviour supported public serializable properties of the behaviour class
 	 */
 	readonly properties: Array<AirshipBehaviourFieldExport>;

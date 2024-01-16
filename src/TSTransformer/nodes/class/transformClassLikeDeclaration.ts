@@ -1,4 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
+import crypto from "crypto";
 import { errors } from "Shared/diagnostics";
 import { AirshipBehaviourFieldDecorator, AirshipBehaviourFieldExport, AirshipBehaviourJson } from "Shared/types";
 import { assert } from "Shared/util/assert";
@@ -421,9 +422,10 @@ function pushPropertyMetadataForAirshipBehaviour(
 function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLikeDeclaration) {
 	const classType = state.typeChecker.getTypeAtLocation(node);
 
-	const metadata: AirshipBehaviourJson = {
+	const metadata: Writable<AirshipBehaviourJson> = {
 		name: node.name?.text,
 		properties: [],
+		hash: "",
 	};
 
 	pushPropertyMetadataForAirshipBehaviour(state, node, metadata);
@@ -438,6 +440,9 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 		pushPropertyMetadataForAirshipBehaviour(state, valueDeclaration, metadata);
 	}
 
+	const sha1 = crypto.createHash("sha1");
+	const hash = sha1.update(JSON.stringify(metadata)).digest("hex");
+	metadata.hash = hash;
 	state.sourceFileBehaviourMetaJson = metadata;
 }
 
@@ -621,6 +626,16 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 			statements: statementsInner,
 		}),
 	);
+
+	if (state.sourceFileBehaviourMetaJson) {
+		luau.list.unshift(
+			statements,
+			luau.comment(
+				`▼ AirshipBehaviour '${state.sourceFileBehaviourMetaJson.name}' (${state.sourceFileBehaviourMetaJson.hash}) ▼`,
+			),
+		);
+		luau.list.push(statements, luau.comment(`▲ AirshipBehaviour ▲`));
+	}
 
 	return { statements, name: returnVar };
 }
