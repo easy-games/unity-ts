@@ -1,7 +1,12 @@
 import luau from "@roblox-ts/luau-ast";
 import crypto from "crypto";
 import { errors } from "Shared/diagnostics";
-import { AirshipBehaviourFieldDecorator, AirshipBehaviourFieldExport, AirshipBehaviourJson } from "Shared/types";
+import {
+	AirshipBehaviourFieldDecorator,
+	AirshipBehaviourFieldDecoratorParameter,
+	AirshipBehaviourFieldExport,
+	AirshipBehaviourJson,
+} from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
@@ -357,17 +362,21 @@ function getPropertyDecorators(
 			if (aliasSymbol === airshipFieldSymbol) {
 				items.push({
 					name: expression.expression.getText(),
-					parameters: expression.arguments.map((argument, i) => {
+					parameters: expression.arguments.map((argument, i): AirshipBehaviourFieldDecoratorParameter => {
 						if (ts.isStringLiteral(argument)) {
-							return argument.text;
+							return { type: "string", value: argument.text };
 						} else if (ts.isNumericLiteral(argument)) {
-							return parseFloat(argument.text);
+							return { type: "number", value: parseFloat(argument.text) };
 						} else if (ts.isBooleanLiteral(argument)) {
-							return argument.kind === ts.SyntaxKind.TrueKeyword ? true : false;
+							return {
+								type: "boolean",
+								value: argument.kind === ts.SyntaxKind.TrueKeyword ? true : false,
+							};
 						} else {
 							DiagnosticService.addDiagnostic(
 								errors.decoratorParamsLiteralsOnly(expression.arguments[i]),
 							);
+							return { type: "invalid", value: undefined };
 						}
 					}),
 				});
