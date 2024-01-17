@@ -122,6 +122,11 @@ export interface AirshipBehaviourFieldExport {
 
 	readonly nullable?: boolean;
 
+	/**
+	 * The comment description on this property
+	 */
+	readonly description?: string;
+
 	readonly default:
 		| string
 		| number
@@ -157,6 +162,11 @@ export interface AirshipBehaviourFieldExport {
 	readonly decorators: ReadonlyArray<AirshipBehaviourFieldDecorator>;
 }
 
+export interface AirshipBehaviourFieldDecoratorParameter {
+	readonly value: unknown;
+	readonly type: string;
+}
+
 /**
  * A decorator on the airship behaviour member
  */
@@ -171,5 +181,5 @@ export interface AirshipBehaviourFieldDecorator {
 	 * - If the decorator is a call e.g. `@decorator(...)` - `parameters` will be an array of the given arguments
 	 * - If the decorator is a simple decorator, e.g. `@decorator` - `parameters` will be `undefined`.
 	 */
-	readonly parameters: ReadonlyArray<unknown> | undefined;
+	readonly parameters: ReadonlyArray<AirshipBehaviourFieldDecoratorParameter> | undefined;
 }
