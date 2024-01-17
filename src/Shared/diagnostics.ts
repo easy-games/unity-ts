@@ -222,6 +222,10 @@ export const errors = {
 		];
 	}),
 
+	decoratorParamsLiteralsOnly: error(
+		"Airship Behaviour decorators only accept literal `string`, `boolean` or `number` values",
+	),
+
 	// files
 	noRojoData: errorWithContext((path: string, isPackage: boolean) => [
 		`Could not find Rojo data. There is no $path in your Rojo config that covers ${path}`,

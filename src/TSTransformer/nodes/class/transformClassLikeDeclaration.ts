@@ -297,6 +297,7 @@ function createAirshipProperty(
 	state: TransformState,
 	name: string,
 	type: ts.Type,
+	node: ts.PropertyDeclaration,
 	decorators: Array<AirshipBehaviourFieldDecorator>,
 ): Writable<AirshipBehaviourFieldExport> {
 	const typeChecker = state.typeChecker;
@@ -356,7 +357,19 @@ function getPropertyDecorators(
 			if (aliasSymbol === airshipFieldSymbol) {
 				items.push({
 					name: expression.expression.getText(),
-					parameters: [],
+					parameters: expression.arguments.map((argument, i) => {
+						if (ts.isStringLiteral(argument)) {
+							return argument.text;
+						} else if (ts.isNumericLiteral(argument)) {
+							return parseFloat(argument.text);
+						} else if (ts.isBooleanLiteral(argument)) {
+							return argument.kind === ts.SyntaxKind.TrueKeyword ? true : false;
+						} else {
+							DiagnosticService.addDiagnostic(
+								errors.decoratorParamsLiteralsOnly(expression.arguments[i]),
+							);
+						}
+					}),
 				});
 			}
 		}
@@ -399,7 +412,7 @@ function pushPropertyMetadataForAirshipBehaviour(
 		if (isSerializeField) decorators.splice(decorators.indexOf(isSerializeField), 1);
 
 		const name = classElement.name.text;
-		const property = createAirshipProperty(state, name, elementType, decorators);
+		const property = createAirshipProperty(state, name, elementType, classElement, decorators);
 
 		const initializer = classElement.initializer;
 		if (initializer) {
