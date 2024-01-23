@@ -9,7 +9,7 @@ import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
 import { isDefinitelyType, isNumberType, isStringType } from "TSTransformer/util/types";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
-import ts, { getCommentRange } from "typescript";
+import ts from "typescript";
 
 function makeMathMethod(operator: luau.BinaryOperator): PropertyCallMacro {
 	return (state, node, expression, args) => {
@@ -961,6 +961,7 @@ const makeTypeArgumentAsStringMacro =
 
 const UNITY_GAMEOBJECT_METHODS: MacroList<PropertyCallMacro> = {
 	GetComponent: makeTypeArgumentAsStringMacro("GetComponent"),
+	GetAirshipComponent: makeTypeArgumentAsStringMacro("GetAirshipComponent"),
 	GetComponents: makeTypeArgumentAsStringMacro("GetComponents"),
 	GetComponentIfExists: makeTypeArgumentAsStringMacro("GetComponentIfExists"),
 	AddComponent: makeTypeArgumentAsStringMacro("AddComponent"),
