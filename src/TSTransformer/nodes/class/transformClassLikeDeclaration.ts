@@ -452,6 +452,8 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 		extends: [],
 	};
 
+	const airshipBehaviourSymbol = state.services.airshipSymbolManager.getNamedSymbolOrThrow("AirshipBehaviour");
+
 	if (isDefault) {
 		const metadata: Writable<AirshipBehaviourJson> = {
 			name: node.name?.text,
@@ -461,14 +463,19 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 
 		pushPropertyMetadataForAirshipBehaviour(state, node, metadata);
 
+		const inheritedBehaviourIds = new Array<string>();
+
 		// Inheritance
 		const inheritance = getAncestorTypeSymbols(state, classType);
 		for (const inherited of inheritance) {
 			const valueDeclaration = inherited.valueDeclaration;
 			if (!valueDeclaration) continue;
 			if (!ts.isClassLike(valueDeclaration)) continue;
+			if (inherited === airshipBehaviourSymbol) continue;
 
 			pushPropertyMetadataForAirshipBehaviour(state, valueDeclaration, metadata);
+
+			inheritedBehaviourIds.push(inherited.name);
 		}
 
 		const sha1 = crypto.createHash("sha1");
@@ -476,6 +483,7 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 		metadata.hash = hash;
 
 		airshipBehaviour.metadata = metadata;
+		airshipBehaviour.extends = inheritedBehaviourIds;
 	}
 
 	state.airshipBehaviours.push(airshipBehaviour);

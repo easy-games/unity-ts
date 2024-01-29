@@ -215,31 +215,14 @@ export function compileFiles(
 						filePath: relativeFilePath,
 						metadataFilePath:
 							airshipBehaviourMetadata !== undefined ? relativeFilePath + ".json~" : undefined,
-						extends: [],
+						extends: behaviour.extends,
 					};
 				}
 			}
-
-			// // If assoc. metadata, then write it
-			// if (airshipBehaviourMetadata) {
-			// 	fileMetadataWriteQueue.set(sourceFile, JSON.stringify(airshipBehaviourMetadata, null, "\t"));
-
-			// 	if (airshipBehaviourMetadata.name) {
-			// 		buildFile.behaviours[airshipBehaviourMetadata.name] = {
-			// 			filePath: path.relative(
-			// 				pathTranslator.outDir,
-			// 				pathTranslator.getOutputPath(sourceFile.fileName),
-			// 			),
-			// 			extends: [],
-			// 		};
-			// 	}
-
-			// 	LogService.writeIfVerbose(` with assoc. AirshipBehaviour metadata`);
-			// }
 		});
 	}
 
-	fs.outputFileSync(path.join(data.projectPath, "airship.build"), JSON.stringify(buildFile, null, "\t"));
+	fs.outputFileSync(path.join(pathTranslator.outDir, "Airship.build~"), JSON.stringify(buildFile, null, "\t"));
 
 	if (DiagnosticService.hasErrors()) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
 
