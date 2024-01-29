@@ -2,6 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import crypto from "crypto";
 import { errors } from "Shared/diagnostics";
 import {
+	AirshipBehaviour,
 	AirshipBehaviourFieldDecorator,
 	AirshipBehaviourFieldDecoratorParameter,
 	AirshipBehaviourFieldExport,
@@ -443,29 +444,41 @@ function pushPropertyMetadataForAirshipBehaviour(
 
 function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLikeDeclaration) {
 	const classType = state.typeChecker.getTypeAtLocation(node);
+	const isDefault = (node.modifierFlagsCache & ModifierFlags.Default) !== 0;
 
-	const metadata: Writable<AirshipBehaviourJson> = {
-		name: node.name?.text,
-		properties: [],
-		hash: "",
+	const airshipBehaviour: Writable<AirshipBehaviour> = {
+		name: node.name?.text ?? "<anonymous>",
+		metadata: undefined,
+		extends: [],
 	};
 
-	pushPropertyMetadataForAirshipBehaviour(state, node, metadata);
+	if (isDefault) {
+		const metadata: Writable<AirshipBehaviourJson> = {
+			name: node.name?.text,
+			properties: [],
+			hash: "",
+		};
 
-	// Inheritance
-	const inheritance = getAncestorTypeSymbols(state, classType);
-	for (const inherited of inheritance) {
-		const valueDeclaration = inherited.valueDeclaration;
-		if (!valueDeclaration) continue;
-		if (!ts.isClassLike(valueDeclaration)) continue;
+		pushPropertyMetadataForAirshipBehaviour(state, node, metadata);
 
-		pushPropertyMetadataForAirshipBehaviour(state, valueDeclaration, metadata);
+		// Inheritance
+		const inheritance = getAncestorTypeSymbols(state, classType);
+		for (const inherited of inheritance) {
+			const valueDeclaration = inherited.valueDeclaration;
+			if (!valueDeclaration) continue;
+			if (!ts.isClassLike(valueDeclaration)) continue;
+
+			pushPropertyMetadataForAirshipBehaviour(state, valueDeclaration, metadata);
+		}
+
+		const sha1 = crypto.createHash("sha1");
+		const hash = sha1.update(JSON.stringify(metadata)).digest("hex");
+		metadata.hash = hash;
+
+		airshipBehaviour.metadata = metadata;
 	}
 
-	const sha1 = crypto.createHash("sha1");
-	const hash = sha1.update(JSON.stringify(metadata)).digest("hex");
-	metadata.hash = hash;
-	state.sourceFileBehaviourMetaJson = metadata;
+	state.airshipBehaviours.push(airshipBehaviour);
 }
 
 export function transformClassLikeDeclaration(state: TransformState, node: ts.ClassLikeDeclaration) {
@@ -521,9 +534,9 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	}
 
 	if (isAirshipBehaviourClass(state, node)) {
-		const isDefault = (node.modifierFlagsCache & ModifierFlags.Default) !== 0;
+		// const isDefault = (node.modifierFlagsCache & ModifierFlags.Default) !== 0;
 		const isExport = (node.modifierFlagsCache & ModifierFlags.Export) !== 0;
-		if (isDefault && isExport) {
+		if (isExport) {
 			generateMetaForAirshipBehaviour(state, node);
 		}
 	}
@@ -649,12 +662,11 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		}),
 	);
 
-	if (state.sourceFileBehaviourMetaJson) {
+	const behaviourInfo = state.airshipBehaviours.find(f => f.name === node.name?.text);
+	if (behaviourInfo && behaviourInfo.metadata) {
 		luau.list.unshift(
 			statements,
-			luau.comment(
-				`▼ AirshipBehaviour '${state.sourceFileBehaviourMetaJson.name}' (${state.sourceFileBehaviourMetaJson.hash}) ▼`,
-			),
+			luau.comment(`▼ AirshipBehaviour '${behaviourInfo.metadata.name}' (${behaviourInfo.metadata.hash}) ▼`),
 		);
 		luau.list.push(statements, luau.comment(`▲ AirshipBehaviour ▲`));
 	}

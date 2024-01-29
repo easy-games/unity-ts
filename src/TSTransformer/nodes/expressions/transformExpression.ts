@@ -40,6 +40,7 @@ import { transformVoidExpression } from "TSTransformer/nodes/expressions/transfo
 import { transformYieldExpression } from "TSTransformer/nodes/expressions/transformYieldExpression";
 import { getKindName } from "TSTransformer/util/getKindName";
 import ts from "typescript";
+import { transformSatisfiesExpression } from "./transformSatisfiesExpression";
 
 const NO_EMIT = () => luau.none();
 
@@ -63,6 +64,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.ImportKeyword, NO_EMIT],
 
 	// regular transforms
+	[ts.SyntaxKind.SatisfiesExpression, transformSatisfiesExpression],
 	[ts.SyntaxKind.ArrayLiteralExpression, transformArrayLiteralExpression],
 	[ts.SyntaxKind.ArrowFunction, transformFunctionExpression],
 	[ts.SyntaxKind.AsExpression, transformAsExpression],
