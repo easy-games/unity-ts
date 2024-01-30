@@ -161,7 +161,8 @@ export function compileFiles(
 	const services = createTransformServices(proxyProgram, typeChecker, data);
 
 	const buildFile: AirshipBuildFile = {
-		behaviours: {},
+		components: {},
+		extends: {},
 	};
 
 	for (let i = 0; i < sourceFiles.length; i++) {
@@ -211,7 +212,13 @@ export function compileFiles(
 					pathTranslator.getOutputPath(sourceFile.fileName),
 				);
 				if (behaviour.name) {
-					buildFile.behaviours[behaviour.name] = {
+					for (const ext of behaviour.extends) {
+						const extensions = (buildFile.extends[ext] ??= []);
+						extensions.push(behaviour.name);
+					}
+
+					buildFile.components[behaviour.name] = {
+						id: behaviour.id,
 						filePath: relativeFilePath,
 						metadataFilePath:
 							airshipBehaviourMetadata !== undefined ? relativeFilePath + ".json~" : undefined,
@@ -221,8 +228,6 @@ export function compileFiles(
 			}
 		});
 	}
-
-	fs.outputFileSync(path.join(pathTranslator.outDir, "Airship.build~"), JSON.stringify(buildFile, null, "\t"));
 
 	if (DiagnosticService.hasErrors()) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
 
@@ -285,6 +290,15 @@ export function compileFiles(
 				);
 			}
 		});
+	}
+
+	const buildFilePath = path.join(pathTranslator.outDir, "Airship.build~");
+
+	const oldBuildFileSource = fs.existsSync(buildFilePath) ? fs.readFileSync(buildFilePath).toString() : "";
+	const newBuildFileSource = JSON.stringify(buildFile, null, "\t");
+
+	if (oldBuildFileSource !== newBuildFileSource) {
+		fs.outputFileSync(buildFilePath, newBuildFileSource);
 	}
 
 	program.emitBuildInfo();

@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import crypto from "crypto";
+import path from "path";
 import { errors } from "Shared/diagnostics";
 import {
 	AirshipBehaviour,
@@ -449,6 +450,7 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 	const airshipBehaviour: Writable<AirshipBehaviour> = {
 		name: node.name?.text ?? "<anonymous>",
 		metadata: undefined,
+		id: "",
 		extends: [],
 	};
 
@@ -485,6 +487,15 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 		airshipBehaviour.metadata = metadata;
 		airshipBehaviour.extends = inheritedBehaviourIds;
 	}
+
+	const id =
+		path
+			.relative(state.pathTranslator.outDir, state.pathTranslator.getOutputPath(node.getSourceFile().fileName))
+			.replace(".lua", "") +
+		"@" +
+		airshipBehaviour.name;
+
+	airshipBehaviour.id = id;
 
 	state.airshipBehaviours.push(airshipBehaviour);
 }
@@ -671,12 +682,19 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	);
 
 	const behaviourInfo = state.airshipBehaviours.find(f => f.name === node.name?.text);
-	if (behaviourInfo && behaviourInfo.metadata) {
-		luau.list.unshift(
-			statements,
-			luau.comment(`▼ AirshipBehaviour '${behaviourInfo.metadata.name}' (${behaviourInfo.metadata.hash}) ▼`),
-		);
-		luau.list.push(statements, luau.comment(`▲ AirshipBehaviour ▲`));
+	if (behaviourInfo) {
+		if (behaviourInfo.metadata) {
+			luau.list.unshift(
+				statements,
+				luau.comment(
+					`▼ AirshipBehaviour Component '${behaviourInfo.id}' (${behaviourInfo.metadata?.hash ?? ""}) ▼`,
+				),
+			);
+			luau.list.push(statements, luau.comment(`▲ AirshipBehaviour Component ▲`));
+		} else {
+			luau.list.unshift(statements, luau.comment(`▼ AirshipBehaviour Class '${behaviourInfo.id}' ▼`));
+			luau.list.push(statements, luau.comment(`▲ AirshipBehaviour Class ▲`));
+		}
 	}
 
 	return { statements, name: returnVar };
