@@ -192,7 +192,6 @@ export interface AirshipBehaviourFieldDecorator {
 }
 
 export interface AirshipBehaviourInfo {
-	readonly id: string;
 	readonly filePath: string;
 	readonly component: boolean;
 	readonly extends: Array<string>;

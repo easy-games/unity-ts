@@ -218,7 +218,7 @@ export function compileFiles(
 					}
 
 					buildFile.behaviours[behaviour.name] = {
-						id: behaviour.id,
+						// id: behaviour.id,
 						component: behaviour.metadata !== undefined,
 						filePath: relativeFilePath,
 						extends: behaviour.extends,
