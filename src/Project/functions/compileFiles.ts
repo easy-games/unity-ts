@@ -1,6 +1,6 @@
 import { RojoResolver } from "@easy-games/unity-rojo-resolver";
 import { renderAST } from "@roblox-ts/luau-ast";
-import fs from "fs-extra";
+import fs, { outputFile } from "fs-extra";
 import path from "path";
 import { checkFileName } from "Project/functions/checkFileName";
 import { checkRojoConfig } from "Project/functions/checkRojoConfig";
@@ -14,7 +14,7 @@ import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagno
 import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { ProjectType } from "Shared/constants";
-import { AirshipBehaviourJson, ProjectData } from "Shared/types";
+import { AirshipBuildFile, ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
@@ -160,6 +160,11 @@ export function compileFiles(
 	const typeChecker = proxyProgram.getTypeChecker();
 	const services = createTransformServices(proxyProgram, typeChecker, data);
 
+	const buildFile: AirshipBuildFile = {
+		behaviours: {},
+		extends: {},
+	};
+
 	for (let i = 0; i < sourceFiles.length; i++) {
 		const sourceFile = proxyProgram.getSourceFile(sourceFiles[i].fileName);
 		assert(sourceFile);
@@ -193,14 +198,32 @@ export function compileFiles(
 
 			fileWriteQueue.push({ sourceFile, source });
 
-			// If assoc. metadata, then write it
-			if (transformState.sourceFileBehaviourMetaJson) {
-				fileMetadataWriteQueue.set(
-					sourceFile,
-					JSON.stringify(transformState.sourceFileBehaviourMetaJson, null, "\t"),
-				);
+			const airshipBehaviours = transformState.airshipBehaviours;
+			for (const behaviour of airshipBehaviours) {
+				const airshipBehaviourMetadata = behaviour.metadata;
 
-				LogService.writeIfVerbose(` with assoc. AirshipBehaviour metadata`);
+				if (airshipBehaviourMetadata) {
+					assert(!fileMetadataWriteQueue.has(sourceFile), "Should never happen dawg");
+					fileMetadataWriteQueue.set(sourceFile, JSON.stringify(airshipBehaviourMetadata, null, "\t"));
+				}
+
+				const relativeFilePath = path.relative(
+					pathTranslator.outDir,
+					pathTranslator.getOutputPath(sourceFile.fileName),
+				);
+				if (behaviour.name) {
+					for (const ext of behaviour.extends) {
+						const extensions = (buildFile.extends[ext] ??= []);
+						extensions.push(behaviour.name);
+					}
+
+					buildFile.behaviours[behaviour.name] = {
+						// id: behaviour.id,
+						component: behaviour.metadata !== undefined,
+						filePath: relativeFilePath,
+						extends: behaviour.extends,
+					};
+				}
 			}
 		});
 	}
@@ -266,6 +289,15 @@ export function compileFiles(
 				);
 			}
 		});
+	}
+
+	const buildFilePath = path.join(pathTranslator.outDir, "Shared", "Resources", "TS", "Airship.build~");
+
+	const oldBuildFileSource = fs.existsSync(buildFilePath) ? fs.readFileSync(buildFilePath).toString() : "";
+	const newBuildFileSource = JSON.stringify(buildFile, null, "\t");
+
+	if (oldBuildFileSource !== newBuildFileSource) {
+		fs.outputFileSync(buildFilePath, newBuildFileSource);
 	}
 
 	program.emitBuildInfo();

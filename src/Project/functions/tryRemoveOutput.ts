@@ -8,6 +8,8 @@ function isOutputFileOrphaned(pathTranslator: PathTranslator, filePath: string) 
 		return true;
 	}
 
+	if (filePath.endsWith(".build~")) return false;
+
 	if (filePath.endsWith(".meta")) {
 		return false;
 	}
@@ -34,6 +36,7 @@ export function tryRemoveOutput(pathTranslator: PathTranslator, outPath: string)
 	if (outPath.includes("Scenes/")) {
 		return;
 	}
+
 	if (isOutputFileOrphaned(pathTranslator, outPath)) {
 		fs.removeSync(outPath);
 	}

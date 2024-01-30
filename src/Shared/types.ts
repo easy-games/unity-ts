@@ -93,6 +93,13 @@ export interface AirshipBehaviourJson {
 	readonly properties: Array<AirshipBehaviourFieldExport>;
 }
 
+export interface AirshipBehaviour {
+	readonly name: string;
+	readonly id: string;
+	readonly extends: Array<string>;
+	readonly metadata: AirshipBehaviourJson | undefined;
+}
+
 export interface AirshipBehaviourStaticMemberValue {
 	target: "property";
 	type: string;
@@ -182,4 +189,15 @@ export interface AirshipBehaviourFieldDecorator {
 	 * - If the decorator is a simple decorator, e.g. `@decorator` - `parameters` will be `undefined`.
 	 */
 	readonly parameters: ReadonlyArray<AirshipBehaviourFieldDecoratorParameter> | undefined;
+}
+
+export interface AirshipBehaviourInfo {
+	readonly filePath: string;
+	readonly component: boolean;
+	readonly extends: Array<string>;
+}
+
+export interface AirshipBuildFile {
+	readonly behaviours: Record<string, AirshipBehaviourInfo>; // TODO: Value
+	readonly extends: Record<string, Array<string>>;
 }
