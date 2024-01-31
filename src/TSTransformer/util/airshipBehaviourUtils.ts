@@ -80,7 +80,7 @@ export function isValidAirshipBehaviourExportType(state: TransformState, node: t
 export function getUnityObjectInitializerDefaultValue(
 	state: TransformState,
 	initializer: ts.Expression,
-): AirshipBehaviourCallValue | AirshipBehaviourStaticMemberValue | string | undefined {
+): AirshipBehaviourCallValue | AirshipBehaviourStaticMemberValue | string | number | boolean | undefined {
 	if (ts.isNewExpression(initializer)) {
 		const constructableType = state.typeChecker.getSymbolAtLocation(initializer.expression);
 		if (!constructableType) return undefined;
@@ -116,6 +116,12 @@ export function getUnityObjectInitializerDefaultValue(
 			type: state.typeChecker.typeToString(constructing),
 			member: initializer.name.text,
 		};
+	} else if (ts.isStringLiteral(initializer)) {
+		return initializer.text;
+	} else if (ts.isNumericLiteral(initializer)) {
+		return parseFloat(initializer.text);
+	} else if (ts.isBooleanLiteral(initializer)) {
+		return initializer.kind === ts.SyntaxKind.TrueKeyword;
 	} else {
 		return undefined;
 	}

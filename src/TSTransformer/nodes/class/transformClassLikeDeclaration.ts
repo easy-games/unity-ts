@@ -340,6 +340,20 @@ function createAirshipProperty(
 		prop.type = typeString;
 	}
 
+	if (node.initializer) {
+		if (ts.isArrayLiteralExpression(node.initializer)) {
+			prop.default = node.initializer.elements.map(element =>
+				getUnityObjectInitializerDefaultValue(state, element),
+			);
+		} else {
+			const initializer = node.initializer;
+			if (initializer) {
+				const objectInitializer = getUnityObjectInitializerDefaultValue(state, initializer);
+				if (objectInitializer) prop.default = objectInitializer;
+			}
+		}
+	}
+
 	prop.decorators = decorators;
 	return prop;
 }
@@ -424,20 +438,6 @@ function pushPropertyMetadataForAirshipBehaviour(
 
 		const name = classElement.name.text;
 		const property = createAirshipProperty(state, name, elementType, classElement, decorators);
-
-		const initializer = classElement.initializer;
-		if (initializer) {
-			if (ts.isStringLiteral(initializer)) {
-				property.default = initializer.text;
-			} else if (ts.isNumericLiteral(initializer)) {
-				property.default = parseFloat(initializer.text);
-			} else if (ts.isBooleanLiteral(initializer)) {
-				property.default = initializer.kind === ts.SyntaxKind.TrueKeyword;
-			} else {
-				const objectInitializer = getUnityObjectInitializerDefaultValue(state, initializer);
-				if (objectInitializer) property.default = objectInitializer;
-			}
-		}
 
 		metadata.properties.push(property);
 	}

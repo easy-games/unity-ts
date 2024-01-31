@@ -114,6 +114,14 @@ export interface AirshipBehaviourCallValue {
 	computed?: unknown;
 }
 
+type AirshipFieldDefaultValue =
+	| string
+	| number
+	| boolean
+	| AirshipBehaviourCallValue
+	| AirshipBehaviourStaticMemberValue
+	| undefined;
+
 /**
  * Metadata about a public serializable member in the AirshipBehaviour
  */
@@ -134,13 +142,7 @@ export interface AirshipBehaviourFieldExport {
 	 */
 	readonly description?: string;
 
-	readonly default:
-		| string
-		| number
-		| boolean
-		| AirshipBehaviourCallValue
-		| AirshipBehaviourStaticMemberValue
-		| undefined;
+	readonly default: AirshipFieldDefaultValue | Array<AirshipFieldDefaultValue>;
 
 	/**
 	 * If type is `object` (i.e. UnityEngine.Object) - will contain the matching type
@@ -164,7 +166,6 @@ export interface AirshipBehaviourFieldExport {
 		| undefined;
 	/**
 	 * Applied attributes (in TS, decorators) of this property
-	 * @deprecated Not yet implemented
 	 */
 	readonly decorators: ReadonlyArray<AirshipBehaviourFieldDecorator>;
 }
