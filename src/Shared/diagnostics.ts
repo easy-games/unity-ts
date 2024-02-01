@@ -215,6 +215,15 @@ export const errors = {
 	expectedMethodGotFunction: error("Attempted to assign non-method where method was expected."),
 	expectedFunctionGotMethod: error("Attempted to assign method where non-method was expected."),
 
+	airshipBehaviourNameRequired: error("AirshipBehaviour must contain a class name"),
+	airshipBehaviourModifiersRequired: errorWithContext((className: string) => {
+		return [
+			`AirshipBehaviour "${className}" requires a 'default' or 'abstract' modifier`,
+			suggestion("Use 'default' if this is a component"),
+			suggestion("Use 'abstract' if this is not a component itself, but base component logic"),
+		];
+	}),
+
 	unityMacroTypeArgumentRequired: errorWithContext((methodName: string) => {
 		return [
 			`Macro ${methodName}<T>() requires a type argument at T`,

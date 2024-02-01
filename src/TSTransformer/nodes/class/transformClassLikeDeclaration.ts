@@ -445,10 +445,17 @@ function pushPropertyMetadataForAirshipBehaviour(
 
 function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLikeDeclaration) {
 	const classType = state.typeChecker.getTypeAtLocation(node);
+
 	const isDefault = (node.modifierFlagsCache & ModifierFlags.Default) !== 0;
+	const isAbstract = (node.modifierFlagsCache & ModifierFlags.Abstract) !== 0;
+
+	if (node.name === undefined) {
+		DiagnosticService.addDiagnostic(errors.airshipBehaviourNameRequired(node));
+		return;
+	}
 
 	const airshipBehaviour: Writable<AirshipBehaviour> = {
-		name: node.name?.text ?? "<anonymous>",
+		name: node.name.text ?? "<anonymous>",
 		metadata: undefined,
 		id: "",
 		extends: [],
@@ -486,6 +493,10 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 
 		airshipBehaviour.metadata = metadata;
 		airshipBehaviour.extends = inheritedBehaviourIds;
+	} else {
+		if (!isAbstract) {
+			DiagnosticService.addDiagnostic(errors.airshipBehaviourModifiersRequired(node, node.name.text));
+		}
 	}
 
 	const id =
