@@ -2,6 +2,12 @@ name: Publish
 
 on:
     workflow_dispatch:
+        inputs:
+          environment:
+            description: GCP Project
+            type: environment
+            default: platform-staging
+            required: true
     push:
         branches: [main]
 
