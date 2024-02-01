@@ -8,6 +8,7 @@ on:
 jobs:
     publish:
         runs-on: ubuntu-latest
+        environment: ${{ inputs.environment || 'platform-staging' }}
 
         steps:
             - name: Checkout repository
@@ -17,22 +18,18 @@ jobs:
               uses: actions/setup-node@v2.4.0
               with:
                   node-version: 16
-                  registry-url: "https://npm.pkg.github.com/"
+                  registry-url: 'https://registry.npmjs.org'
                   scope: "@easy-games"
 
             # Runs a single command using the runners shell
             - name: Install Dependencies
               run: |
                   npm ci
-              env:
-                  EASY_AUTH_TOKEN: ${{ secrets.PULL_PACKAGE_PAT }}
 
             - name: Publish
               run: |
-                  git config user.name "GitHub Actions"
-                  git config user.email "noreply@github.com"
-                  npm --no-git-tag-version version $(cat package.json | sed -n '/"version": "*/ { s///; s/".*//; p; q; }')-${{github.run_number}}
-                  npm publish
+                  npm --no-git-tag-version version "$(cat package.json | grep '"version":' | sed -E 's/.*"version": "([0-9]+\.[0-9]+\.)[0-9]+".*/\1/')${{github.run_number}}"
+                  npm publish --tag ${{vars.NPM_TAG}}
               env:
                   # We use EASY_AUTH_TOKEN because that's what's in the .npmrc
-                  EASY_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+                  NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
