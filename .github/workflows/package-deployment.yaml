@@ -24,7 +24,7 @@ jobs:
         with:
           node-version: 20
       - run: |
-          rm -rf .npmrc
+          echo "@easy-games:registry=${{vars.REGISTRY_URL}}" > .npmrc
           npm i -g npm-cli-login
           NPM_USER=deploy NPM_PASS=${{secrets.PACKAGE_DEPLOY_PASSWORD}} NPM_REGISTRY=${{vars.REGISTRY_URL}} NPM_EMAIL=engineering@easy.gg npm-cli-login
 
