@@ -85,7 +85,6 @@ export function compileFiles(
 		}
 	}
 
-	const pkgRojoResolvers = compilerOptions.typeRoots!.map(RojoResolver.synthetic);
 	const nodeModulesPathMapping = createNodeModulesPathMapping(compilerOptions.typeRoots!);
 
 	const reverseSymlinkMap = getReverseSymlinkMap(program);
@@ -99,7 +98,6 @@ export function compileFiles(
 	if (DiagnosticService.hasErrors()) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
 
 	LogService.writeLineIfVerbose(`Now running TypeScript compiler:`);
-	const startTime = Date.now();
 
 	const fileWriteQueue = new Array<{ sourceFile: ts.SourceFile; source: string }>();
 	const fileMetadataWriteQueue = new Map<ts.SourceFile, string>();
@@ -164,8 +162,6 @@ export function compileFiles(
 				pathTranslator,
 				multiTransformState,
 				compilerOptions,
-				// rojoResolver,
-				//pkgRojoResolvers,
 				nodeModulesPathMapping,
 				reverseSymlinkMap,
 				undefined,
@@ -201,7 +197,6 @@ export function compileFiles(
 					}
 
 					buildFile.behaviours[behaviour.name] = {
-						// id: behaviour.id,
 						component: behaviour.metadata !== undefined,
 						filePath: relativeFilePath,
 						extends: behaviour.extends,
