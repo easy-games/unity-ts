@@ -1,17 +1,13 @@
-import { RbxPath, RbxPathParent, RojoResolver } from "@easy-games/unity-rojo-resolver";
+import { RbxPath } from "@easy-games/unity-rojo-resolver";
 import luau, { render, RenderState, renderStatements, solveTempIds } from "@roblox-ts/luau-ast";
 import path from "path";
 import { PathTranslator } from "Shared/classes/PathTranslator";
-import { PARENT_FIELD, ProjectType } from "Shared/constants";
-import { errors, warnings } from "Shared/diagnostics";
-import { AirshipBehaviour, AirshipBehaviourJson, ProjectData } from "Shared/types";
+import { ProjectType } from "Shared/constants";
+import { AirshipBehaviour, ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { MultiTransformState } from "TSTransformer";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { TransformServices, TryUses } from "TSTransformer/types";
-import { createGetService } from "TSTransformer/util/createGetService";
-import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import ts from "typescript";
@@ -39,7 +35,6 @@ export class TransformState {
 	}
 
 	public readonly resolver: ts.EmitResolver;
-	private isInReplicatedFirst: boolean;
 
 	constructor(
 		public readonly program: ts.Program,
@@ -48,8 +43,6 @@ export class TransformState {
 		public readonly pathTranslator: PathTranslator,
 		public readonly multiTransformState: MultiTransformState,
 		public readonly compilerOptions: ts.CompilerOptions,
-		public readonly rojoResolver: RojoResolver,
-		public readonly pkgRojoResolvers: Array<RojoResolver>,
 		public readonly nodeModulesPathMapping: Map<string, string>,
 		public readonly reverseSymlinkMap: Map<string, string>,
 		public readonly runtimeLibRbxPath: RbxPath | undefined,
@@ -59,10 +52,6 @@ export class TransformState {
 	) {
 		this.sourceFileText = sourceFile.getFullText();
 		this.resolver = typeChecker.getEmitResolver(sourceFile);
-
-		const sourceOutPath = this.pathTranslator.getOutputPath(sourceFile.fileName);
-		const rbxPath = this.rojoResolver.getRbxPathFromFilePath(sourceOutPath);
-		this.isInReplicatedFirst = rbxPath !== undefined && rbxPath[0] === "ReplicatedFirst";
 	}
 
 	public readonly tryUsesStack = new Array<TryUses>();
@@ -188,11 +177,6 @@ export class TransformState {
 	public usesRuntimeLib = false;
 	public TS(node: ts.Node, name: string) {
 		this.usesRuntimeLib = true;
-
-		if (this.projectType === ProjectType.Game && this.isInReplicatedFirst) {
-			DiagnosticService.addDiagnostic(warnings.runtimeLibUsedInReplicatedFirst(node));
-		}
-
 		return luau.property(luau.globals.TS, name);
 	}
 
@@ -200,82 +184,10 @@ export class TransformState {
 	 * Returns a `luau.VariableDeclaration` for RuntimeLib.lua
 	 */
 	public createRuntimeLibImport(sourceFile: ts.SourceFile) {
-		// if the transform state has the game path to the RuntimeLib.lua
-		if (this.runtimeLibRbxPath) {
-			if (this.projectType === ProjectType.Game) {
-				// create an expression to obtain the service where RuntimeLib is stored
-				const serviceName = this.runtimeLibRbxPath[0];
-				assert(serviceName);
-
-				let expression: luau.IndexableExpression = createGetService(serviceName);
-				// iterate through the rest of the path
-				// for each instance in the path, create a new WaitForChild call to be added on to the end of the final expression
-				let stringPath = "";
-				for (let i = 0; i < this.runtimeLibRbxPath.length; i++) {
-					// expression = luau.create(luau.SyntaxKind.MethodCallExpression, {
-					// 	expression,
-					// 	name: "WaitForChild",
-					// 	args: luau.list.make(luau.string(this.runtimeLibRbxPath[i])),
-					// });
-					stringPath += this.runtimeLibRbxPath[i];
-					if (i + 1 < this.runtimeLibRbxPath.length) {
-						stringPath += "/";
-					}
-				}
-
-				const stringExpression: luau.StringLiteral = luau.string(stringPath);
-
-				// nest the chain of `WaitForChild`s inside a require call
-				expression = luau.call(luau.globals.require, [stringExpression]);
-
-				// create a variable declaration for this call
-				return luau.create(luau.SyntaxKind.VariableDeclaration, {
-					left: luau.globals.TS,
-					right: expression,
-				});
-			} else {
-				const sourceOutPath = this.pathTranslator.getOutputPath(sourceFile.fileName);
-				const rbxPath = this.rojoResolver.getRbxPathFromFilePath(sourceOutPath);
-				console.log("runtime path: " + sourceOutPath);
-				if (!rbxPath) {
-					DiagnosticService.addDiagnostic(
-						errors.noRojoData(sourceFile, path.relative(this.data.projectPath, sourceOutPath), false),
-					);
-					return luau.create(luau.SyntaxKind.VariableDeclaration, {
-						left: luau.globals.TS,
-						right: luau.none(),
-					});
-				}
-
-				return luau.create(luau.SyntaxKind.VariableDeclaration, {
-					left: luau.globals.TS,
-					right: luau.call(luau.globals.require, [
-						propertyAccessExpressionChain(
-							luau.globals.script,
-							RojoResolver.relative(rbxPath, this.runtimeLibRbxPath).map(v =>
-								v === RbxPathParent ? PARENT_FIELD : v,
-							),
-						),
-					]),
-				});
-			}
-		} else {
-			// we pass RuntimeLib access to packages via `_G[script] = TS`
-			// access it here via `local TS = _G[script]`
-			return luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: luau.globals.TS,
-				right: luau.call(luau.globals.require, [
-					luau.string("@Easy/Core/Shared/Resources/TS/Runtime/RuntimeLib"),
-				]),
-			});
-			// return luau.create(luau.SyntaxKind.VariableDeclaration, {
-			// 	left: luau.globals.TS,
-			// 	right: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-			// 		expression: luau.globals._G,
-			// 		index: luau.globals.script,
-			// 	}),
-			// });
-		}
+		return luau.create(luau.SyntaxKind.VariableDeclaration, {
+			left: luau.globals.TS,
+			right: luau.call(luau.globals.require, [luau.string("@Easy/Core/Shared/Resources/TS/Runtime/RuntimeLib")]),
+		});
 	}
 
 	/**

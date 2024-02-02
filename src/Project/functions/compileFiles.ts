@@ -1,9 +1,8 @@
 import { RojoResolver } from "@easy-games/unity-rojo-resolver";
 import { renderAST } from "@roblox-ts/luau-ast";
-import fs, { outputFile } from "fs-extra";
+import fs from "fs-extra";
 import path from "path";
 import { checkFileName } from "Project/functions/checkFileName";
-import { checkRojoConfig } from "Project/functions/checkRojoConfig";
 import { createNodeModulesPathMapping } from "Project/functions/createNodeModulesPathMapping";
 import { transformPaths } from "Project/transformers/builtin/transformPaths";
 import { transformTypeReferenceDirectives } from "Project/transformers/builtin/transformTypeReferenceDirectives";
@@ -18,7 +17,6 @@ import { AirshipBuildFile, ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
-import { getRootDirs } from "Shared/util/getRootDirs";
 import { MultiTransformState, transformSourceFile, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { createTransformServices } from "TSTransformer/util/createTransformServices";
@@ -81,8 +79,6 @@ export function compileFiles(
 		LogService.warn(warning);
 	}
 
-	checkRojoConfig(data, rojoResolver, getRootDirs(compilerOptions), pathTranslator);
-
 	for (const sourceFile of program.getSourceFiles()) {
 		if (!path.normalize(sourceFile.fileName).startsWith(data.nodeModulesPath)) {
 			checkFileName(sourceFile.fileName);
@@ -99,19 +95,6 @@ export function compileFiles(
 	if (projectType !== ProjectType.Package && data.rojoConfigPath === undefined) {
 		return emitResultFailure("Non-package projects must have a Rojo project file!");
 	}
-
-	// let runtimeLibRbxPath: RbxPath | undefined;
-	// if (projectType !== ProjectType.Package) {
-	// 	runtimeLibRbxPath = rojoResolver.getRbxPathFromFilePath(path.join(data.includePath, "RuntimeLib.lua"));
-	// 	if (!runtimeLibRbxPath) {
-	// 		return emitResultFailure("Rojo project contained no data for include folder!");
-	// 	} else if (rojoResolver.getNetworkType(runtimeLibRbxPath) !== NetworkType.Unknown) {
-	// 		return emitResultFailure("Runtime library cannot be in a server-only or client-only container!");
-	// 	} else if (rojoResolver.isIsolated(runtimeLibRbxPath)) {
-	// 		return emitResultFailure("Runtime library cannot be in an isolated container!");
-	// 	}
-	// }
-	// console.log("RuntimeLib:", runtimeLibRbxPath);
 
 	if (DiagnosticService.hasErrors()) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
 
@@ -181,8 +164,8 @@ export function compileFiles(
 				pathTranslator,
 				multiTransformState,
 				compilerOptions,
-				rojoResolver,
-				pkgRojoResolvers,
+				// rojoResolver,
+				//pkgRojoResolvers,
 				nodeModulesPathMapping,
 				reverseSymlinkMap,
 				undefined,
