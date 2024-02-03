@@ -70,10 +70,6 @@ export function compileFiles(
 
 	const projectType = data.projectOptions.type ?? ProjectType.Game;
 
-	if (projectType !== ProjectType.Package && data.rojoConfigPath === undefined) {
-		return emitResultFailure("Non-package projects must have a Rojo project file!");
-	}
-
 	if (DiagnosticService.hasErrors()) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
 
 	LogService.writeLineIfVerbose(`Now running TypeScript compiler:`);

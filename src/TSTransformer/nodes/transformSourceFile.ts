@@ -198,10 +198,12 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 	// moduleScripts must `return nil` if they do not export any values
 	const lastStatement = getLastNonCommentStatement(statements.tail);
 	if (!lastStatement || !luau.isReturnStatement(lastStatement.value)) {
-		// const outputPath = state.pathTranslator.getOutputPath(node.fileName);
-		//if (state.rojoResolver.getRbxTypeFromFilePath(outputPath) === RbxType.ModuleScript) {
-		luau.list.push(statements, luau.create(luau.SyntaxKind.ReturnStatement, { expression: luau.nil() }));
-		//}
+		luau.list.push(
+			statements,
+			luau.create(luau.SyntaxKind.ReturnStatement, {
+				expression: luau.create(luau.SyntaxKind.MixedTable, { fields: luau.list.make() }),
+			}),
+		);
 	}
 
 	// add the Runtime library to the tree if it is used
