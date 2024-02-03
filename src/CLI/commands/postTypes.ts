@@ -2,6 +2,7 @@ import { getPackageJson } from "CLI/util/findTsConfigPath";
 import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "fs";
 import path from "path";
 import { ProjectOptions } from "Project";
+import { PackageJSON } from "resolve";
 import { LogService } from "Shared/classes/LogService";
 import ts from "typescript";
 import yargs from "yargs";
@@ -36,13 +37,16 @@ export = ts.identity<yargs.CommandModule<{}, Flags & Partial<ProjectOptions>>>({
 	},
 
 	handler: async argv => {
-		const packageName: string = getPackageJson().name;
+		const packageJson = getPackageJson();
+		const packageName: string = packageJson.name;
 		rmSync(`temp`, {
 			recursive: true,
 			force: true,
 		});
 		const split = packageName.split("/");
-		writeFileSync(path.join("..", "..", "..", "Types~", split[0], split[1], "index.d.ts"), "");
+		const typesPath = path.join("..", "..", "..", "Types~", split[0], split[1]);
+
+		writeFileSync(path.join(typesPath, "index.d.ts"), "");
 
 		// copy manually written d.ts files from source
 		const checkDir = (dir: string, depth = 0) => {
@@ -53,14 +57,11 @@ export = ts.identity<yargs.CommandModule<{}, Flags & Partial<ProjectOptions>>>({
 				withFileTypes: true,
 			});
 			for (const file of files) {
-				if (file.name.includes(".d.ts")) {
+				if (file.name.includes(".d.ts") || file.name === "package.json") {
 					let sourcePath = path.join(dir, file.name);
 					LogService.writeLine("copying " + sourcePath);
 
-					let targetPath = sourcePath.replace(
-						"src" + path.sep,
-						path.join("..", "..", "..", "Types~", split[0], split[1]) + path.sep,
-					);
+					let targetPath = sourcePath.replace("src" + path.sep, typesPath + path.sep);
 					let targetPathDir = path.dirname(targetPath);
 					if (!existsSync(targetPathDir)) {
 						mkdirSync(targetPathDir);
@@ -73,6 +74,23 @@ export = ts.identity<yargs.CommandModule<{}, Flags & Partial<ProjectOptions>>>({
 		checkDir(path.join("src", "Client"));
 		checkDir(path.join("src", "Shared"));
 		checkDir(path.join("src", "Shared", "Types"));
+
+		if (existsSync("flamework.build")) {
+			copyFileSync("flamework.build", path.join(typesPath, "flamework.build"));
+		}
+
+		writeFileSync(
+			path.join(typesPath, "package.json"),
+			JSON.stringify(
+				{
+					name: packageJson.name,
+					version: packageJson.version,
+					types: "index.d.ts",
+				},
+				null,
+				"\t",
+			),
+		);
 
 		LogService.writeLine("Finished building types!");
 	},
