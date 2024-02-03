@@ -1,4 +1,3 @@
-import { RbxType } from "@easy-games/unity-rojo-resolver";
 import luau from "@roblox-ts/luau-ast";
 import { COMPILER_VERSION } from "Shared/constants";
 import { assert } from "Shared/util/assert";
@@ -199,10 +198,10 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 	// moduleScripts must `return nil` if they do not export any values
 	const lastStatement = getLastNonCommentStatement(statements.tail);
 	if (!lastStatement || !luau.isReturnStatement(lastStatement.value)) {
-		const outputPath = state.pathTranslator.getOutputPath(node.fileName);
-		if (state.rojoResolver.getRbxTypeFromFilePath(outputPath) === RbxType.ModuleScript) {
-			luau.list.push(statements, luau.create(luau.SyntaxKind.ReturnStatement, { expression: luau.nil() }));
-		}
+		// const outputPath = state.pathTranslator.getOutputPath(node.fileName);
+		//if (state.rojoResolver.getRbxTypeFromFilePath(outputPath) === RbxType.ModuleScript) {
+		luau.list.push(statements, luau.create(luau.SyntaxKind.ReturnStatement, { expression: luau.nil() }));
+		//}
 	}
 
 	// add the Runtime library to the tree if it is used

@@ -1,3 +1,0 @@
-class X {
-	__tostring() {}
-}
