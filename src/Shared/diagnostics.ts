@@ -13,7 +13,7 @@ export type DiagnosticFactory<T extends Array<any> = []> = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DiagnosticContextFormatter<T extends Array<any> = []> = (...context: T) => Array<string | false>;
 
-const REPO_URL = "https://github.com/roblox-ts/roblox-ts";
+const REPO_URL = "https://github.com/easy-games/unity-ts";
 
 function suggestion(text: string) {
 	return "Suggestion: " + kleur.yellow(text);
@@ -166,7 +166,7 @@ export const errors = {
 	),
 	noCommentDirectives: error(
 		"Usage of `@ts-ignore`, `@ts-expect-error`, and `@ts-nocheck` are not supported!",
-		"roblox-ts needs type and symbol info to compile correctly.",
+		"unity-ts needs type and symbol info to compile correctly.",
 		suggestion("Consider using type assertions or `declare` statements."),
 	),
 
