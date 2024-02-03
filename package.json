@@ -12,13 +12,7 @@
 		"build": "tspc -b",
 		"build-watch": "tspc -b -w",
 		"eslint": "eslint \"src/**/*.ts\" --max-warnings 0",
-		"devlink": "npm run build && cd devlink && npm link",
-		"test": "npm run build",
-		"test-setup": "cd tests && npm install github:roblox-ts/compiler-types @rbxts/types@latest",
-		"test-compile": "nyc mocha --timeout 0 --recursive out/CLI/test.js",
-		"test-rojo": "rojo build tests -o ./tests/test.rbxlx",
-		"test-run": "run-in-roblox --place ./tests/test.rbxlx --script ./tests/out/main.server.lua",
-		"test-build": "npm run build && node ./out/CLI/cli.js build --project ../luauPlugin/LuauUnityProject/Typescript/ --verbose"
+		"devlink": "npm run build && cd devlink && npm link"
 	},
 	"repository": {
 		"type": "git",
@@ -64,7 +58,6 @@
 		"yargs": "^17.5.1"
 	},
 	"devDependencies": {
-		"@easy-games/unity-rojo-resolver": "^1.0.3-7",
 		"@types/copyfiles": "^2.4.1",
 		"@types/fs-extra": "^9.0.13",
 		"@types/mocha": "^10.0.0",

@@ -1,4 +1,3 @@
-import { RbxPath } from "@easy-games/unity-rojo-resolver";
 import luau, { render, RenderState, renderStatements, solveTempIds } from "@roblox-ts/luau-ast";
 import path from "path";
 import { PathTranslator } from "Shared/classes/PathTranslator";
@@ -45,7 +44,6 @@ export class TransformState {
 		public readonly compilerOptions: ts.CompilerOptions,
 		public readonly nodeModulesPathMapping: Map<string, string>,
 		public readonly reverseSymlinkMap: Map<string, string>,
-		public readonly runtimeLibRbxPath: RbxPath | undefined,
 		public readonly typeChecker: ts.TypeChecker,
 		public readonly projectType: ProjectType,
 		sourceFile: ts.SourceFile,

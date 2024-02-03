@@ -1,4 +1,3 @@
-import { RbxPath, RbxPathParent, RojoResolver } from "@easy-games/unity-rojo-resolver";
 import luau from "@roblox-ts/luau-ast";
 import path from "path";
 import { ProjectType } from "Shared/constants";
@@ -29,43 +28,6 @@ function getAbsoluteImport(moduleRbxPath: string): Array<luau.Expression<luau.Sy
 	return pathExpressions;
 }
 
-function getRelativeImport(sourceRbxPath: RbxPath, moduleRbxPath: RbxPath) {
-	const relativePath = RojoResolver.relative(sourceRbxPath, moduleRbxPath);
-
-	let stringPath = "";
-
-	// create descending path pieces
-	const path = new Array<string>();
-	let i = 0;
-	while (relativePath[i] === RbxPathParent) {
-		if (i === 0) {
-			stringPath += "./";
-		} else {
-			stringPath += "../";
-		}
-		i++;
-	}
-	path.push(stringPath);
-
-	const pathExpressions = new Array<luau.Expression>();
-
-	// create descending path pieces
-	for (; i < relativePath.length; i++) {
-		const pathPart = relativePath[i];
-		assert(typeof pathPart === "string");
-		stringPath += pathPart;
-
-		if (i + 1 < relativePath.length) {
-			stringPath += "/";
-		}
-	}
-
-	pathExpressions.push(luau.string(stringPath));
-
-	// debugger;
-	return pathExpressions;
-}
-
 function validateModule(state: TransformState, scope: string) {
 	const scopedModules = path.join(state.data.nodeModulesPath, scope);
 	if (state.compilerOptions.typeRoots) {
@@ -76,15 +38,6 @@ function validateModule(state: TransformState, scope: string) {
 		}
 	}
 	return false;
-}
-
-function findRelativeRbxPath(moduleOutPath: string, pkgRojoResolvers: Array<RojoResolver>) {
-	for (const pkgRojoResolver of pkgRojoResolvers) {
-		const relativeRbxPath = pkgRojoResolver.getRbxPathFromFilePath(moduleOutPath);
-		if (relativeRbxPath) {
-			return relativeRbxPath;
-		}
-	}
 }
 
 // function getNodeModulesImportParts(

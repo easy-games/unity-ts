@@ -1,4 +1,3 @@
-import { RojoResolver } from "@easy-games/unity-rojo-resolver";
 import { renderAST } from "@roblox-ts/luau-ast";
 import fs from "fs-extra";
 import path from "path";
@@ -21,16 +20,6 @@ import { MultiTransformState, transformSourceFile, TransformState } from "TSTran
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { createTransformServices } from "TSTransformer/util/createTransformServices";
 import ts from "typescript";
-
-function inferProjectType(data: ProjectData, rojoResolver: RojoResolver): ProjectType {
-	if (data.isPackage) {
-		return ProjectType.Package;
-	} else if (rojoResolver.isGame) {
-		return ProjectType.Game;
-	} else {
-		return ProjectType.Model;
-	}
-}
 
 function emitResultFailure(messageText: string): ts.EmitResult {
 	return {
@@ -69,16 +58,6 @@ export function compileFiles(
 
 	const multiTransformState = new MultiTransformState();
 
-	const outDir = compilerOptions.outDir!;
-
-	const rojoResolver = data.rojoConfigPath
-		? RojoResolver.fromPath(data.rojoConfigPath)
-		: RojoResolver.synthetic(outDir);
-
-	for (const warning of rojoResolver.getWarnings()) {
-		LogService.warn(warning);
-	}
-
 	for (const sourceFile of program.getSourceFiles()) {
 		if (!path.normalize(sourceFile.fileName).startsWith(data.nodeModulesPath)) {
 			checkFileName(sourceFile.fileName);
@@ -89,7 +68,7 @@ export function compileFiles(
 
 	const reverseSymlinkMap = getReverseSymlinkMap(program);
 
-	const projectType = data.projectOptions.type ?? inferProjectType(data, rojoResolver);
+	const projectType = data.projectOptions.type ?? ProjectType.Game;
 
 	if (projectType !== ProjectType.Package && data.rojoConfigPath === undefined) {
 		return emitResultFailure("Non-package projects must have a Rojo project file!");
@@ -164,7 +143,6 @@ export function compileFiles(
 				compilerOptions,
 				nodeModulesPathMapping,
 				reverseSymlinkMap,
-				undefined,
 				typeChecker,
 				projectType,
 				sourceFile,

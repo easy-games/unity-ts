@@ -1,4 +1,3 @@
-import { RbxType } from "@easy-games/unity-rojo-resolver";
 import luau from "@roblox-ts/luau-ast";
 import { COMPILER_VERSION } from "Shared/constants";
 import { assert } from "Shared/util/assert";

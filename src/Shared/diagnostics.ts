@@ -1,4 +1,3 @@
-import { RbxPath } from "@easy-games/unity-rojo-resolver";
 import kleur from "kleur";
 import { SourceFileWithTextRange } from "Shared/types";
 import { createDiagnosticWithLocation } from "Shared/util/createDiagnosticWithLocation";
@@ -239,20 +238,6 @@ export const errors = {
 	noRojoData: errorWithContext((path: string, isPackage: boolean) => [
 		`Could not find Rojo data. There is no $path in your Rojo config that covers ${path}`,
 		isPackage && suggestion(`Did you forget to add a custom npm scope to your default.project.json?`),
-	]),
-	noPackageImportWithoutScope: errorWithContext((path: string, rbxPath: RbxPath) => [
-		`Imported package Roblox path is missing an npm scope!`,
-		`Package path: ${path}`,
-		`Roblox path: ${rbxPath.join(".")}`,
-		suggestion(
-			`You might need to update your "node_modules" in default.project.json to match:
-"node_modules": {
-	"$className": "Folder",
-	"@rbxts": {
-		"$path": "node_modules/@rbxts"
-	}
-}`,
-		),
 	]),
 	incorrectFileName: (originalFileName: string, suggestedFileName: string, fullPath: string) =>
 		errorText(

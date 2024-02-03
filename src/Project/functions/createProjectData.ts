@@ -1,7 +1,5 @@
-import { RojoResolver } from "@easy-games/unity-rojo-resolver";
 import fs from "fs-extra";
 import path from "path";
-import { LogService } from "Shared/classes/LogService";
 import { NODE_MODULES } from "Shared/constants";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { ProjectData, ProjectOptions } from "Shared/types";
@@ -33,19 +31,6 @@ export function createProjectData(tsConfigPath: string, projectOptions: ProjectO
 
 	const nodeModulesPath = path.join(path.dirname(pkgJsonPath), NODE_MODULES);
 
-	let rojoConfigPath: string | undefined;
-	if (projectOptions.rojo !== undefined) {
-		if (projectOptions.rojo !== "") {
-			rojoConfigPath = path.resolve(projectOptions.rojo);
-		}
-	} else {
-		const { path, warnings } = RojoResolver.findRojoConfigFilePath(projectPath);
-		rojoConfigPath = path;
-		for (const warning of warnings) {
-			LogService.warn(warning);
-		}
-	}
-
 	const writeOnlyChanged = projectOptions.writeOnlyChanged;
 	const optimizedLoops = projectOptions.optimizedLoops;
 	const watch = projectOptions.watch;
@@ -59,7 +44,7 @@ export function createProjectData(tsConfigPath: string, projectOptions: ProjectO
 		nodeModulesPath,
 		projectOptions,
 		projectPath,
-		rojoConfigPath,
+		rojoConfigPath: undefined,
 		writeOnlyChanged,
 		optimizedLoops,
 		watch,
