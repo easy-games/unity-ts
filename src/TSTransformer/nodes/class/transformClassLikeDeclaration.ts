@@ -27,7 +27,6 @@ import {
 } from "TSTransformer/util/airshipBehaviourUtils";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isAirshipBehaviourClass, isRootAirshipBehaviourClass } from "TSTransformer/util/extendsAirshipBehaviour";
-import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
@@ -100,16 +99,6 @@ function createRoactBoilerplate(
 	return statements;
 }
 
-function getExtendsDeclaration(state: TransformState, extendsExp: ts.Expression) {
-	if (ts.isClassLike(extendsExp)) {
-		return extendsExp;
-	}
-	const symbol = state.typeChecker.getSymbolAtLocation(extendsExp);
-	if (symbol && symbol.valueDeclaration && ts.isClassLike(symbol.valueDeclaration)) {
-		return symbol.valueDeclaration;
-	}
-}
-
 function createBoilerplate(
 	state: TransformState,
 	node: ts.ClassLikeDeclaration,
@@ -161,11 +150,6 @@ function createBoilerplate(
 		);
 
 		if (extendsNode && !isRootAirshipBehaviourClass(state, node)) {
-			const extendsDec = getExtendsDeclaration(state, extendsNode.expression);
-			if (extendsDec && extendsRoactComponent(state, extendsDec)) {
-				DiagnosticService.addDiagnostic(errors.noRoactInheritance(node));
-			}
-
 			const [extendsExp, extendsExpPrereqs] = state.capture(() =>
 				transformExpression(state, extendsNode.expression),
 			);
@@ -571,15 +555,9 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		}
 	}
 
-	const isRoact = extendsRoactComponent(state, node);
-
 	// OOP boilerplate + class functions
 	const statementsInner = luau.list.make<luau.Statement>();
-	if (isRoact) {
-		luau.list.pushList(statementsInner, createRoactBoilerplate(state, node, internalName, isClassExpression));
-	} else {
-		luau.list.pushList(statementsInner, createBoilerplate(state, node, internalName, isClassExpression));
-	}
+	luau.list.pushList(statementsInner, createBoilerplate(state, node, internalName, isClassExpression));
 
 	luau.list.pushList(statementsInner, transformClassConstructor(state, node, internalName, getConstructor(node)));
 
@@ -587,8 +565,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		if (
 			(ts.isPropertyDeclaration(member) || ts.isMethodDeclaration(member)) &&
 			(ts.isIdentifier(member.name) || ts.isStringLiteral(member.name)) &&
-			(luau.isReservedClassField(member.name.text) ||
-				(isRoact && luau.isReservedRoactClassField(member.name.text)))
+			luau.isReservedClassField(member.name.text)
 		) {
 			DiagnosticService.addDiagnostic(errors.noReservedClassFields(member.name));
 		}
