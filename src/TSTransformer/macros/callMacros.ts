@@ -2,7 +2,6 @@ import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { CallMacro, MacroList } from "TSTransformer/macros/types";
-import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 
 const PRIMITIVE_LUAU_TYPES = new Set([
@@ -32,11 +31,6 @@ export const CALL_MACROS: MacroList<CallMacro> = {
 				? luau.globals.type
 				: luau.globals.typeof;
 		return luau.binary(luau.call(typeFunc, [value]), "==", typeStr);
-	},
-
-	classIs: (state, node, expression, args) => {
-		const [value, typeStr] = args;
-		return luau.binary(luau.property(convertToIndexableExpression(value), "ClassName"), "==", typeStr);
 	},
 
 	identity: (state, node, expression, args) => args[0],
