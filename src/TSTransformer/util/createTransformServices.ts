@@ -10,8 +10,8 @@ export function createTransformServices(
 ): TransformServices {
 	const macroManager = new MacroManager(typeChecker);
 
-	const roactSymbolManager = RoactSymbolManager.create(data, program, typeChecker);
+	// const roactSymbolManager = RoactSymbolManager.create(data, program, typeChecker);
 	const airshipSymbolManager = new AirshipSymbolManager(typeChecker);
 
-	return { macroManager, roactSymbolManager, airshipSymbolManager };
+	return { macroManager, roactSymbolManager: undefined, airshipSymbolManager };
 }

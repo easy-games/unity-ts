@@ -59,25 +59,26 @@ export class RoactSymbolManager {
 		program: ts.Program,
 		typeChecker: ts.TypeChecker,
 	): RoactSymbolManager | undefined {
-		const pkgPath = path.join(data.nodeModulesPath, RBXTS_SCOPE, "roact");
-		const pkgJsonPath = realPathExistsSync(path.join(pkgPath, "package.json"));
-		if (pkgJsonPath !== undefined) {
-			const pkgJson = fs.readJsonSync(pkgJsonPath) as { typings?: string; types?: string };
-			const typesPath = realPathExistsSync(path.join(pkgPath, pkgJson.types ?? pkgJson.typings ?? "index.d.ts"));
-			if (typesPath !== undefined) {
-				const roactIndexSourceFile = program.getSourceFile(typesPath);
-				if (roactIndexSourceFile) {
-					return new RoactSymbolManager(typeChecker, roactIndexSourceFile);
-				}
-			}
-		}
+		// const pkgPath = path.join(data.nodeModulesPath, RBXTS_SCOPE, "roact");
+		// const pkgJsonPath = realPathExistsSync(path.join(pkgPath, "package.json"));
+		// if (pkgJsonPath !== undefined) {
+		// 	const pkgJson = fs.readJsonSync(pkgJsonPath) as { typings?: string; types?: string };
+		// 	const typesPath = realPathExistsSync(path.join(pkgPath, pkgJson.types ?? pkgJson.typings ?? "index.d.ts"));
+		// 	if (typesPath !== undefined) {
+		// 		const roactIndexSourceFile = program.getSourceFile(typesPath);
+		// 		if (roactIndexSourceFile) {
+		// 			return new RoactSymbolManager(typeChecker, roactIndexSourceFile);
+		// 		}
+		// 	}
+		// }
 
-		// playground fallback
-		const roactIndexSourceFilePath = path.join(data.nodeModulesPath, RBXTS_SCOPE, "roact", "src", "index.d.ts");
-		const roactIndexSourceFile = program.getSourceFile(roactIndexSourceFilePath);
-		if (roactIndexSourceFile) {
-			return new RoactSymbolManager(typeChecker, roactIndexSourceFile);
-		}
+		// // playground fallback
+		// const roactIndexSourceFilePath = path.join(data.nodeModulesPath, RBXTS_SCOPE, "roact", "src", "index.d.ts");
+		// const roactIndexSourceFile = program.getSourceFile(roactIndexSourceFilePath);
+		// if (roactIndexSourceFile) {
+		// 	return new RoactSymbolManager(typeChecker, roactIndexSourceFile);
+		// }
+		return undefined; // We'll end up downstreaming generic JSX if it's required, instead.
 	}
 
 	public getSymbolOrThrow(symbolName: string): ts.Symbol {
