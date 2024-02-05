@@ -64,8 +64,7 @@ export class AirshipSymbolManager {
 					this.symbolsToType.set(symbol, interfaceType);
 				}
 			} else {
-				// throw new ProjectError(`MacroManager could not find symbol for ${symbolName}` + TYPES_NOTICE);
-				console.log(`MacroManager could not find symbol for ${symbolName}` + TYPES_NOTICE);
+				throw new ProjectError(`MacroManager could not find symbol for ${symbolName}` + TYPES_NOTICE);
 			}
 		}
 	}
