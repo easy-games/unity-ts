@@ -1,6 +1,6 @@
 import { AirshipBehaviourCallValue, AirshipBehaviourStaticMemberValue } from "Shared/types";
 import { TransformState } from "TSTransformer";
-import ts from "typescript";
+import ts, { skipAlias } from "typescript";
 
 export function isPublicWritablePropertyDeclaration(node: ts.PropertyDeclaration) {
 	// If no modifiers, then it's public by default anyway
@@ -64,14 +64,66 @@ export function isUnityObjectType(state: TransformState, nodeType: ts.Type) {
 	return objectInheritanceTree.includes(objectSymbol);
 }
 
+export function isEnumType(type: ts.Type) {
+	return (type.flags & ts.TypeFlags.EnumLike) !== 0;
+}
+
+export function getEnumValue(state: TransformState, value: ts.PropertyAccessExpression) {
+	const valueType = state.getType(value);
+
+	if (valueType.isStringLiteral()) {
+		return valueType.value;
+	} else if (valueType.isNumberLiteral()) {
+		return valueType.value;
+	}
+}
+
+export function getEnumKey(value: ts.PropertyAccessExpression) {
+	return value.name.text;
+}
+
+export function getEnumRecord(enumType: ts.Type): Record<string, string | number> {
+	const valueDeclaration = enumType.getSymbol()?.valueDeclaration;
+
+	if (valueDeclaration && ts.isEnumDeclaration(valueDeclaration)) {
+		const map: Record<string, string | number> = {};
+
+		let idx = 0;
+		for (const member of valueDeclaration.members) {
+			if (!ts.isIdentifier(member.name)) {
+				continue;
+			}
+
+			if (member.initializer) {
+				if (ts.isStringLiteral(member.initializer)) {
+					map[member.name.text] = member.initializer.text;
+				} else if (ts.isNumericLiteral(member.initializer)) {
+					idx = parseInt(member.initializer.text);
+					map[member.name.text] = idx;
+					idx++;
+				}
+			} else {
+				map[member.name.text] = idx++;
+			}
+		}
+
+		return map;
+	}
+
+	return {};
+}
+
 export function isValidAirshipBehaviourExportType(state: TransformState, node: ts.Node) {
 	const nodeType = state.getType(node);
+
 	if (state.typeChecker.isArrayType(nodeType)) {
 		const innerArrayType = state.typeChecker.getElementTypeOfArrayType(nodeType)!;
 		return (
 			state.services.airshipSymbolManager.isTypeSerializable(innerArrayType) ||
 			isUnityObjectType(state, innerArrayType)
 		);
+	} else if (isEnumType(nodeType)) {
+		return true;
 	} else {
 		return state.services.airshipSymbolManager.isTypeSerializable(nodeType) || isUnityObjectType(state, nodeType);
 	}
