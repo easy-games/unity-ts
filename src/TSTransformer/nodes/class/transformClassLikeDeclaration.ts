@@ -20,7 +20,11 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import {
 	getAncestorTypeSymbols,
+	getEnumKey,
+	getEnumRecord,
+	getEnumValue,
 	getUnityObjectInitializerDefaultValue,
+	isEnumType,
 	isPublicWritablePropertyDeclaration,
 	isUnityObjectType,
 	isValidAirshipBehaviourExportType,
@@ -53,50 +57,6 @@ function createNameFunction(name: string) {
 		parameters: luau.list.make(),
 		hasDotDotDot: false,
 	});
-}
-
-function createRoactBoilerplate(
-	state: TransformState,
-	node: ts.ClassLikeDeclaration,
-	className: luau.Identifier | luau.TemporaryIdentifier,
-	isClassExpression: boolean,
-) {
-	const extendsNode = getExtendsNode(node);
-	assert(extendsNode);
-
-	const statements = luau.list.make<luau.Statement>();
-
-	const [extendsExp, extendsExpPrereqs] = state.capture(() => transformExpression(state, extendsNode.expression));
-	luau.list.pushList(statements, extendsExpPrereqs);
-
-	const classNameStr = luau.isIdentifier(className) ? className.name : "Anonymous";
-
-	const right = luau.create(luau.SyntaxKind.MethodCallExpression, {
-		expression: convertToIndexableExpression(extendsExp),
-		name: "extend",
-		args: luau.list.make(luau.string(classNameStr)),
-	});
-
-	if (isClassExpression && node.name) {
-		luau.list.push(
-			statements,
-			luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: transformIdentifierDefined(state, node.name),
-				right,
-			}),
-		);
-	} else {
-		luau.list.push(
-			statements,
-			luau.create(luau.SyntaxKind.Assignment, {
-				left: className,
-				operator: "=",
-				right,
-			}),
-		);
-	}
-
-	return statements;
 }
 
 function createBoilerplate(
@@ -294,6 +254,7 @@ function createAirshipProperty(
 	const typeChecker = state.typeChecker;
 	const isArray = typeChecker.isArrayType(type);
 	const isObject = isUnityObjectType(state, type);
+	const isEnum = isEnumType(type);
 	const typeString = typeChecker.typeToString(type.getNonNullableType());
 
 	const prop = {
@@ -318,6 +279,19 @@ function createAirshipProperty(
 			type: isObject ? "object" : typeString,
 			objectType: isObject ? typeString : undefined,
 		};
+	} else if (isEnum) {
+		if (type.isNullableType()) prop.nullable = true;
+		prop.nullable = type.isNullableType();
+		prop.type = "enum";
+
+		const enumRecord = getEnumRecord(type);
+
+		prop.enum = enumRecord;
+
+		if (node.initializer && ts.isPropertyAccessExpression(node.initializer)) {
+			const enumKey = getEnumValue(state, node.initializer);
+			prop.default = enumKey;
+		}
 	} else {
 		if (type.isNullableType()) prop.nullable = true;
 		prop.nullable = type.isNullableType();
