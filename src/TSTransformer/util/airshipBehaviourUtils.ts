@@ -122,8 +122,8 @@ export function isValidAirshipBehaviourExportType(state: TransformState, node: t
 			state.services.airshipSymbolManager.isTypeSerializable(innerArrayType) ||
 			isUnityObjectType(state, innerArrayType)
 		);
-	} else if (isEnumType(nodeType)) {
-		return true;
+		// } else if (isEnumType(nodeType)) {
+		// 	return true;
 	} else {
 		return state.services.airshipSymbolManager.isTypeSerializable(nodeType) || isUnityObjectType(state, nodeType);
 	}
