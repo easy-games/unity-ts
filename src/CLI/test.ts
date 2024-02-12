@@ -14,6 +14,7 @@ import { assert } from "Shared/util/assert";
 import { formatDiagnostics } from "Shared/util/formatDiagnostics";
 import { getRootDirs } from "Shared/util/getRootDirs";
 import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
+import { AirshipBuildState } from "TSTransformer";
 
 const DIAGNOSTIC_TEST_NAME_REGEX = /^(\w+)(?:\.\d+)?$/;
 
@@ -51,7 +52,9 @@ describe("should compile tests project", () => {
 			assert(diagnosticName && errors[diagnosticName], `Diagnostic test for unknown diagnostic ${fileBaseName}`);
 			const expectedId = (errors[diagnosticName] as DiagnosticFactory).id;
 			it(`should compile ${fileName} and report diagnostic ${diagnosticName}`, done => {
-				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, [sourceFile]);
+				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, new AirshipBuildState(), [
+					sourceFile,
+				]);
 				if (
 					emitResult.diagnostics.length > 0 &&
 					emitResult.diagnostics.every(d => getDiagnosticId(d) === expectedId)
@@ -65,7 +68,9 @@ describe("should compile tests project", () => {
 			});
 		} else {
 			it(`should compile ${fileName}`, done => {
-				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, [sourceFile]);
+				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, new AirshipBuildState(), [
+					sourceFile,
+				]);
 				if (emitResult.diagnostics.length > 0) {
 					done(new Error("\n" + formatDiagnostics(emitResult.diagnostics)));
 				} else {

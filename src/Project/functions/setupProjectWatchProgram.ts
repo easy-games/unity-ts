@@ -20,6 +20,7 @@ import { ProjectType } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { assert } from "Shared/util/assert";
 import { getRootDirs } from "Shared/util/getRootDirs";
+import { AirshipBuildState } from "TSTransformer";
 import ts from "typescript";
 
 const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
@@ -44,6 +45,8 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	let filesToAdd = new Set<string>();
 	let filesToChange = new Set<string>();
 	let filesToDelete = new Set<string>();
+
+	const watchBuildState = new AirshipBuildState();
 
 	const watchReporter = ts.createWatchStatusReporter(ts.sys, true);
 	const diagnosticReporter = ts.createDiagnosticReporter(ts.sys, true);
@@ -95,7 +98,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		}
 		copyFiles(data, pathTranslator, new Set(getRootDirs(options)));
 		const sourceFiles = getChangedSourceFiles(program);
-		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, sourceFiles);
+		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, watchBuildState, sourceFiles);
 		if (!emitResult.emitSkipped) {
 			buildTypes(data);
 
@@ -108,6 +111,8 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	const filesToCopy = new Set<string>();
 	const filesToClean = new Set<string>();
 	function runIncrementalCompile(additions: Set<string>, changes: Set<string>, removals: Set<string>): ts.EmitResult {
+		const buildFile = watchBuildState.buildFile;
+
 		for (const fsPath of additions) {
 			if (fs.statSync(fsPath).isDirectory()) {
 				walkDirectorySync(fsPath, item => {
@@ -137,12 +142,25 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		for (const fsPath of removals) {
 			fileNamesSet.delete(fsPath);
 			filesToClean.add(fsPath);
+
+			// remove entries
+			const componentMap = watchBuildState.fileComponentMap[fsPath];
+			if (componentMap) {
+				for (const componentId of componentMap) {
+					for (const [, extensions] of Object.entries(buildFile.extends)) {
+						if (!extensions.includes(componentId)) continue;
+						extensions.splice(extensions.indexOf(componentId), 1);
+					}
+					delete watchBuildState.buildFile.behaviours[componentId];
+				}
+			}
 		}
 
 		refreshProgram();
 		assert(program && pathTranslator);
+
 		const sourceFiles = getChangedSourceFiles(program, options.incremental ? undefined : [...filesToCompile]);
-		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, sourceFiles);
+		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, watchBuildState, sourceFiles);
 		if (emitResult.emitSkipped) {
 			// exit before copying to prevent half-updated out directory
 			return emitResult;

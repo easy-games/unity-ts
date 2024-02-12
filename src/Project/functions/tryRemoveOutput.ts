@@ -8,7 +8,7 @@ function isOutputFileOrphaned(pathTranslator: PathTranslator, filePath: string) 
 		return true;
 	}
 
-	if (filePath.endsWith(".build~")) return false;
+	if (filePath.endsWith(".asbuildinfo")) return false;
 
 	if (filePath.endsWith(".meta")) {
 		return false;

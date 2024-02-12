@@ -18,6 +18,7 @@ import { LoggableError } from "Shared/errors/LoggableError";
 import { ProjectOptions } from "Shared/types";
 import { getRootDirs } from "Shared/util/getRootDirs";
 import { hasErrors } from "Shared/util/hasErrors";
+import { AirshipBuildState } from "TSTransformer";
 import ts from "typescript";
 import yargs from "yargs";
 
@@ -105,6 +106,7 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 					program.getProgram(),
 					data,
 					pathTranslator,
+					new AirshipBuildState(),
 					getChangedSourceFiles(program),
 				);
 				for (const diagnostic of emitResult.diagnostics) {

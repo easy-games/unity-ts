@@ -16,7 +16,12 @@ import { AirshipBuildFile, ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
-import { MultiTransformState, transformSourceFile, TransformState } from "TSTransformer";
+import {
+	AirshipBuildState as BuildState,
+	MultiTransformState,
+	transformSourceFile,
+	TransformState,
+} from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { createTransformServices } from "TSTransformer/util/createTransformServices";
 import ts from "typescript";
@@ -52,6 +57,7 @@ export function compileFiles(
 	program: ts.Program,
 	data: ProjectData,
 	pathTranslator: PathTranslator,
+	buildState: BuildState,
 	sourceFiles: Array<ts.SourceFile>,
 ): ts.EmitResult {
 	const compilerOptions = program.getCompilerOptions();
@@ -116,10 +122,7 @@ export function compileFiles(
 	const typeChecker = proxyProgram.getTypeChecker();
 	const services = createTransformServices(proxyProgram, typeChecker, data);
 
-	const buildFile: AirshipBuildFile = {
-		behaviours: {},
-		extends: {},
-	};
+	const buildFile: AirshipBuildFile = buildState.buildFile;
 
 	for (let i = 0; i < sourceFiles.length; i++) {
 		const sourceFile = proxyProgram.getSourceFile(sourceFiles[i].fileName);
@@ -152,29 +155,56 @@ export function compileFiles(
 			fileWriteQueue.push({ sourceFile, source });
 
 			const airshipBehaviours = transformState.airshipBehaviours;
-			for (const behaviour of airshipBehaviours) {
-				const airshipBehaviourMetadata = behaviour.metadata;
 
-				if (airshipBehaviourMetadata) {
-					assert(!fileMetadataWriteQueue.has(sourceFile), "Should never happen dawg");
-					fileMetadataWriteQueue.set(sourceFile, JSON.stringify(airshipBehaviourMetadata, null, "\t"));
-				}
+			// In watch mode we want to ensure entries are updated
+			if (data.watch) {
+				const fileMap = (buildState.fileComponentMap[sourceFile.fileName] ??= []);
+				for (const entry of fileMap) {
+					const matchingBehaviour = airshipBehaviours.find(f => f.name === entry);
 
-				const relativeFilePath = path.relative(
-					pathTranslator.outDir,
-					pathTranslator.getOutputPath(sourceFile.fileName),
-				);
-				if (behaviour.name) {
-					for (const ext of behaviour.extends) {
-						const extensions = (buildFile.extends[ext] ??= []);
-						extensions.push(behaviour.name);
+					for (const [, extensions] of Object.entries(buildFile.extends)) {
+						if (!extensions.includes(entry)) continue;
+						extensions.splice(extensions.indexOf(entry), 1);
 					}
 
-					buildFile.behaviours[behaviour.name] = {
-						component: behaviour.metadata !== undefined,
-						filePath: relativeFilePath,
-						extends: behaviour.extends,
-					};
+					if (!matchingBehaviour) {
+						delete buildFile.behaviours[entry];
+					}
+				}
+			}
+
+			if (airshipBehaviours.length > 0) {
+				const fileMap = (buildState.fileComponentMap[sourceFile.fileName] ??= []);
+
+				for (const behaviour of airshipBehaviours) {
+					const airshipBehaviourMetadata = behaviour.metadata;
+
+					if (airshipBehaviourMetadata) {
+						assert(!fileMetadataWriteQueue.has(sourceFile), "Should never happen dawg");
+						fileMetadataWriteQueue.set(sourceFile, JSON.stringify(airshipBehaviourMetadata, null, "\t"));
+					}
+
+					const relativeFilePath = path.relative(
+						pathTranslator.outDir,
+						pathTranslator.getOutputPath(sourceFile.fileName),
+					);
+					if (behaviour.name) {
+						for (const ext of behaviour.extends) {
+							const extensions = (buildFile.extends[ext] ??= []);
+
+							if (!extensions.includes(behaviour.name)) {
+								extensions.push(behaviour.name);
+							}
+						}
+
+						buildFile.behaviours[behaviour.name] = {
+							component: behaviour.metadata !== undefined,
+							filePath: relativeFilePath,
+							extends: behaviour.extends,
+						};
+
+						fileMap.push(behaviour.name);
+					}
 				}
 			}
 		});
@@ -191,6 +221,7 @@ export function compileFiles(
 
 			for (const { sourceFile, source } of fileWriteQueue) {
 				const outPath = pathTranslator.getOutputPath(sourceFile.fileName);
+
 				const hasMetadata = fileMetadataWriteQueue.has(sourceFile);
 				const metadataPathOutPath = outPath + ".json~";
 
