@@ -243,7 +243,7 @@ export function compileFiles(
 		});
 	}
 
-	const buildFilePath = path.join(pathTranslator.outDir, "Shared", "Resources", "TS", "Airship.build~");
+	const buildFilePath = path.join(pathTranslator.outDir, "Shared", "Resources", "TS", "Airship.asbuildinfo");
 
 	const oldBuildFileSource = fs.existsSync(buildFilePath) ? fs.readFileSync(buildFilePath).toString() : "";
 	const newBuildFileSource = JSON.stringify(buildFile, null, "\t");

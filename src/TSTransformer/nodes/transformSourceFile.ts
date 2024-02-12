@@ -201,7 +201,7 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 		luau.list.push(
 			statements,
 			luau.create(luau.SyntaxKind.ReturnStatement, {
-				expression: luau.create(luau.SyntaxKind.MixedTable, { fields: luau.list.make() }),
+				expression: luau.map(),
 			}),
 		);
 	}
