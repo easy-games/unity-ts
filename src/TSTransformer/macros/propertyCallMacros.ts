@@ -965,6 +965,7 @@ const UNITY_GAMEOBJECT_METHODS: MacroList<PropertyCallMacro> = {
 	GetComponents: makeTypeArgumentAsStringMacro("GetComponents"),
 	GetComponentIfExists: makeTypeArgumentAsStringMacro("GetComponentIfExists"),
 	AddComponent: makeTypeArgumentAsStringMacro("AddComponent"),
+	AddAirshipComponent: makeTypeArgumentAsStringMacro("AddAirshipComponent"),
 	GetComponentsInChildren: makeTypeArgumentAsStringMacro("GetComponentsInChildren"),
 };
 const UNITY_STATIC_GAMEOBJECT_METHODS: MacroList<PropertyCallMacro> = {
