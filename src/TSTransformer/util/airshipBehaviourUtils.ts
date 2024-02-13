@@ -1,6 +1,9 @@
+import { errors } from "Shared/diagnostics";
+import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { AirshipBehaviourCallValue, AirshipBehaviourStaticMemberValue } from "Shared/types";
 import { TransformState } from "TSTransformer";
-import ts, { skipAlias } from "typescript";
+import { assert } from "console";
+import ts from "typescript";
 
 export function isPublicWritablePropertyDeclaration(node: ts.PropertyDeclaration) {
 	// If no modifiers, then it's public by default anyway
@@ -129,6 +132,32 @@ export function isValidAirshipBehaviourExportType(state: TransformState, node: t
 	}
 }
 
+function isNumericLike(
+	node: ts.Expression,
+): node is (ts.PrefixUnaryExpression & { operand: ts.NumericLiteral }) | ts.NumericLiteral {
+	if (
+		ts.isPrefixUnaryExpression(node) &&
+		ts.isNumericLiteral(node.operand) &&
+		node.operator === ts.SyntaxKind.MinusToken
+	) {
+		return true;
+	}
+
+	return ts.isNumericLiteral(node);
+}
+
+function parseNumericNode(node: ts.PrefixUnaryExpression | ts.NumericLiteral) {
+	if (ts.isPrefixUnaryExpression(node) && ts.isNumericLiteral(node.operand)) {
+		if (node.operator === ts.SyntaxKind.MinusToken) {
+			return -parseFloat(node.operand.text);
+		}
+	} else if (ts.isNumericLiteral(node)) {
+		return parseFloat(node.text);
+	}
+
+	assert(false);
+}
+
 export function getUnityObjectInitializerDefaultValue(
 	state: TransformState,
 	initializer: ts.Expression,
@@ -140,8 +169,9 @@ export function getUnityObjectInitializerDefaultValue(
 		const constructing = state.services.airshipSymbolManager.getTypeFromSymbol(constructableType);
 		if (!constructing) return undefined;
 
-		const allLiterals = initializer.arguments?.every((argument): argument is ts.StringLiteral | ts.NumericLiteral =>
-			ts.isStringOrNumericLiteralLike(argument),
+		const allLiterals = initializer.arguments?.every(
+			(argument): argument is ts.StringLiteral | ts.NumericLiteral =>
+				ts.isStringOrNumericLiteralLike(argument) || isNumericLike(argument),
 		);
 		if (!allLiterals) return undefined;
 
@@ -149,8 +179,8 @@ export function getUnityObjectInitializerDefaultValue(
 			target: "constructor",
 			type: state.typeChecker.typeToString(constructing),
 			arguments: initializer.arguments.map(v => {
-				if (ts.isNumericLiteral(v)) {
-					return parseFloat(v.text);
+				if (isNumericLike(v)) {
+					return parseNumericNode(v);
 				} else if (ts.isStringLiteral(v)) {
 					return v.text;
 				}
@@ -170,8 +200,8 @@ export function getUnityObjectInitializerDefaultValue(
 		};
 	} else if (ts.isStringLiteral(initializer)) {
 		return initializer.text;
-	} else if (ts.isNumericLiteral(initializer)) {
-		return parseFloat(initializer.text);
+	} else if (isNumericLike(initializer)) {
+		return parseNumericNode(initializer);
 	} else if (ts.isBooleanLiteral(initializer)) {
 		return initializer.kind === ts.SyntaxKind.TrueKeyword;
 	} else {
