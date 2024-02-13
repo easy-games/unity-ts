@@ -73,7 +73,6 @@ export = ts.identity<yargs.CommandModule<{}, Flags & Partial<ProjectOptions>>>({
 		checkDir(path.join("src", "Server"));
 		checkDir(path.join("src", "Client"));
 		checkDir(path.join("src", "Shared"));
-		checkDir(path.join("src", "Shared", "Types"));
 
 		if (existsSync("flamework.build")) {
 			copyFileSync("flamework.build", path.join(typesPath, "flamework.build"));
