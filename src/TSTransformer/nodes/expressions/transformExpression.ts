@@ -20,11 +20,13 @@ import { transformJsxFragment } from "TSTransformer/nodes/expressions/transformJ
 import { transformJsxSelfClosingElement } from "TSTransformer/nodes/expressions/transformJsxSelfClosingElement";
 import { transformNewExpression } from "TSTransformer/nodes/expressions/transformNewExpression";
 import { transformNonNullExpression } from "TSTransformer/nodes/expressions/transformNonNullExpression";
+import { transformNoSubstitutionTemplateLiteral } from "TSTransformer/nodes/expressions/transformNoSubstitutionTemplateLiteral";
 import { transformNumericLiteral } from "TSTransformer/nodes/expressions/transformNumericLiteral";
 import { transformObjectLiteralExpression } from "TSTransformer/nodes/expressions/transformObjectLiteralExpression";
 import { transformOmittedExpression } from "TSTransformer/nodes/expressions/transformOmittedExpression";
 import { transformParenthesizedExpression } from "TSTransformer/nodes/expressions/transformParenthesizedExpression";
 import { transformPropertyAccessExpression } from "TSTransformer/nodes/expressions/transformPropertyAccessExpression";
+import { transformSatisfiesExpression } from "TSTransformer/nodes/expressions/transformSatisfiesExpression";
 import { transformSpreadElement } from "TSTransformer/nodes/expressions/transformSpreadElement";
 import { transformStringLiteral } from "TSTransformer/nodes/expressions/transformStringLiteral";
 import { transformSuperKeyword } from "TSTransformer/nodes/expressions/transformSuperKeyword";
@@ -40,7 +42,6 @@ import { transformVoidExpression } from "TSTransformer/nodes/expressions/transfo
 import { transformYieldExpression } from "TSTransformer/nodes/expressions/transformYieldExpression";
 import { getKindName } from "TSTransformer/util/getKindName";
 import ts from "typescript";
-import { transformSatisfiesExpression } from "./transformSatisfiesExpression";
 
 const NO_EMIT = () => luau.none();
 
@@ -83,7 +84,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.JsxSelfClosingElement, transformJsxSelfClosingElement],
 	[ts.SyntaxKind.NewExpression, transformNewExpression],
 	[ts.SyntaxKind.NonNullExpression, transformNonNullExpression],
-	[ts.SyntaxKind.NoSubstitutionTemplateLiteral, transformStringLiteral],
+	[ts.SyntaxKind.NoSubstitutionTemplateLiteral, transformNoSubstitutionTemplateLiteral],
 	[ts.SyntaxKind.NumericLiteral, transformNumericLiteral],
 	[ts.SyntaxKind.ObjectLiteralExpression, transformObjectLiteralExpression],
 	[ts.SyntaxKind.OmittedExpression, transformOmittedExpression],
