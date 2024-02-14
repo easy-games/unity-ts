@@ -2,7 +2,6 @@ import { getPackageJson } from "CLI/util/findTsConfigPath";
 import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "fs";
 import path from "path";
 import { ProjectOptions } from "Project";
-import { PackageJSON } from "resolve";
 import { LogService } from "Shared/classes/LogService";
 import ts from "typescript";
 import yargs from "yargs";
@@ -73,6 +72,7 @@ export = ts.identity<yargs.CommandModule<{}, Flags & Partial<ProjectOptions>>>({
 		checkDir(path.join("src", "Server"));
 		checkDir(path.join("src", "Client"));
 		checkDir(path.join("src", "Shared"));
+		checkDir(path.join("src", "Shared", "Types"));
 
 		if (existsSync("flamework.build")) {
 			copyFileSync("flamework.build", path.join(typesPath, "flamework.build"));
