@@ -25,6 +25,5 @@ export function transformTemplateExpression(state: TransformState, node: ts.Temp
 		}
 	}
 
-	console.log(parts);
 	return luau.create(luau.SyntaxKind.InterpolatedString, { parts });
 }
