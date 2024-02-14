@@ -14,6 +14,7 @@ const PRIMITIVE_LUAU_TYPES = new Set([
 	"function",
 	"thread",
 	"vector",
+	"buffer",
 ]);
 
 export const CALL_MACROS: MacroList<CallMacro> = {
