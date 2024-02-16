@@ -48,7 +48,7 @@ export = ts.identity<yargs.CommandModule<{}, Flags & Partial<ProjectOptions>>>({
 		writeFileSync(path.join(typesPath, "index.d.ts"), "");
 
 		// copy manually written d.ts files from source
-		const checkDir = (dir: string, depth = 0) => {
+		const checkDir = (dir: string) => {
 			if (!existsSync(dir)) {
 				return;
 			}
@@ -56,12 +56,12 @@ export = ts.identity<yargs.CommandModule<{}, Flags & Partial<ProjectOptions>>>({
 				withFileTypes: true,
 			});
 			for (const file of files) {
-				if (file.name.includes(".d.ts") || file.name === "package.json") {
-					let sourcePath = path.join(dir, file.name);
+				if (file.name.includes(".d.ts")) {
+					const sourcePath = path.join(dir, file.name);
 					LogService.writeLine("copying " + sourcePath);
 
-					let targetPath = sourcePath.replace("src" + path.sep, typesPath + path.sep);
-					let targetPathDir = path.dirname(targetPath);
+					const targetPath = sourcePath.replace("src" + path.sep, typesPath + path.sep);
+					const targetPathDir = path.dirname(targetPath);
 					if (!existsSync(targetPathDir)) {
 						mkdirSync(targetPathDir);
 					}

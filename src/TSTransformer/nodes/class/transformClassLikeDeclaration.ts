@@ -20,7 +20,6 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import {
 	getAncestorTypeSymbols,
-	getEnumKey,
 	getEnumRecord,
 	getEnumValue,
 	getUnityObjectInitializerDefaultValue,
@@ -29,7 +28,6 @@ import {
 	isUnityObjectType,
 	isValidAirshipBehaviourExportType,
 } from "TSTransformer/util/airshipBehaviourUtils";
-import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isAirshipBehaviourClass, isRootAirshipBehaviourClass } from "TSTransformer/util/extendsAirshipBehaviour";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getKindName } from "TSTransformer/util/getKindName";
@@ -442,7 +440,16 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 
 			pushPropertyMetadataForAirshipBehaviour(state, valueDeclaration, metadata);
 
-			inheritedBehaviourIds.push(inherited.name);
+			let name = inherited.name;
+			if (name === "default") {
+				// not my favourite solution to this, but works...
+				const valueDecl = inherited.valueDeclaration;
+				if (valueDecl && ts.isClassDeclaration(valueDecl)) {
+					name = valueDecl.name?.text ?? name;
+				}
+			}
+
+			inheritedBehaviourIds.push(name);
 		}
 
 		const sha1 = crypto.createHash("sha1");
