@@ -107,8 +107,23 @@ export interface AirshipBehaviourStaticMemberValue {
 	computed?: unknown;
 }
 
+export interface AirshipBehaviourStaticMemberValue {
+	target: "property";
+	type: string;
+	member: string;
+	computed?: unknown;
+}
+
 export interface AirshipBehaviourCallValue {
 	target: "constructor";
+	type: string;
+	arguments: Array<unknown>;
+	computed?: unknown;
+}
+
+export interface AirshipBehaviourMethodCallValue {
+	target: "method";
+	method: string;
 	type: string;
 	arguments: Array<unknown>;
 	computed?: unknown;
@@ -120,6 +135,7 @@ type AirshipFieldDefaultValue =
 	| boolean
 	| AirshipBehaviourCallValue
 	| AirshipBehaviourStaticMemberValue
+	| AirshipBehaviourMethodCallValue
 	| undefined;
 
 /**

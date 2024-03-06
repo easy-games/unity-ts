@@ -1,7 +1,11 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
-import { AirshipBehaviourCallValue, AirshipBehaviourStaticMemberValue } from "Shared/types";
+import {
+	AirshipBehaviourCallValue,
+	AirshipBehaviourMethodCallValue,
+	AirshipBehaviourStaticMemberValue,
+} from "Shared/types";
 import { TransformState } from "TSTransformer";
 import { assert } from "console";
 import ts from "typescript";
@@ -170,7 +174,14 @@ function parseNumericNode(node: ts.PrefixUnaryExpression | ts.NumericLiteral) {
 export function getUnityObjectInitializerDefaultValue(
 	state: TransformState,
 	initializer: ts.Expression,
-): AirshipBehaviourCallValue | AirshipBehaviourStaticMemberValue | string | number | boolean | undefined {
+):
+	| AirshipBehaviourCallValue
+	| AirshipBehaviourStaticMemberValue
+	| AirshipBehaviourMethodCallValue
+	| string
+	| number
+	| boolean
+	| undefined {
 	if (ts.isNewExpression(initializer)) {
 		const constructableType = state.typeChecker.getSymbolAtLocation(initializer.expression);
 		if (!constructableType) return undefined;
@@ -187,6 +198,38 @@ export function getUnityObjectInitializerDefaultValue(
 		return {
 			target: "constructor",
 			type: state.typeChecker.typeToString(constructing),
+			arguments: initializer.arguments.map(v => {
+				if (isNumericLike(v)) {
+					return parseNumericNode(v);
+				} else if (ts.isStringLiteral(v)) {
+					return v.text;
+				}
+			}),
+		};
+	} else if (ts.isCallExpression(initializer)) {
+		let constructorType: ts.Type | undefined;
+		let methodName: string;
+
+		if (ts.isPropertyAccessExpression(initializer.expression) && ts.isIdentifier(initializer.expression.name)) {
+			const lhsSymbol = state.typeChecker.getSymbolAtLocation(initializer.expression.expression);
+			constructorType = lhsSymbol ? state.services.airshipSymbolManager.getTypeFromSymbol(lhsSymbol) : undefined;
+			methodName = initializer.expression.name.text;
+		} else {
+			return undefined;
+		}
+
+		if (!constructorType) return undefined;
+
+		const allLiterals = initializer.arguments?.every(
+			(argument): argument is ts.StringLiteral | ts.NumericLiteral =>
+				ts.isStringOrNumericLiteralLike(argument) || isNumericLike(argument),
+		);
+		if (!allLiterals) return undefined;
+
+		return {
+			target: "method",
+			method: methodName,
+			type: state.typeChecker.typeToString(constructorType),
 			arguments: initializer.arguments.map(v => {
 				if (isNumericLike(v)) {
 					return parseNumericNode(v);
