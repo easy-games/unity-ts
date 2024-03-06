@@ -10,7 +10,7 @@ import {
 import { transformElementAccessExpressionInner } from "TSTransformer/nodes/expressions/transformElementAccessExpression";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformPropertyAccessExpressionInner } from "TSTransformer/nodes/expressions/transformPropertyAccessExpression";
-import { isUnityObjectType } from "TSTransformer/util/airshipBehaviourUtils";
+import { createIsDestroyedLuauMethodCall, isUnityObjectType } from "TSTransformer/util/airshipBehaviourUtils";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isMethod } from "TSTransformer/util/isMethod";
@@ -229,14 +229,7 @@ function createUnityObjectNilCheck(tempId: luau.TemporaryIdentifier, statements:
 		condition: luau.binary(
 			luau.binary(tempId, "~=", luau.nil()),
 			"and",
-			luau.unary(
-				"not",
-				luau.create(luau.SyntaxKind.MethodCallExpression, {
-					name: "IsDestroyed",
-					expression: tempId,
-					args: luau.list.make(),
-				}),
-			),
+			luau.unary("not", createIsDestroyedLuauMethodCall(tempId)),
 		),
 		statements,
 		elseBody: luau.list.make(),

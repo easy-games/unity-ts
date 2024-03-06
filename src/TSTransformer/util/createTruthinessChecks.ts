@@ -2,7 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { warnings } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { isUnityObjectType } from "TSTransformer/util/airshipBehaviourUtils";
+import { createIsDestroyedLuauMethodCall, isUnityObjectType } from "TSTransformer/util/airshipBehaviourUtils";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
 import { isEmptyStringType, isNaNType, isNumberLiteralType, isPossiblyType } from "TSTransformer/util/types";
@@ -44,16 +44,7 @@ export function createTruthinessChecks(state: TransformState, exp: luau.Expressi
 
 	if (isUnityType) {
 		checks.push(luau.binary(exp, "~=", luau.nil()));
-		checks.push(
-			luau.unary(
-				"not",
-				luau.create(luau.SyntaxKind.MethodCallExpression, {
-					expression: convertToIndexableExpression(exp),
-					name: "IsDestroyed",
-					args: luau.list.make(),
-				}),
-			),
-		);
+		checks.push(luau.unary("not", createIsDestroyedLuauMethodCall(convertToIndexableExpression(exp))));
 	} else {
 		checks.push(exp);
 	}

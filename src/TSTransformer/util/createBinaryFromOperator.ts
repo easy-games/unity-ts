@@ -1,14 +1,14 @@
 import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { createIsDestroyedLuauMethodCall, isUnityObjectType } from "TSTransformer/util/airshipBehaviourUtils";
+import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { getKindName } from "TSTransformer/util/getKindName";
+import { isEqualityOperator } from "TSTransformer/util/operators";
 import { isDefinitelyType, isStringType, isUndefinedType } from "TSTransformer/util/types";
 import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
 import ts from "typescript";
-import { isUnityObjectType } from "./airshipBehaviourUtils";
-import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { convertToIndexableExpression } from "./convertToIndexableExpression";
-import { isEqualityOperator } from "./operators";
 
 const OPERATOR_MAP = new Map<ts.SyntaxKind, luau.BinaryOperator>([
 	// comparison
@@ -64,11 +64,7 @@ function createBinaryFromUnityObjectUndefinedEquality(
 	objectExpression: luau.Expression,
 	check: boolean,
 ) {
-	const objectDestroyCheck = luau.create(luau.SyntaxKind.MethodCallExpression, {
-		expression: convertToIndexableExpression(objectExpression),
-		name: "IsDestroyed",
-		args: luau.list.make(),
-	});
+	const objectDestroyCheck = createIsDestroyedLuauMethodCall(convertToIndexableExpression(objectExpression));
 
 	if (check) {
 		return luau.create(luau.SyntaxKind.ParenthesizedExpression, {

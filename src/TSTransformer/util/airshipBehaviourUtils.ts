@@ -1,3 +1,4 @@
+import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { AirshipBehaviourCallValue, AirshipBehaviourStaticMemberValue } from "Shared/types";
@@ -65,6 +66,14 @@ export function isUnityObjectType(state: TransformState, nodeType: ts.Type) {
 
 	const objectInheritanceTree = getAncestorTypeSymbols(state, nodeType);
 	return objectInheritanceTree.includes(objectSymbol);
+}
+
+export function createIsDestroyedLuauMethodCall(expression: luau.IndexableExpression): luau.MethodCallExpression {
+	return luau.create(luau.SyntaxKind.MethodCallExpression, {
+		name: "IsDestroyed",
+		expression: expression,
+		args: luau.list.make(),
+	});
 }
 
 export function isEnumType(type: ts.Type) {
