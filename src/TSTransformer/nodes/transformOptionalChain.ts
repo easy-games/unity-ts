@@ -10,6 +10,7 @@ import {
 import { transformElementAccessExpressionInner } from "TSTransformer/nodes/expressions/transformElementAccessExpression";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformPropertyAccessExpressionInner } from "TSTransformer/nodes/expressions/transformPropertyAccessExpression";
+import { isUnityObjectType } from "TSTransformer/util/airshipBehaviourUtils";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isMethod } from "TSTransformer/util/isMethod";
@@ -223,6 +224,25 @@ function createNilCheck(tempId: luau.TemporaryIdentifier, statements: luau.List<
 	});
 }
 
+function createUnityObjectNilCheck(tempId: luau.TemporaryIdentifier, statements: luau.List<luau.Statement>) {
+	return luau.create(luau.SyntaxKind.IfStatement, {
+		condition: luau.binary(
+			luau.binary(tempId, "~=", luau.nil()),
+			"and",
+			luau.unary(
+				"not",
+				luau.create(luau.SyntaxKind.MethodCallExpression, {
+					name: "IsDestroyed",
+					expression: tempId,
+					args: luau.list.make(),
+				}),
+			),
+		),
+		statements,
+		elseBody: luau.list.make(),
+	});
+}
+
 function isCompoundCall(item: ChainItem): item is PropertyCallItem | ElementCallItem {
 	return item.kind === OptionalChainItemKind.PropertyCall || item.kind === OptionalChainItemKind.ElementCall;
 }
@@ -295,6 +315,7 @@ function transformOptionalChainInner(
 				} else {
 					newExpression = transformChainItem(state, tempId!, item);
 				}
+
 				return transformOptionalChainInner(state, chain, newExpression, tempId, index + 1);
 			});
 
@@ -320,7 +341,12 @@ function transformOptionalChainInner(
 				}
 			}
 
-			state.prereq(createNilCheck(tempId, ifStatements));
+			const isUnityObject = isUnityObjectType(state, state.typeChecker.getTypeAtLocation(item.node.expression));
+			if (isUnityObject) {
+				state.prereq(createUnityObjectNilCheck(tempId, ifStatements));
+			} else {
+				state.prereq(createNilCheck(tempId, ifStatements));
+			}
 
 			return isUsed ? tempId : luau.none();
 		});
