@@ -282,13 +282,23 @@ function createAirshipProperty(
 		prop.nullable = type.isNullableType();
 		prop.type = "enum";
 
-		const enumRecord = getEnumRecord(type);
+		if (node.initializer) {
+			const symbol = typeChecker.getSymbolAtLocation(node.initializer);
+			const declaration = symbol?.declarations?.[0].getSourceFile();
+			if (declaration) {
+				const enumName = state.getFileTypeId(type, declaration);
+				const mts = state.multiTransformState;
+				if (mts.editorInfo.enum[enumName] === undefined) {
+					mts.editorInfo.enum[enumName] = getEnumRecord(type);
+				}
 
-		prop.enum = enumRecord;
+				prop.ref = `#/${enumName}`;
 
-		if (node.initializer && ts.isPropertyAccessExpression(node.initializer)) {
-			const enumKey = getEnumValue(state, node.initializer);
-			prop.default = enumKey;
+				if (node.initializer && ts.isPropertyAccessExpression(node.initializer)) {
+					const enumKey = getEnumValue(state, node.initializer);
+					prop.default = enumKey;
+				}
+			}
 		}
 	} else {
 		if (type.isNullableType()) prop.nullable = true;

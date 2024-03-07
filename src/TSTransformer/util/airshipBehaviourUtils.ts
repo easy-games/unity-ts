@@ -113,8 +113,8 @@ export function getEnumRecord(enumType: ts.Type): Record<string, string | number
 			if (member.initializer) {
 				if (ts.isStringLiteral(member.initializer)) {
 					map[member.name.text] = member.initializer.text;
-				} else if (ts.isNumericLiteral(member.initializer)) {
-					idx = parseInt(member.initializer.text);
+				} else if (isNumericLike(member.initializer)) {
+					idx = parseNumericNode(member.initializer) ?? 0;
 					map[member.name.text] = idx;
 					idx++;
 				}
@@ -138,8 +138,8 @@ export function isValidAirshipBehaviourExportType(state: TransformState, node: t
 			state.services.airshipSymbolManager.isTypeSerializable(innerArrayType) ||
 			isUnityObjectType(state, innerArrayType)
 		);
-		// } else if (isEnumType(nodeType)) {
-		// 	return true;
+	} else if (isEnumType(nodeType)) {
+		return true;
 	} else {
 		return state.services.airshipSymbolManager.isTypeSerializable(nodeType) || isUnityObjectType(state, nodeType);
 	}
