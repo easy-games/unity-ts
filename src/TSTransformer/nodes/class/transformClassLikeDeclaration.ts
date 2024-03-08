@@ -19,8 +19,9 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import {
+	EnumType,
 	getAncestorTypeSymbols,
-	getEnumRecord,
+	getEnumMetadata,
 	getEnumValue,
 	getUnityObjectInitializerDefaultValue,
 	isEnumType,
@@ -282,13 +283,27 @@ function createAirshipProperty(
 		prop.nullable = type.isNullableType();
 		prop.type = "enum";
 
-		const enumRecord = getEnumRecord(type);
+		const symbol = node.initializer ? typeChecker.getSymbolAtLocation(node.initializer) : type.symbol;
+		const declaration = symbol?.declarations?.[0].getSourceFile();
+		const enumInfo = getEnumMetadata(type);
 
-		prop.enum = enumRecord;
+		if (declaration && enumInfo) {
+			const { record, enumType } = enumInfo;
 
-		if (node.initializer && ts.isPropertyAccessExpression(node.initializer)) {
-			const enumKey = getEnumValue(state, node.initializer);
-			prop.default = enumKey;
+			prop.type = EnumType[enumType];
+
+			const enumName = state.getFileTypeId(type, declaration);
+			const mts = state.multiTransformState;
+			if (mts.editorInfo.enum[enumName] === undefined) {
+				mts.editorInfo.enum[enumName] = record;
+			}
+
+			prop.ref = enumName;
+
+			if (node.initializer && ts.isPropertyAccessExpression(node.initializer)) {
+				const enumKey = getEnumValue(state, node.initializer);
+				prop.default = enumKey;
+			}
 		}
 	} else {
 		if (type.isNullableType()) prop.nullable = true;

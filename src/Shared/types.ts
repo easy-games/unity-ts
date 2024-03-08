@@ -151,7 +151,7 @@ export interface AirshipBehaviourFieldExport {
 	 */
 	readonly type: string;
 
-	readonly enum?: Record<string, string | number>;
+	readonly ref?: string;
 
 	readonly nullable?: boolean;
 

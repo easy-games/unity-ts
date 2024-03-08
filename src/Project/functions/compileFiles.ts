@@ -274,13 +274,26 @@ export function compileFiles(
 		});
 	}
 
+	const editorMetadataPath = path.join(pathTranslator.outDir, "..", "TypeScriptEditorMetadata.aseditorinfo");
+	{
+		const oldBuildFileSource = fs.existsSync(editorMetadataPath)
+			? fs.readFileSync(editorMetadataPath).toString()
+			: "";
+		const newBuildFileSource = JSON.stringify(multiTransformState.editorInfo, null, "\t");
+
+		if (oldBuildFileSource !== newBuildFileSource) {
+			fs.outputFileSync(editorMetadataPath, newBuildFileSource);
+		}
+	}
+
 	const buildFilePath = path.join(pathTranslator.outDir, "Shared", "Resources", "TS", "Airship.asbuildinfo");
+	{
+		const oldBuildFileSource = fs.existsSync(buildFilePath) ? fs.readFileSync(buildFilePath).toString() : "";
+		const newBuildFileSource = JSON.stringify(buildFile, null, "\t");
 
-	const oldBuildFileSource = fs.existsSync(buildFilePath) ? fs.readFileSync(buildFilePath).toString() : "";
-	const newBuildFileSource = JSON.stringify(buildFile, null, "\t");
-
-	if (oldBuildFileSource !== newBuildFileSource) {
-		fs.outputFileSync(buildFilePath, newBuildFileSource);
+		if (oldBuildFileSource !== newBuildFileSource) {
+			fs.outputFileSync(buildFilePath, newBuildFileSource);
+		}
 	}
 
 	program.emitBuildInfo();

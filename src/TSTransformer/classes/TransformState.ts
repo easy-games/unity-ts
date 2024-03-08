@@ -46,7 +46,7 @@ export class TransformState {
 		public readonly reverseSymlinkMap: Map<string, string>,
 		public readonly typeChecker: ts.TypeChecker,
 		public readonly projectType: ProjectType,
-		sourceFile: ts.SourceFile,
+		private readonly sourceFile: ts.SourceFile,
 	) {
 		this.sourceFileText = sourceFile.getFullText();
 		this.resolver = typeChecker.getEmitResolver(sourceFile);
@@ -65,6 +65,24 @@ export class TransformState {
 		};
 		this.tryUsesStack.push(tryUses);
 		return tryUses;
+	}
+
+	private typeIdCache = new Map<number, string>();
+	public getFileTypeId(type: ts.Type, sourceFile: ts.SourceFile) {
+		if (this.typeIdCache.has(type.id)) {
+			return this.typeIdCache.get(type.id)!;
+		}
+
+		const parsePath = path.parse(
+			path
+				.relative(this.pathTranslator.outDir, this.pathTranslator.getOutputPath(sourceFile.fileName))
+				.replace("../../Bundles/Types~/", ""),
+		);
+		const typeName = this.typeChecker.typeToString(type);
+		const value = parsePath.dir + path.sep + parsePath.name + "@" + typeName;
+
+		this.typeIdCache.set(type.id, value);
+		return value;
 	}
 
 	/**
