@@ -98,11 +98,17 @@ export function getEnumKey(value: ts.PropertyAccessExpression) {
 	return value.name.text;
 }
 
-export function getEnumRecord(enumType: ts.Type): Record<string, string | number> {
+export enum EnumType {
+	StringEnum,
+	IntEnum,
+}
+
+export function getEnumRecord(enumType: ts.Type): [Record<string, string | number>, EnumType] {
 	const valueDeclaration = enumType.getSymbol()?.valueDeclaration;
 
 	if (valueDeclaration && ts.isEnumDeclaration(valueDeclaration)) {
 		const map: Record<string, string | number> = {};
+		let enumType = EnumType.IntEnum;
 
 		let idx = 0;
 		for (const member of valueDeclaration.members) {
@@ -113,6 +119,7 @@ export function getEnumRecord(enumType: ts.Type): Record<string, string | number
 			if (member.initializer) {
 				if (ts.isStringLiteral(member.initializer)) {
 					map[member.name.text] = member.initializer.text;
+					enumType = EnumType.StringEnum;
 				} else if (isNumericLike(member.initializer)) {
 					idx = parseNumericNode(member.initializer) ?? 0;
 					map[member.name.text] = idx;
@@ -123,10 +130,10 @@ export function getEnumRecord(enumType: ts.Type): Record<string, string | number
 			}
 		}
 
-		return map;
+		return [map, enumType];
 	}
 
-	return {};
+	return [{}, EnumType.IntEnum];
 }
 
 export function isValidAirshipBehaviourExportType(state: TransformState, node: ts.Node) {

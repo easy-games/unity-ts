@@ -19,6 +19,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import {
+	EnumType,
 	getAncestorTypeSymbols,
 	getEnumRecord,
 	getEnumValue,
@@ -286,13 +287,17 @@ function createAirshipProperty(
 			const symbol = typeChecker.getSymbolAtLocation(node.initializer);
 			const declaration = symbol?.declarations?.[0].getSourceFile();
 			if (declaration) {
+				const [enumRecord, enumType] = getEnumRecord(type);
+
+				prop.type = EnumType[enumType];
+
 				const enumName = state.getFileTypeId(type, declaration);
 				const mts = state.multiTransformState;
 				if (mts.editorInfo.enum[enumName] === undefined) {
-					mts.editorInfo.enum[enumName] = getEnumRecord(type);
+					mts.editorInfo.enum[enumName] = enumRecord;
 				}
 
-				prop.ref = `#/${enumName}`;
+				prop.ref = enumName;
 
 				if (node.initializer && ts.isPropertyAccessExpression(node.initializer)) {
 					const enumKey = getEnumValue(state, node.initializer);
