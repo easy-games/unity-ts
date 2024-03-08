@@ -45,7 +45,7 @@ export class AirshipBuildState {
 				.replace("../../Bundles/Types~/", ""),
 		);
 		const typeName = typeChecker.typeToString(type);
-		const value = (parsePath.dir + path.sep + parsePath.name + "@" + typeName).replace("\\", "/");
+		const value = (parsePath.dir + path.sep + parsePath.name + "@" + typeName).replace(/\\/g, "/");
 
 		this.typeIdCache.set(type.id, value);
 		return value;
