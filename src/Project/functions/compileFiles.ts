@@ -138,6 +138,7 @@ export function compileFiles(
 				data,
 				services,
 				pathTranslator,
+				buildState,
 				multiTransformState,
 				compilerOptions,
 				nodeModulesPathMapping,
@@ -279,7 +280,7 @@ export function compileFiles(
 		const oldBuildFileSource = fs.existsSync(editorMetadataPath)
 			? fs.readFileSync(editorMetadataPath).toString()
 			: "";
-		const newBuildFileSource = JSON.stringify(multiTransformState.editorInfo, null, "\t");
+		const newBuildFileSource = JSON.stringify(buildState.editorInfo, null, "\t");
 
 		if (oldBuildFileSource !== newBuildFileSource) {
 			fs.outputFileSync(editorMetadataPath, newBuildFileSource);

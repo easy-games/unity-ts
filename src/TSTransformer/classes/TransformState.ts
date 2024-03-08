@@ -5,7 +5,7 @@ import { ProjectType } from "Shared/constants";
 import { AirshipBehaviour, ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
-import { MultiTransformState } from "TSTransformer";
+import { AirshipBuildState, MultiTransformState } from "TSTransformer";
 import { TransformServices, TryUses } from "TSTransformer/types";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
@@ -40,6 +40,7 @@ export class TransformState {
 		public readonly data: ProjectData,
 		public readonly services: TransformServices,
 		public readonly pathTranslator: PathTranslator,
+		public readonly airshipBuildState: AirshipBuildState,
 		public readonly multiTransformState: MultiTransformState,
 		public readonly compilerOptions: ts.CompilerOptions,
 		public readonly nodeModulesPathMapping: Map<string, string>,

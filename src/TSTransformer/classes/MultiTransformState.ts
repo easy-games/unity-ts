@@ -1,8 +1,5 @@
 import ts from "typescript";
 
-interface EditorInfo {
-	enum: Record<string, Record<string, string | number>>;
-}
 
 /**
  * MultiTransformState is state that lives only for a single compilation step.
@@ -15,7 +12,5 @@ export class MultiTransformState {
 	public readonly getModuleExportsCache = new Map<ts.Symbol, Array<ts.Symbol>>();
 	public readonly getModuleExportsAliasMapCache = new Map<ts.Symbol, Map<ts.Symbol, string>>();
 
-	public readonly editorInfo: EditorInfo = {
-		enum: {},
-	};
+
 }

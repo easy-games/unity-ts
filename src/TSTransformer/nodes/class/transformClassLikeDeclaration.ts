@@ -293,7 +293,7 @@ function createAirshipProperty(
 			prop.type = EnumType[enumType];
 
 			const enumName = state.getFileTypeId(type, declaration);
-			const mts = state.multiTransformState;
+			const mts = state.airshipBuildState;
 			if (mts.editorInfo.enum[enumName] === undefined) {
 				mts.editorInfo.enum[enumName] = record;
 			}
