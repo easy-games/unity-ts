@@ -21,7 +21,7 @@ import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodD
 import {
 	EnumType,
 	getAncestorTypeSymbols,
-	getEnumRecord,
+	getEnumMetadata,
 	getEnumValue,
 	getUnityObjectInitializerDefaultValue,
 	isEnumType,
@@ -285,15 +285,17 @@ function createAirshipProperty(
 
 		const symbol = node.initializer ? typeChecker.getSymbolAtLocation(node.initializer) : type.symbol;
 		const declaration = symbol?.declarations?.[0].getSourceFile();
-		if (declaration) {
-			const [enumRecord, enumType] = getEnumRecord(type);
+		const enumInfo = getEnumMetadata(type);
+
+		if (declaration && enumInfo) {
+			const { record, enumType } = enumInfo;
 
 			prop.type = EnumType[enumType];
 
 			const enumName = state.getFileTypeId(type, declaration);
 			const mts = state.multiTransformState;
 			if (mts.editorInfo.enum[enumName] === undefined) {
-				mts.editorInfo.enum[enumName] = enumRecord;
+				mts.editorInfo.enum[enumName] = record;
 			}
 
 			prop.ref = enumName;

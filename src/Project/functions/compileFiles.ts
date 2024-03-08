@@ -274,7 +274,7 @@ export function compileFiles(
 		});
 	}
 
-	const editorMetadataPath = path.join(pathTranslator.outDir, "..", "AirshipEditor.aseditorinfo");
+	const editorMetadataPath = path.join(pathTranslator.outDir, "..", "TypeScriptEditorMetadata.aseditorinfo");
 	{
 		const oldBuildFileSource = fs.existsSync(editorMetadataPath)
 			? fs.readFileSync(editorMetadataPath).toString()

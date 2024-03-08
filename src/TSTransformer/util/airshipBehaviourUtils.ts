@@ -103,37 +103,55 @@ export enum EnumType {
 	IntEnum,
 }
 
-export function getEnumRecord(enumType: ts.Type): [Record<string, string | number>, EnumType] {
-	const valueDeclaration = enumType.getSymbol()?.valueDeclaration;
+type EnumRecord = Record<string, string | number>;
+interface EnumMetadata {
+	index: number;
+	enumType: EnumType;
+	record: EnumRecord;
+}
 
-	if (valueDeclaration && ts.isEnumDeclaration(valueDeclaration)) {
-		const map: Record<string, string | number> = {};
-		let enumType = EnumType.IntEnum;
-
-		let idx = 0;
-		for (const member of valueDeclaration.members) {
-			if (!ts.isIdentifier(member.name)) {
-				continue;
-			}
-
-			if (member.initializer) {
-				if (ts.isStringLiteral(member.initializer)) {
-					map[member.name.text] = member.initializer.text;
-					enumType = EnumType.StringEnum;
-				} else if (isNumericLike(member.initializer)) {
-					idx = parseNumericNode(member.initializer) ?? 0;
-					map[member.name.text] = idx;
-					idx++;
-				}
-			} else {
-				map[member.name.text] = idx++;
-			}
-		}
-
-		return [map, enumType];
+function appendEnumMember(member: ts.EnumMember, state: EnumMetadata) {
+	if (!ts.isIdentifier(member.name)) {
+		return;
 	}
 
-	return [{}, EnumType.IntEnum];
+	if (member.initializer) {
+		if (ts.isStringLiteral(member.initializer)) {
+			state.record[member.name.text] = member.initializer.text;
+			state.enumType = EnumType.StringEnum;
+		} else if (isNumericLike(member.initializer)) {
+			state.index = parseNumericNode(member.initializer) ?? 0;
+			state.record[member.name.text] = state.index;
+			state.index++;
+		}
+	} else {
+		state.record[member.name.text] = state.index++;
+	}
+}
+
+export function getEnumMetadata(enumType: ts.Type): Readonly<EnumMetadata> | undefined {
+	const valueDeclaration = enumType.getSymbol()?.valueDeclaration;
+
+	if (!valueDeclaration) return undefined;
+
+	const state: EnumMetadata = {
+		index: 0,
+		enumType: EnumType.IntEnum,
+		record: {},
+	};
+
+	if (ts.isEnumDeclaration(valueDeclaration)) {
+		for (const member of valueDeclaration.members) {
+			appendEnumMember(member, state);
+		}
+
+		return state;
+	} else if (ts.isEnumMember(valueDeclaration)) {
+		appendEnumMember(valueDeclaration, state);
+		return state;
+	}
+
+	return undefined;
 }
 
 export function isValidAirshipBehaviourExportType(state: TransformState, node: ts.Node) {
