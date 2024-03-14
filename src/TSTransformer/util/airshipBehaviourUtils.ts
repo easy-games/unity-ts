@@ -1,13 +1,11 @@
 import luau from "@roblox-ts/luau-ast";
-import { errors } from "Shared/diagnostics";
-import { DiagnosticError } from "Shared/errors/DiagnosticError";
+import { assert } from "console";
 import {
 	AirshipBehaviourCallValue,
 	AirshipBehaviourMethodCallValue,
 	AirshipBehaviourStaticMemberValue,
 } from "Shared/types";
 import { TransformState } from "TSTransformer";
-import { assert } from "console";
 import ts from "typescript";
 
 export function isPublicWritablePropertyDeclaration(node: ts.PropertyDeclaration) {
@@ -101,6 +99,7 @@ export function getEnumKey(value: ts.PropertyAccessExpression) {
 export enum EnumType {
 	StringEnum,
 	IntEnum,
+	FlagEnum,
 }
 
 type EnumRecord = Record<string, string | number>;
@@ -110,7 +109,7 @@ interface EnumMetadata {
 	record: EnumRecord;
 }
 
-function appendEnumMember(member: ts.EnumMember, state: EnumMetadata) {
+function appendEnumMember(member: ts.EnumMember, state: EnumMetadata, isFlags: boolean) {
 	if (!ts.isIdentifier(member.name)) {
 		return;
 	}
@@ -123,31 +122,42 @@ function appendEnumMember(member: ts.EnumMember, state: EnumMetadata) {
 			state.index = parseNumericNode(member.initializer) ?? 0;
 			state.record[member.name.text] = state.index;
 			state.index++;
+		} else if (
+			ts.isBinaryExpression(member.initializer) &&
+			member.initializer.operatorToken.kind === ts.SyntaxKind.LessThanLessThanToken &&
+			ts.isNumericLiteral(member.initializer.left) &&
+			ts.isNumericLiteral(member.initializer.right)
+		) {
+			state.enumType = EnumType.FlagEnum;
+			const value = parseInt(member.initializer.left.text) << parseInt(member.initializer.right.text);
+
+			state.record[member.name.text] = value;
+			state.index = value + 1;
 		}
 	} else {
-		state.record[member.name.text] = state.index++;
+		if (state.enumType !== EnumType.FlagEnum) state.record[member.name.text] = state.index++;
 	}
 }
 
-export function getEnumMetadata(enumType: ts.Type): Readonly<EnumMetadata> | undefined {
+export function getEnumMetadata(enumType: ts.Type, isFlagEnum = false): Readonly<EnumMetadata> | undefined {
 	const valueDeclaration = enumType.getSymbol()?.valueDeclaration;
 
 	if (!valueDeclaration) return undefined;
 
 	const state: EnumMetadata = {
 		index: 0,
-		enumType: EnumType.IntEnum,
+		enumType: isFlagEnum ? EnumType.FlagEnum : EnumType.IntEnum,
 		record: {},
 	};
 
 	if (ts.isEnumDeclaration(valueDeclaration)) {
 		for (const member of valueDeclaration.members) {
-			appendEnumMember(member, state);
+			appendEnumMember(member, state, isFlagEnum);
 		}
 
 		return state;
 	} else if (ts.isEnumMember(valueDeclaration)) {
-		appendEnumMember(valueDeclaration, state);
+		appendEnumMember(valueDeclaration, state, isFlagEnum);
 		return state;
 	}
 
@@ -161,7 +171,8 @@ export function isValidAirshipBehaviourExportType(state: TransformState, node: t
 		const innerArrayType = state.typeChecker.getElementTypeOfArrayType(nodeType)!;
 		return (
 			state.services.airshipSymbolManager.isTypeSerializable(innerArrayType) ||
-			isUnityObjectType(state, innerArrayType)
+			isUnityObjectType(state, innerArrayType) ||
+			isEnumType(innerArrayType)
 		);
 	} else if (isEnumType(nodeType)) {
 		return true;

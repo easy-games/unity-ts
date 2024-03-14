@@ -1,12 +1,15 @@
+import { readFileSync } from "fs";
 import path from "path";
+import { ProjectType } from "Shared/constants";
 import { AirshipBuildFile } from "Shared/types";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { getEnumMetadata } from "TSTransformer/util/airshipBehaviourUtils";
-import ts from "typescript";
+import ts, { findPackageJson, getPackageJsonInfo } from "typescript";
 
 export type EnumRecord = Record<string, string | number>;
 
 interface EditorInfo {
+	id: string;
 	enum: Record<string, EnumRecord>;
 }
 
@@ -21,6 +24,7 @@ export class AirshipBuildState {
 	}
 
 	public readonly editorInfo: EditorInfo = {
+		id: "typescript",
 		enum: {},
 	};
 
@@ -44,8 +48,16 @@ export class AirshipBuildState {
 				.relative(pathTranslator.outDir, pathTranslator.getOutputPath(sourceFile.fileName))
 				.replace("../../Bundles/Types~/", ""),
 		);
+
 		const typeName = typeChecker.typeToString(type);
-		const value = (parsePath.dir + path.sep + parsePath.name + "@" + typeName).replace(/\\/g, "/");
+		let value = (parsePath.dir + path.sep + parsePath.name + "@" + typeName).replace(/\\/g, "/");
+
+		if (transformState.projectType === ProjectType.AirshipBundle) {
+			const pkgJson: { name: string } = JSON.parse(
+				readFileSync(path.join(transformState.program.getCurrentDirectory(), "package.json")).toString(),
+			);
+			value = pkgJson.name + "/" + value;
+		}
 
 		this.typeIdCache.set(type.id, value);
 		return value;

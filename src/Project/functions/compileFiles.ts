@@ -275,12 +275,30 @@ export function compileFiles(
 		});
 	}
 
-	const editorMetadataPath = path.join(pathTranslator.outDir, "..", "TypeScriptEditorMetadata.aseditorinfo");
+	let editorMetadataPath: string;
 	{
+		if (projectType === ProjectType.AirshipBundle) {
+			editorMetadataPath = path.join(
+				pathTranslator.outDir,
+				"Server",
+				"Resources",
+				"PackageTypeScriptMetadata.aseditorinfo",
+			);
+
+			const pkgJson: { name: string } = JSON.parse(
+				fs.readFileSync(path.join(program.getCurrentDirectory(), "package.json")).toString(),
+			);
+
+			buildState.editorInfo.id = pkgJson.name;
+		} else {
+			editorMetadataPath = path.join(pathTranslator.outDir, "..", "TypeScriptEditorMetadata.aseditorinfo");
+		}
+
 		const oldBuildFileSource = fs.existsSync(editorMetadataPath)
 			? fs.readFileSync(editorMetadataPath).toString()
 			: "";
-		const newBuildFileSource = JSON.stringify(buildState.editorInfo, null, "\t");
+
+		const newBuildFileSource = JSON.stringify(buildState.editorInfo);
 
 		if (oldBuildFileSource !== newBuildFileSource) {
 			fs.outputFileSync(editorMetadataPath, newBuildFileSource);

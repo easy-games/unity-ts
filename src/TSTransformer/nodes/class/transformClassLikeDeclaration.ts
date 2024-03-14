@@ -284,15 +284,21 @@ function createAirshipProperty(
 		prop.type = "enum";
 
 		const symbol = node.initializer ? typeChecker.getSymbolAtLocation(node.initializer) : type.symbol;
-		const declaration = symbol?.declarations?.[0].getSourceFile();
-		const enumInfo = getEnumMetadata(type);
+		const declaration = symbol?.declarations?.[0];
+		const sourceFile = declaration?.getSourceFile();
 
-		if (declaration && enumInfo) {
+		const docTags = declaration ? ts.getJSDocTags(declaration) : [];
+
+		console.log(docTags);
+
+		const enumInfo = getEnumMetadata(type, docTags.find(f => f.tagName.text === "flags") !== undefined);
+
+		if (sourceFile && enumInfo) {
 			const { record, enumType } = enumInfo;
 
 			prop.type = EnumType[enumType];
 
-			const enumName = state.airshipBuildState.getUniqueIdForType(state, type, declaration);
+			const enumName = state.airshipBuildState.getUniqueIdForType(state, type, sourceFile);
 			const mts = state.airshipBuildState;
 			if (mts.editorInfo.enum[enumName] === undefined) {
 				mts.editorInfo.enum[enumName] = record;
