@@ -4,6 +4,7 @@ import path from "path";
 import { errors } from "Shared/diagnostics";
 import {
 	AirshipBehaviour,
+	AirshipBehaviourClassDecorator,
 	AirshipBehaviourFieldDecorator,
 	AirshipBehaviourFieldDecoratorParameter,
 	AirshipBehaviourFieldExport,
@@ -25,6 +26,7 @@ import {
 	getEnumMetadata,
 	getEnumValue,
 	getUnityObjectInitializerDefaultValue,
+	isAirshipDecorator,
 	isEnumType,
 	isPublicWritablePropertyDeclaration,
 	isUnityObjectType,
@@ -375,6 +377,50 @@ function createAirshipProperty(
 	return prop;
 }
 
+export function getClassDecorators(state: TransformState, classNode: ts.ClassLikeDeclaration) {
+	const decorators = ts.hasDecorators(classNode) ? ts.getDecorators(classNode) : undefined;
+	if (decorators) {
+		const items = new Array<AirshipBehaviourClassDecorator>();
+
+		for (const decorator of decorators) {
+			const expression = decorator.expression;
+			if (!ts.isCallExpression(expression)) continue;
+
+			const aliasSymbol = state.typeChecker.getTypeAtLocation(expression).aliasSymbol;
+			if (!aliasSymbol) continue;
+
+			const airshipFieldSymbol = state.services.airshipSymbolManager.getSymbolOrThrow("AirshipDecorator");
+
+			if (aliasSymbol === airshipFieldSymbol) {
+				items.push({
+					name: expression.expression.getText(),
+					parameters: expression.arguments.map((argument, i): AirshipBehaviourFieldDecoratorParameter => {
+						if (ts.isStringLiteral(argument)) {
+							return { type: "string", value: argument.text };
+						} else if (ts.isNumericLiteral(argument)) {
+							return { type: "number", value: parseFloat(argument.text) };
+						} else if (ts.isBooleanLiteral(argument)) {
+							return {
+								type: "boolean",
+								value: argument.kind === ts.SyntaxKind.TrueKeyword ? true : false,
+							};
+						} else {
+							DiagnosticService.addDiagnostic(
+								errors.decoratorParamsLiteralsOnly(expression.arguments[i]),
+							);
+							return { type: "invalid", value: undefined };
+						}
+					}),
+				});
+			}
+		}
+
+		return items;
+	} else {
+		return [];
+	}
+}
+
 function getPropertyDecorators(
 	state: TransformState,
 	propertyNode: ts.PropertyDeclaration,
@@ -484,6 +530,7 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 		const metadata: Writable<AirshipBehaviourJson> = {
 			name: node.name?.text,
 			properties: [],
+			decorators: [],
 			hash: "",
 		};
 
@@ -535,6 +582,8 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 	airshipBehaviour.id = id;
 
 	state.airshipBehaviours.push(airshipBehaviour);
+
+	return airshipBehaviour;
 }
 
 export function transformClassLikeDeclaration(state: TransformState, node: ts.ClassLikeDeclaration) {
@@ -593,7 +642,10 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		// const isDefault = (node.modifierFlagsCache & ModifierFlags.Default) !== 0;
 		const isExport = (node.modifierFlagsCache & ModifierFlags.Export) !== 0;
 		if (isExport) {
-			generateMetaForAirshipBehaviour(state, node);
+			const behaviour = generateMetaForAirshipBehaviour(state, node)!;
+			if (behaviour.metadata) {
+				behaviour.metadata.decorators = getClassDecorators(state, node);
+			}
 		}
 	}
 

@@ -8,6 +8,7 @@ export const AIRSHIP_SYMBOL_NAMES = {
 	AirshipBehaviour: "AirshipBehaviour",
 	AirshipDecorator: "AirshipDecorator",
 	AirshipBehaviourFieldDecorator: "AirshipBehaviourFieldDecorator",
+	AirshipBehaviourClassDecorator: "AirshipBehaviourClassDecorator",
 } as const;
 
 const AIRSHIP_SERIALIZE_TYPES = {
