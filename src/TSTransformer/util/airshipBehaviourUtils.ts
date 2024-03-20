@@ -103,7 +103,7 @@ export enum EnumType {
 }
 
 type EnumRecord = Record<string, string | number>;
-interface EnumMetadata {
+export interface EnumMetadata {
 	index: number;
 	enumType: EnumType;
 	record: EnumRecord;

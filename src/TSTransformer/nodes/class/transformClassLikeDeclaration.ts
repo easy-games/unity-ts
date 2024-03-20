@@ -10,7 +10,7 @@ import {
 	AirshipBehaviourJson,
 } from "Shared/types";
 import { assert } from "Shared/util/assert";
-import { SYMBOL_NAMES, TransformState } from "TSTransformer";
+import { AirshipBuildState, SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformClassConstructor } from "TSTransformer/nodes/class/transformClassConstructor";
 import { transformDecorators } from "TSTransformer/nodes/class/transformDecorators";
@@ -19,6 +19,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import {
+	EnumMetadata,
 	EnumType,
 	getAncestorTypeSymbols,
 	getEnumMetadata,
@@ -243,6 +244,31 @@ function isClassHoisted(state: TransformState, node: ts.ClassLikeDeclaration) {
 	return false;
 }
 
+interface EnumWriteInfo {
+	readonly enumTypeString: string;
+	readonly enumRef: string;
+}
+
+function writeEnumInfo(
+	state: TransformState,
+	type: ts.Type,
+	sourceFile: ts.SourceFile,
+	enumInfo: EnumMetadata,
+): EnumWriteInfo {
+	const { record, enumType } = enumInfo;
+
+	const enumName = state.airshipBuildState.getUniqueIdForType(state, type, sourceFile);
+	const mts = state.airshipBuildState;
+	if (mts.editorInfo.enum[enumName] === undefined) {
+		mts.editorInfo.enum[enumName] = record;
+	}
+
+	return {
+		enumTypeString: EnumType[enumType],
+		enumRef: enumName,
+	};
+}
+
 function createAirshipProperty(
 	state: TransformState,
 	name: string,
@@ -274,10 +300,34 @@ function createAirshipProperty(
 		prop.type = "Array";
 
 		if (type.isNullableType()) prop.nullable = true;
-		prop.items = {
-			type: isObject ? "object" : typeString,
-			objectType: isObject ? typeString : undefined,
-		};
+
+		if (isEnumType(arrayItemType)) {
+			const symbol = arrayItemType.symbol;
+			const declaration = symbol?.declarations?.[0];
+			const sourceFile = declaration?.getSourceFile();
+
+			const docTags = declaration ? ts.getJSDocTags(declaration) : [];
+
+			const enumInfo = getEnumMetadata(
+				arrayItemType,
+				docTags.find(f => f.tagName.text === "flags") !== undefined,
+			);
+			if (enumInfo && sourceFile) {
+				const { enumTypeString, enumRef } = writeEnumInfo(state, arrayItemType, sourceFile, enumInfo);
+
+				prop.items = {
+					type: enumTypeString,
+					objectType: undefined,
+				};
+
+				prop.ref = enumRef;
+			}
+		} else {
+			prop.items = {
+				type: isObject ? "object" : typeString,
+				objectType: isObject ? typeString : undefined,
+			};
+		}
 	} else if (isEnum) {
 		if (type.isNullableType()) prop.nullable = true;
 		prop.nullable = type.isNullableType();
@@ -289,22 +339,12 @@ function createAirshipProperty(
 
 		const docTags = declaration ? ts.getJSDocTags(declaration) : [];
 
-		console.log(docTags);
-
 		const enumInfo = getEnumMetadata(type, docTags.find(f => f.tagName.text === "flags") !== undefined);
 
 		if (sourceFile && enumInfo) {
-			const { record, enumType } = enumInfo;
-
-			prop.type = EnumType[enumType];
-
-			const enumName = state.airshipBuildState.getUniqueIdForType(state, type, sourceFile);
-			const mts = state.airshipBuildState;
-			if (mts.editorInfo.enum[enumName] === undefined) {
-				mts.editorInfo.enum[enumName] = record;
-			}
-
-			prop.ref = enumName;
+			const { enumTypeString, enumRef } = writeEnumInfo(state, type, sourceFile, enumInfo);
+			prop.type = enumTypeString;
+			prop.ref = enumRef;
 
 			if (node.initializer && ts.isPropertyAccessExpression(node.initializer)) {
 				const enumKey = getEnumValue(state, node.initializer);
