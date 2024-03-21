@@ -4,13 +4,14 @@ import path from "path";
 import { errors } from "Shared/diagnostics";
 import {
 	AirshipBehaviour,
+	AirshipBehaviourClassDecorator,
 	AirshipBehaviourFieldDecorator,
 	AirshipBehaviourFieldDecoratorParameter,
 	AirshipBehaviourFieldExport,
 	AirshipBehaviourJson,
 } from "Shared/types";
 import { assert } from "Shared/util/assert";
-import { SYMBOL_NAMES, TransformState } from "TSTransformer";
+import { AirshipBuildState, SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformClassConstructor } from "TSTransformer/nodes/class/transformClassConstructor";
 import { transformDecorators } from "TSTransformer/nodes/class/transformDecorators";
@@ -19,11 +20,13 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import {
+	EnumMetadata,
 	EnumType,
 	getAncestorTypeSymbols,
 	getEnumMetadata,
 	getEnumValue,
 	getUnityObjectInitializerDefaultValue,
+	isAirshipDecorator,
 	isEnumType,
 	isPublicWritablePropertyDeclaration,
 	isUnityObjectType,
@@ -243,6 +246,31 @@ function isClassHoisted(state: TransformState, node: ts.ClassLikeDeclaration) {
 	return false;
 }
 
+interface EnumWriteInfo {
+	readonly enumTypeString: string;
+	readonly enumRef: string;
+}
+
+function writeEnumInfo(
+	state: TransformState,
+	type: ts.Type,
+	sourceFile: ts.SourceFile,
+	enumInfo: EnumMetadata,
+): EnumWriteInfo {
+	const { record, enumType } = enumInfo;
+
+	const enumName = state.airshipBuildState.getUniqueIdForType(state, type, sourceFile);
+	const mts = state.airshipBuildState;
+	if (mts.editorInfo.enum[enumName] === undefined) {
+		mts.editorInfo.enum[enumName] = record;
+	}
+
+	return {
+		enumTypeString: EnumType[enumType],
+		enumRef: enumName,
+	};
+}
+
 function createAirshipProperty(
 	state: TransformState,
 	name: string,
@@ -274,10 +302,34 @@ function createAirshipProperty(
 		prop.type = "Array";
 
 		if (type.isNullableType()) prop.nullable = true;
-		prop.items = {
-			type: isObject ? "object" : typeString,
-			objectType: isObject ? typeString : undefined,
-		};
+
+		if (isEnumType(arrayItemType)) {
+			const symbol = arrayItemType.symbol;
+			const declaration = symbol?.declarations?.[0];
+			const sourceFile = declaration?.getSourceFile();
+
+			const docTags = declaration ? ts.getJSDocTags(declaration) : [];
+
+			const enumInfo = getEnumMetadata(
+				arrayItemType,
+				docTags.find(f => f.tagName.text === "flags") !== undefined,
+			);
+			if (enumInfo && sourceFile) {
+				const { enumTypeString, enumRef } = writeEnumInfo(state, arrayItemType, sourceFile, enumInfo);
+
+				prop.items = {
+					type: enumTypeString,
+					objectType: undefined,
+				};
+
+				prop.ref = enumRef;
+			}
+		} else {
+			prop.items = {
+				type: isObject ? "object" : typeString,
+				objectType: isObject ? typeString : undefined,
+			};
+		}
 	} else if (isEnum) {
 		if (type.isNullableType()) prop.nullable = true;
 		prop.nullable = type.isNullableType();
@@ -289,22 +341,12 @@ function createAirshipProperty(
 
 		const docTags = declaration ? ts.getJSDocTags(declaration) : [];
 
-		console.log(docTags);
-
 		const enumInfo = getEnumMetadata(type, docTags.find(f => f.tagName.text === "flags") !== undefined);
 
 		if (sourceFile && enumInfo) {
-			const { record, enumType } = enumInfo;
-
-			prop.type = EnumType[enumType];
-
-			const enumName = state.airshipBuildState.getUniqueIdForType(state, type, sourceFile);
-			const mts = state.airshipBuildState;
-			if (mts.editorInfo.enum[enumName] === undefined) {
-				mts.editorInfo.enum[enumName] = record;
-			}
-
-			prop.ref = enumName;
+			const { enumTypeString, enumRef } = writeEnumInfo(state, type, sourceFile, enumInfo);
+			prop.type = enumTypeString;
+			prop.ref = enumRef;
 
 			if (node.initializer && ts.isPropertyAccessExpression(node.initializer)) {
 				const enumKey = getEnumValue(state, node.initializer);
@@ -333,6 +375,50 @@ function createAirshipProperty(
 
 	prop.decorators = decorators;
 	return prop;
+}
+
+export function getClassDecorators(state: TransformState, classNode: ts.ClassLikeDeclaration) {
+	const decorators = ts.hasDecorators(classNode) ? ts.getDecorators(classNode) : undefined;
+	if (decorators) {
+		const items = new Array<AirshipBehaviourClassDecorator>();
+
+		for (const decorator of decorators) {
+			const expression = decorator.expression;
+			if (!ts.isCallExpression(expression)) continue;
+
+			const aliasSymbol = state.typeChecker.getTypeAtLocation(expression).aliasSymbol;
+			if (!aliasSymbol) continue;
+
+			const airshipFieldSymbol = state.services.airshipSymbolManager.getSymbolOrThrow("AirshipDecorator");
+
+			if (aliasSymbol === airshipFieldSymbol) {
+				items.push({
+					name: expression.expression.getText(),
+					parameters: expression.arguments.map((argument, i): AirshipBehaviourFieldDecoratorParameter => {
+						if (ts.isStringLiteral(argument)) {
+							return { type: "string", value: argument.text };
+						} else if (ts.isNumericLiteral(argument)) {
+							return { type: "number", value: parseFloat(argument.text) };
+						} else if (ts.isBooleanLiteral(argument)) {
+							return {
+								type: "boolean",
+								value: argument.kind === ts.SyntaxKind.TrueKeyword ? true : false,
+							};
+						} else {
+							DiagnosticService.addDiagnostic(
+								errors.decoratorParamsLiteralsOnly(expression.arguments[i]),
+							);
+							return { type: "invalid", value: undefined };
+						}
+					}),
+				});
+			}
+		}
+
+		return items;
+	} else {
+		return [];
+	}
 }
 
 function getPropertyDecorators(
@@ -444,6 +530,7 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 		const metadata: Writable<AirshipBehaviourJson> = {
 			name: node.name?.text,
 			properties: [],
+			decorators: [],
 			hash: "",
 		};
 
@@ -473,6 +560,8 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 			inheritedBehaviourIds.push(name);
 		}
 
+		metadata.decorators = getClassDecorators(state, node);
+
 		const sha1 = crypto.createHash("sha1");
 		const hash = sha1.update(JSON.stringify(metadata)).digest("hex");
 		metadata.hash = hash;
@@ -495,6 +584,10 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 	airshipBehaviour.id = id;
 
 	state.airshipBehaviours.push(airshipBehaviour);
+
+
+
+	return airshipBehaviour;
 }
 
 export function transformClassLikeDeclaration(state: TransformState, node: ts.ClassLikeDeclaration) {
@@ -553,7 +646,8 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		// const isDefault = (node.modifierFlagsCache & ModifierFlags.Default) !== 0;
 		const isExport = (node.modifierFlagsCache & ModifierFlags.Export) !== 0;
 		if (isExport) {
-			generateMetaForAirshipBehaviour(state, node);
+			generateMetaForAirshipBehaviour(state, node)!;
+
 		}
 	}
 
