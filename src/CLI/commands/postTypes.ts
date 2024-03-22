@@ -56,6 +56,11 @@ export = ts.identity<yargs.CommandModule<{}, Flags & Partial<ProjectOptions>>>({
 				withFileTypes: true,
 			});
 			for (const file of files) {
+				if (file.isDirectory()) {
+					checkDir(path.join(dir, file.name));
+					continue;
+				}
+
 				if (file.name.includes(".d.ts")) {
 					const sourcePath = path.join(dir, file.name);
 					LogService.writeLine("copying " + sourcePath);
@@ -63,16 +68,13 @@ export = ts.identity<yargs.CommandModule<{}, Flags & Partial<ProjectOptions>>>({
 					const targetPath = sourcePath.replace("src" + path.sep, typesPath + path.sep);
 					const targetPathDir = path.dirname(targetPath);
 					if (!existsSync(targetPathDir)) {
-						mkdirSync(targetPathDir);
+						mkdirSync(targetPathDir, { recursive: true });
 					}
 					copyFileSync(sourcePath, targetPath);
 				}
 			}
 		};
-		checkDir(path.join("src", "Server"));
-		checkDir(path.join("src", "Client"));
-		checkDir(path.join("src", "Shared"));
-		checkDir(path.join("src", "Shared", "Types"));
+		checkDir("src");
 
 		if (existsSync("flamework.build")) {
 			copyFileSync("flamework.build", path.join(typesPath, "flamework.build"));
