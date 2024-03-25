@@ -9,6 +9,8 @@ import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 import { getAncestor } from "TSTransformer/util/traversal";
 import ts from "typescript";
+import { transformExpressionStatement } from "./statements/transformExpressionStatement";
+import { transformExpression } from "./expressions/transformExpression";
 
 function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [name: string, id: luau.AnyIdentifier] {
 	const declaration = exportSymbol.getDeclarations()?.[0];
@@ -180,38 +182,55 @@ function getLastNonCommentStatement(listNode?: luau.ListNode<luau.Statement>) {
 	return listNode;
 }
 
+export function transformJsonSourceFile(state: TransformState, node: ts.SourceFile) {
+	const statements = transformStatementList(state, node.statements);
+
+	luau.list.unshift(statements, luau.comment(`Compiled with unity-ts v${COMPILER_VERSION}`));
+	luau.list.push(
+		statements,
+		luau.create(luau.SyntaxKind.ReturnStatement, {
+			expression: luau.id("_"),
+		}),
+	);
+	return statements;
+}
+
 /**
  * Creates and returns a luau.list<luau.Statement> (Luau AST).
  * @param state The current transform state.
  * @param node The sourcefile to convert to a Luau AST.
  */
 export function transformSourceFile(state: TransformState, node: ts.SourceFile) {
-	const symbol = state.typeChecker.getSymbolAtLocation(node);
-	assert(symbol);
-	state.setModuleIdBySymbol(symbol, luau.globals.exports);
+	if (ts.isJsonSourceFile(node)) {
+		return transformJsonSourceFile(state, node);
+	} else {
+		const symbol = state.typeChecker.getSymbolAtLocation(node);
+		assert(symbol, `Invalid SourceFile symbol ${node.getText()}`);
+		state.setModuleIdBySymbol(symbol, luau.globals.exports);
 
-	// transform the `ts.Statements` of the source file into a `list.list<...>`
-	const statements = transformStatementList(state, node.statements);
+		// transform the `ts.Statements` of the source file into a `list.list<...>`
+		const statements = transformStatementList(state, node.statements);
 
-	handleExports(state, node, symbol, statements);
+		handleExports(state, node, symbol, statements);
 
-	// moduleScripts must `return nil` if they do not export any values
-	const lastStatement = getLastNonCommentStatement(statements.tail);
-	if (!lastStatement || !luau.isReturnStatement(lastStatement.value)) {
-		luau.list.push(
-			statements,
-			luau.create(luau.SyntaxKind.ReturnStatement, {
-				expression: luau.map(),
-			}),
-		);
+		// moduleScripts must `return nil` if they do not export any values
+		const lastStatement = getLastNonCommentStatement(statements.tail);
+		if (!lastStatement || !luau.isReturnStatement(lastStatement.value)) {
+			luau.list.push(
+				statements,
+				luau.create(luau.SyntaxKind.ReturnStatement, {
+					expression: luau.map(),
+				}),
+			);
+		}
+
+		// add the Runtime library to the tree if it is used
+		if (state.usesRuntimeLib) {
+			luau.list.unshift(statements, state.createRuntimeLibImport(node));
+		}
+
+		// add build information to the tree
+		luau.list.unshift(statements, luau.comment(`Compiled with unity-ts v${COMPILER_VERSION}`));
+		return statements;
 	}
-
-	// add the Runtime library to the tree if it is used
-	if (state.usesRuntimeLib) {
-		luau.list.unshift(statements, state.createRuntimeLibImport(node));
-	}
-
-	// add build information to the tree
-	luau.list.unshift(statements, luau.comment(`Compiled with unity-ts v${COMPILER_VERSION}`));
-	return statements;
 }

@@ -4,6 +4,7 @@ import {
 	DTS_EXT,
 	INDEX_NAME,
 	INIT_NAME,
+	JSON_EXT,
 	JSON_META_EXT,
 	LUA_EXT,
 	ProjectType,
@@ -105,14 +106,21 @@ export class PathTranslator {
 		if (
 			(pathInfo.extsPeek() === TS_EXT ||
 				pathInfo.extsPeek() === JSON_META_EXT ||
-				pathInfo.extsPeek() === TSX_EXT) &&
+				pathInfo.extsPeek() === TSX_EXT ||
+				pathInfo.extsPeek() === JSON_EXT) &&
 			pathInfo.extsPeek(1) !== D_EXT
 		) {
+			const isJson = pathInfo.extsPeek() === JSON_EXT;
+
 			pathInfo.exts.pop(); // pop .tsx?
 
 			// index -> init
 			if (pathInfo.fileName === INDEX_NAME) {
 				pathInfo.fileName = INIT_NAME;
+			}
+
+			if (isJson) {
+				pathInfo.exts.push(".json");
 			}
 
 			pathInfo.exts.push(LUA_EXT);

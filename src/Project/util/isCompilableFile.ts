@@ -1,5 +1,5 @@
 import fs from "fs-extra";
-import { DTS_EXT, TS_EXT, TSX_EXT } from "Shared/constants";
+import { DTS_EXT, JSON_EXT, TS_EXT, TSX_EXT } from "Shared/constants";
 
 export function isCompilableFile(fsPath: string) {
 	if (fs.statSync(fsPath).isDirectory()) {
@@ -8,5 +8,5 @@ export function isCompilableFile(fsPath: string) {
 	if (fsPath.endsWith(DTS_EXT)) {
 		return false;
 	}
-	return fsPath.endsWith(TS_EXT) || fsPath.endsWith(TSX_EXT);
+	return fsPath.endsWith(TS_EXT) || fsPath.endsWith(TSX_EXT) || fsPath.endsWith(JSON_EXT);
 }

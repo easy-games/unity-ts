@@ -23,6 +23,7 @@ import {
 	TransformState,
 } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { transformExpressionStatement } from "TSTransformer/nodes/statements/transformExpressionStatement";
 import { createTransformServices } from "TSTransformer/util/createTransformServices";
 import ts from "typescript";
 
@@ -88,7 +89,7 @@ export function compileFiles(
 	let proxyProgram = program;
 
 	if (compilerOptions.plugins && compilerOptions.plugins.length > 0) {
-		benchmarkIfVerbose(`running transformers..`, () => {
+		benchmarkIfVerbose(`Running transformers...`, () => {
 			const pluginConfigs = getPluginConfigs(data.tsConfigPath);
 			const transformerList = createTransformerList(program, pluginConfigs, data.projectPath);
 			const transformers = flattenIntoTransformers(transformerList);
