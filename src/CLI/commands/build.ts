@@ -1,6 +1,8 @@
+import chalk from "chalk";
 import { findTsConfigPath, getPackageJson, getTsConfigProjectOptions } from "CLI/util/findTsConfigPath";
 import { existsSync, mkdirSync } from "fs";
 import { writeFileSync } from "fs-extra";
+import kleur from "kleur";
 import path from "path";
 import { buildTypes } from "Project/functions/buildTypes";
 import { cleanup } from "Project/functions/cleanup";
@@ -15,6 +17,7 @@ import { setupProjectWatchProgram } from "Project/functions/setupProjectWatchPro
 import { LogService } from "Shared/classes/LogService";
 import { DEFAULT_PROJECT_OPTIONS, ProjectType } from "Shared/constants";
 import { LoggableError } from "Shared/errors/LoggableError";
+import { ProjectError } from "Shared/errors/ProjectError";
 import { ProjectOptions } from "Shared/types";
 import { getRootDirs } from "Shared/util/getRootDirs";
 import { hasErrors } from "Shared/util/hasErrors";
@@ -61,6 +64,7 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 	handler: async argv => {
 		try {
 			const tsConfigPath = findTsConfigPath(argv.project);
+			const packageJson = getPackageJson();
 
 			// parse the contents of the retrieved JSON path as a partial `ProjectOptions`
 			const projectOptions: ProjectOptions = Object.assign(
@@ -72,13 +76,22 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 
 			LogService.verbose = projectOptions.verbose === true;
 
+			const compilerTsVersion = new ts.Version(ts.version);
+			const projectTsVersionRange = new ts.VersionRange(packageJson.devDependencies["typescript"]);
+
+			if (!projectTsVersionRange.test(compilerTsVersion)) {
+				// In future we're gonna auto-upgrade here, we want this frictionless
+				throw new ProjectError(
+					`Project TypeScript version range is ${projectTsVersionRange.toString()}, compiler ts version is ${compilerTsVersion}`,
+				);
+			}
+
 			const diagnosticReporter = ts.createDiagnosticReporter(ts.sys, true);
 
 			const data = createProjectData(tsConfigPath, projectOptions);
 
 			if (data.projectOptions.type === ProjectType.AirshipBundle) {
-				const json = getPackageJson();
-				const split = json.name.split("/");
+				const split = packageJson.name.split("/");
 				const indexPath = path.join("..", "..", "..", "Types~", split[0], split[1], "index.d.ts");
 				const indexPathDir = path.dirname(indexPath);
 				if (!existsSync(indexPathDir)) {
@@ -101,6 +114,7 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 				if (projectOptions.copyNodeModules) {
 					await copyNodeModules(data);
 				}
+
 				copyFiles(data, pathTranslator, new Set(getRootDirs(program.getCompilerOptions())));
 				const emitResult = compileFiles(
 					program.getProgram(),

@@ -299,7 +299,7 @@ export function compileFiles(
 			? fs.readFileSync(editorMetadataPath).toString()
 			: "";
 
-		const newBuildFileSource = JSON.stringify(buildState.editorInfo);
+		const newBuildFileSource = JSON.stringify(buildState.editorInfo, null, "\t");
 
 		if (oldBuildFileSource !== newBuildFileSource) {
 			fs.outputFileSync(editorMetadataPath, newBuildFileSource);

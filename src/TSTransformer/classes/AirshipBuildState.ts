@@ -34,10 +34,12 @@ export class AirshipBuildState {
 		return this.editorInfo.enum[id];
 	}
 
-	private typeIdCache = new Map<number, string>();
+	private typeIdCache = new Map<string, string>();
 	public getUniqueIdForType(transformState: TransformState, type: ts.Type, sourceFile: ts.SourceFile) {
-		if (this.typeIdCache.has(type.id)) {
-			return this.typeIdCache.get(type.id)!;
+		const fullTypePath = sourceFile.fileName + "@" + transformState.typeChecker.typeToString(type);
+
+		if (this.typeIdCache.has(fullTypePath)) {
+			return this.typeIdCache.get(fullTypePath)!;
 		}
 
 		const pathTranslator = transformState.pathTranslator;
@@ -59,7 +61,7 @@ export class AirshipBuildState {
 			value = pkgJson.name + "/" + value;
 		}
 
-		this.typeIdCache.set(type.id, value);
+		this.typeIdCache.set(fullTypePath, value);
 		return value;
 	}
 
@@ -74,6 +76,8 @@ export class AirshipBuildState {
 		const id = this.getUniqueIdForEnumDeclaration(state, declaration);
 		const type = state.typeChecker.getTypeAtLocation(declaration);
 		if (type && id) {
+			console.log("update enum declaration", id, state.typeChecker.typeToString(type));
+
 			const enumMetadata = getEnumMetadata(type)?.record;
 			if (!enumMetadata) return;
 

@@ -534,8 +534,6 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 			hash: "",
 		};
 
-		pushPropertyMetadataForAirshipBehaviour(state, node, metadata);
-
 		const inheritedBehaviourIds = new Array<string>();
 
 		// Inheritance
@@ -560,6 +558,7 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 			inheritedBehaviourIds.push(name);
 		}
 
+		pushPropertyMetadataForAirshipBehaviour(state, node, metadata);
 		metadata.decorators = getClassDecorators(state, node);
 
 		const sha1 = crypto.createHash("sha1");
@@ -584,8 +583,6 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 	airshipBehaviour.id = id;
 
 	state.airshipBehaviours.push(airshipBehaviour);
-
-
 
 	return airshipBehaviour;
 }
@@ -647,7 +644,6 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		const isExport = (node.modifierFlagsCache & ModifierFlags.Export) !== 0;
 		if (isExport) {
 			generateMetaForAirshipBehaviour(state, node)!;
-
 		}
 	}
 

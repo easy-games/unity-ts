@@ -1,6 +1,19 @@
 import { ProjectType } from "Shared/constants";
 import ts from "typescript";
 
+export interface PackageJson {
+	name: string;
+	version: string;
+	devDependencies: Record<string, string>;
+	dependencies: Record<string, string>;
+}
+
+export interface TypeScriptConfiguration extends ts.TSConfig {
+	/** @deprecated Now `airship` */
+	rbxts: Partial<ProjectOptions> | undefined;
+	airship: Partial<ProjectOptions> | undefined;
+}
+
 export interface ProjectOptions {
 	includePath: string;
 	rojo: string | undefined;

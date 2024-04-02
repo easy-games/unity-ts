@@ -2,7 +2,8 @@ import { CLIError } from "CLI/errors/CLIError";
 import fs from "fs";
 import path from "path";
 import { ProjectOptions } from "Project";
-import ts from "typescript";
+import { PackageJson, TypeScriptConfiguration } from "Shared/types";
+import ts, { TSConfig } from "typescript";
 
 export function findTsConfigPath(projectPath: string) {
 	let tsConfigPath: string | undefined = path.resolve(projectPath);
@@ -19,13 +20,14 @@ export function getTsConfigProjectOptions(tsConfigPath?: string): Partial<Projec
 	if (tsConfigPath !== undefined) {
 		const rawJson = ts.sys.readFile(tsConfigPath);
 		if (rawJson !== undefined) {
-			const t = ts.parseConfigFileTextToJson(tsConfigPath, rawJson).config.rbxts;
+			const tsConfig: TypeScriptConfiguration = ts.parseConfigFileTextToJson(tsConfigPath, rawJson).config;
+			const t = tsConfig.airship ?? tsConfig.rbxts;
 			return t;
 		}
 	}
 }
 
-export function getPackageJson() {
+export function getPackageJson(): PackageJson {
 	const path = "./package.json";
 	const rawJson = ts.sys.readFile("./package.json");
 	return JSON.parse(rawJson!);
