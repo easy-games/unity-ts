@@ -76,8 +76,6 @@ export class AirshipBuildState {
 		const id = this.getUniqueIdForEnumDeclaration(state, declaration);
 		const type = state.typeChecker.getTypeAtLocation(declaration);
 		if (type && id) {
-			console.log("update enum declaration", id, state.typeChecker.typeToString(type));
-
 			const enumMetadata = getEnumMetadata(type)?.record;
 			if (!enumMetadata) return;
 
