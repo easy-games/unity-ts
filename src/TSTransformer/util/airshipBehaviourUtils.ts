@@ -6,6 +6,7 @@ import {
 	AirshipBehaviourStaticMemberValue,
 } from "Shared/types";
 import { TransformState } from "TSTransformer";
+import { isAirshipBehaviourType } from "TSTransformer/util/extendsAirshipBehaviour";
 import ts from "typescript";
 
 export function isPublicWritablePropertyDeclaration(node: ts.PropertyDeclaration) {
@@ -177,7 +178,11 @@ export function isValidAirshipBehaviourExportType(state: TransformState, node: t
 	} else if (isEnumType(nodeType)) {
 		return true;
 	} else {
-		return state.services.airshipSymbolManager.isTypeSerializable(nodeType) || isUnityObjectType(state, nodeType);
+		return (
+			state.services.airshipSymbolManager.isTypeSerializable(nodeType) ||
+			isUnityObjectType(state, nodeType) ||
+			isAirshipBehaviourType(state, nodeType)
+		);
 	}
 }
 

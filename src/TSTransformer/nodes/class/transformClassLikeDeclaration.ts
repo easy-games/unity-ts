@@ -32,7 +32,7 @@ import {
 	isUnityObjectType,
 	isValidAirshipBehaviourExportType,
 } from "TSTransformer/util/airshipBehaviourUtils";
-import { isAirshipBehaviourClass, isRootAirshipBehaviourClass } from "TSTransformer/util/extendsAirshipBehaviour";
+import { isAirshipBehaviourClass, isAirshipBehaviourType, isRootAirshipBehaviourClass } from "TSTransformer/util/extendsAirshipBehaviour";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
@@ -274,7 +274,7 @@ function writeEnumInfo(
 function createAirshipProperty(
 	state: TransformState,
 	name: string,
-	type: ts.Type,
+type: ts.Type,
 	node: ts.PropertyDeclaration,
 	decorators: Array<AirshipBehaviourFieldDecorator>,
 ): Writable<AirshipBehaviourFieldExport> {
@@ -330,6 +330,10 @@ function createAirshipProperty(
 				objectType: isObject ? typeString : undefined,
 			};
 		}
+	} else if (isAirshipBehaviourType(state, type)) {
+		prop.type = "AirshipBehaviour";
+		prop.objectType = typeChecker.typeToString(type);
+		prop.fileRef = state.getOutputPathFromType(type);
 	} else if (isEnum) {
 		if (type.isNullableType()) prop.nullable = true;
 		prop.nullable = type.isNullableType();

@@ -68,6 +68,14 @@ export class TransformState {
 		return tryUses;
 	}
 
+	public getOutputPathFromType(type: ts.Type) {
+		const node = type.symbol?.valueDeclaration;
+		if (node) {
+			const sourceFile = node.getSourceFile();
+			return path.relative(this.pathTranslator.outDir, this.pathTranslator.getOutputPath(sourceFile.fileName));
+		}
+	}
+
 	private typeIdCache = new Map<number, string>();
 	public getFileTypeId(type: ts.Type, sourceFile: ts.SourceFile) {
 		if (this.typeIdCache.has(type.id)) {
