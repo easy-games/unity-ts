@@ -12,6 +12,7 @@ import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProgramFactory } from "Project/functions/createProgramFactory";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
+import { json } from "Project/functions/json";
 import { tryRemoveOutput } from "Project/functions/tryRemoveOutput";
 import { isCompilableFile } from "Project/util/isCompilableFile";
 import { walkDirectorySync } from "Project/util/walkDirectorySync";
@@ -38,6 +39,7 @@ function fixSlashes(fsPath: string) {
 
 export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean) {
 	const { fileNames, options } = getParsedCommandLine(data);
+	const emitJsonToStdout = data.projectOptions.json;
 	const fileNamesSet = new Set(fileNames);
 
 	let initialCompileCompleted = false;
@@ -52,26 +54,64 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	const diagnosticReporter = ts.createDiagnosticReporter(ts.sys, true);
 
 	function reportText(messageText: string) {
-		watchReporter(
-			{
-				category: ts.DiagnosticCategory.Message,
+		if (emitJsonToStdout) {
+			json("watchReport", {
 				messageText,
-				code: 0,
-				file: undefined,
-				length: undefined,
-				start: undefined,
-			},
-			ts.sys.newLine,
-			options,
-		);
+				category: ts.DiagnosticCategory.Message,
+			});
+		} else {
+			watchReporter(
+				{
+					category: ts.DiagnosticCategory.Message,
+					messageText,
+					code: 0,
+					file: undefined,
+					length: undefined,
+					start: undefined,
+				},
+				ts.sys.newLine,
+				options,
+			);
+		}
 	}
 
 	function reportEmitResult(emitResult: ts.EmitResult) {
 		for (const diagnostic of emitResult.diagnostics) {
-			diagnosticReporter(diagnostic);
+			if (emitJsonToStdout) {
+				const lineAndCol =
+					diagnostic.start !== undefined
+						? diagnostic.file?.getLineAndCharacterOfPosition(diagnostic.start)
+						: undefined;
+
+				json("fileDiagnostic", {
+					filePath: diagnostic.file?.fileName,
+					message: diagnostic.messageText,
+					code: diagnostic.code,
+					category: diagnostic.category,
+					position: diagnostic.start,
+					source: diagnostic.source,
+					line: lineAndCol?.line,
+					column: lineAndCol?.character,
+					length: diagnostic.length,
+					text:
+						diagnostic.start !== undefined && diagnostic.length !== undefined && diagnostic.file
+							? diagnostic.file.text.substring(diagnostic.start, diagnostic.start + diagnostic.length)
+							: undefined,
+				});
+			} else {
+				diagnosticReporter(diagnostic);
+			}
 		}
 		const amtErrors = emitResult.diagnostics.filter(v => v.category === ts.DiagnosticCategory.Error).length;
-		reportText(`Found ${amtErrors} error${amtErrors === 1 ? "" : "s"}. Watching for file changes.`);
+		if (emitJsonToStdout) {
+			if (amtErrors > 0) {
+				json("finishedCompileWithErrors", { errorCount: amtErrors });
+			} else {
+				json("finishedCompile", {});
+			}
+		} else {
+			reportText(`Found ${amtErrors} error${amtErrors === 1 ? "" : "s"}. Watching for file changes.`);
+		}
 	}
 
 	let program: ts.EmitAndSemanticDiagnosticsBuilderProgram | undefined;
@@ -218,7 +258,13 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	function openEventCollection() {
 		if (!collecting) {
 			collecting = true;
-			reportText("File change detected. Starting incremental compilation...");
+
+			if (emitJsonToStdout) {
+				json("startingCompile", { initial: false });
+			} else {
+				reportText("File change detected. Starting incremental compilation...");
+			}
+
 			setTimeout(closeEventCollection, 100);
 		}
 	}
@@ -248,7 +294,11 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		.on("unlink", collectDeleteEvent)
 		.on("unlinkDir", collectDeleteEvent)
 		.once("ready", () => {
-			reportText("Starting compilation in watch mode...");
+			if (emitJsonToStdout) {
+				json("startingCompile", { initial: true });
+			} else {
+				reportText("Starting compilation in watch mode...");
+			}
 			reportEmitResult(runCompile());
 		});
 }

@@ -45,6 +45,12 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 			default: ".",
 			describe: "project path",
 		},
+		json: {
+			alias: "E",
+			hidden: true,
+			boolean: true,
+			default: false,
+		},
 		verbose: {
 			boolean: true,
 			describe: "enable verbose logs",
@@ -74,7 +80,12 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 				argv,
 			);
 
-			LogService.verbose = projectOptions.verbose === true;
+			LogService.verbose = projectOptions.verbose === true && !argv.json;
+
+			if (projectOptions.json && projectOptions.verbose) {
+				// In future we're gonna auto-upgrade here, we want this frictionless
+				throw new ProjectError(`json mode cannot be used with --verbose flag`);
+			}
 
 			const compilerTsVersion = new ts.Version(ts.version);
 			const projectTsVersionRange = new ts.VersionRange(packageJson.devDependencies["typescript"]);
