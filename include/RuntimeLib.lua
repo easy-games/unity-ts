@@ -163,7 +163,7 @@ local SIGN = 2 ^ 31
 local COMPLEMENT = 2 ^ 32
 local function bit_sign(num)
 	-- Restores the sign after an unsigned conversion according to 2s complement.
-	if bit32.btest(num, SIGN) then
+	if sbit32.btest(num, SIGN) then
 		return num - COMPLEMENT
 	else
 		return num
@@ -171,7 +171,7 @@ local function bit_sign(num)
 end
 
 function TS.bit_lrsh(a, b)
-	return bit_sign(bit32.arshift(a, b))
+	return bit_sign(sbit32.arshift(a, b))
 end
 
 TS.TRY_RETURN = 1
