@@ -1,5 +1,6 @@
 import chokidar from "chokidar";
 import fs from "fs-extra";
+import path from "path";
 import { ProjectData } from "Project";
 import { buildTypes } from "Project/functions/buildTypes";
 import { checkFileName } from "Project/functions/checkFileName";
@@ -12,7 +13,7 @@ import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProgramFactory } from "Project/functions/createProgramFactory";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
-import { json } from "Project/functions/json";
+import { createJsonDiagnosticReporter, jsonReporter } from "Project/functions/json";
 import { tryRemoveOutput } from "Project/functions/tryRemoveOutput";
 import { isCompilableFile } from "Project/util/isCompilableFile";
 import { walkDirectorySync } from "Project/util/walkDirectorySync";
@@ -51,11 +52,13 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	const watchBuildState = new AirshipBuildState();
 
 	const watchReporter = ts.createWatchStatusReporter(ts.sys, true);
-	const diagnosticReporter = ts.createDiagnosticReporter(ts.sys, true);
+	const diagnosticReporter = emitJsonToStdout
+		? createJsonDiagnosticReporter(data)
+		: ts.createDiagnosticReporter(ts.sys, true);
 
 	function reportText(messageText: string) {
 		if (emitJsonToStdout) {
-			json("watchReport", {
+			jsonReporter("watchReport", {
 				messageText,
 				category: ts.DiagnosticCategory.Message,
 			});
@@ -77,37 +80,14 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 
 	function reportEmitResult(emitResult: ts.EmitResult) {
 		for (const diagnostic of emitResult.diagnostics) {
-			if (emitJsonToStdout) {
-				const lineAndCol =
-					diagnostic.start !== undefined
-						? diagnostic.file?.getLineAndCharacterOfPosition(diagnostic.start)
-						: undefined;
-
-				json("fileDiagnostic", {
-					filePath: diagnostic.file?.fileName,
-					message: diagnostic.messageText,
-					code: diagnostic.code,
-					category: diagnostic.category,
-					position: diagnostic.start,
-					source: diagnostic.source,
-					line: lineAndCol?.line,
-					column: lineAndCol?.character,
-					length: diagnostic.length,
-					text:
-						diagnostic.start !== undefined && diagnostic.length !== undefined && diagnostic.file
-							? diagnostic.file.text.substring(diagnostic.start, diagnostic.start + diagnostic.length)
-							: undefined,
-				});
-			} else {
-				diagnosticReporter(diagnostic);
-			}
+			diagnosticReporter(diagnostic);
 		}
 		const amtErrors = emitResult.diagnostics.filter(v => v.category === ts.DiagnosticCategory.Error).length;
 		if (emitJsonToStdout) {
 			if (amtErrors > 0) {
-				json("finishedCompileWithErrors", { errorCount: amtErrors });
+				jsonReporter("finishedCompileWithErrors", { errorCount: amtErrors });
 			} else {
-				json("finishedCompile", {});
+				jsonReporter("finishedCompile", {});
 			}
 		} else {
 			reportText(`Found ${amtErrors} error${amtErrors === 1 ? "" : "s"}. Watching for file changes.`);
@@ -260,7 +240,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 			collecting = true;
 
 			if (emitJsonToStdout) {
-				json("startingCompile", { initial: false });
+				jsonReporter("startingCompile", { initial: false });
 			} else {
 				reportText("File change detected. Starting incremental compilation...");
 			}
@@ -295,7 +275,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		.on("unlinkDir", collectDeleteEvent)
 		.once("ready", () => {
 			if (emitJsonToStdout) {
-				json("startingCompile", { initial: true });
+				jsonReporter("startingCompile", { initial: true });
 			} else {
 				reportText("Starting compilation in watch mode...");
 			}

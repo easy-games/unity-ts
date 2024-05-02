@@ -26,7 +26,7 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpressionStatement } from "TSTransformer/nodes/statements/transformExpressionStatement";
 import { createTransformServices } from "TSTransformer/util/createTransformServices";
 import ts from "typescript";
-import { json } from "./json";
+import { jsonReporter } from "./json";
 
 function emitResultFailure(messageText: string): ts.EmitResult {
 	return {
@@ -250,7 +250,7 @@ export function compileFiles(
 				writeCount++;
 
 				if (asJson) {
-					json("compiledFile", {
+					jsonReporter("compiledFile", {
 						fileName: sourceFile.fileName,
 					});
 				}

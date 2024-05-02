@@ -13,6 +13,7 @@ import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProjectData } from "Project/functions/createProjectData";
 import { createProjectProgram } from "Project/functions/createProjectProgram";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
+import { createJsonDiagnosticReporter } from "Project/functions/json";
 import { setupProjectWatchProgram } from "Project/functions/setupProjectWatchProgram";
 import { LogService } from "Shared/classes/LogService";
 import { DEFAULT_PROJECT_OPTIONS, ProjectType } from "Shared/constants";
@@ -97,9 +98,11 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 				);
 			}
 
-			const diagnosticReporter = ts.createDiagnosticReporter(ts.sys, true);
-
 			const data = createProjectData(tsConfigPath, projectOptions);
+
+			const diagnosticReporter = projectOptions.json
+				? createJsonDiagnosticReporter(data)
+				: ts.createDiagnosticReporter(ts.sys, true);
 
 			if (data.projectOptions.type === ProjectType.AirshipBundle) {
 				const split = packageJson.name.split("/");

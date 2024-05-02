@@ -1,5 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/ban-types
 
+import { ProjectData } from "Shared/types";
+import path from "path";
 import ts, { DiagnosticMessageChain } from "typescript";
 
 interface WatchReport {
@@ -37,7 +39,7 @@ interface RpcType {
 	finishedCompileWithErrors: FinishCompile & { errorCount: number };
 }
 
-export function json<K extends keyof RpcType>(request: K, value: RpcType[K]) {
+export function jsonReporter<K extends keyof RpcType>(request: K, value: RpcType[K]) {
 	// eslint-disable-next-line no-console
 	console.log(
 		"json:" +
@@ -46,4 +48,29 @@ export function json<K extends keyof RpcType>(request: K, value: RpcType[K]) {
 				arguments: value,
 			}),
 	);
+}
+
+export function createJsonDiagnosticReporter(data: ProjectData): ts.DiagnosticReporter {
+	return diagnostic => {
+		const lineAndCol =
+			diagnostic.start !== undefined
+				? diagnostic.file?.getLineAndCharacterOfPosition(diagnostic.start)
+				: undefined;
+
+		jsonReporter("fileDiagnostic", {
+			filePath: diagnostic.file ? path.relative(data.projectPath, diagnostic.file.fileName) : undefined,
+			message: diagnostic.messageText,
+			code: diagnostic.code,
+			category: diagnostic.category,
+			position: diagnostic.start,
+			source: diagnostic.source,
+			line: lineAndCol?.line,
+			column: lineAndCol?.character,
+			length: diagnostic.length,
+			text:
+				diagnostic.start !== undefined && diagnostic.length !== undefined && diagnostic.file
+					? diagnostic.file.text.substring(diagnostic.start, diagnostic.start + diagnostic.length)
+					: undefined,
+		});
+	};
 }
