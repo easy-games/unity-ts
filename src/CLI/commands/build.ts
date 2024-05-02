@@ -47,7 +47,6 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 			describe: "project path",
 		},
 		json: {
-			alias: "E",
 			hidden: true,
 			boolean: true,
 			default: false,
@@ -84,7 +83,6 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 			LogService.verbose = projectOptions.verbose === true && !argv.json;
 
 			if (projectOptions.json && projectOptions.verbose) {
-				// In future we're gonna auto-upgrade here, we want this frictionless
 				throw new ProjectError(`json mode cannot be used with --verbose flag`);
 			}
 

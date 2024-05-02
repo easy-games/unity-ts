@@ -42,11 +42,10 @@ interface RpcType {
 export function jsonReporter<K extends keyof RpcType>(request: K, value: RpcType[K]) {
 	// eslint-disable-next-line no-console
 	console.log(
-		"json:" +
-			JSON.stringify({
-				event: request,
-				arguments: value,
-			}),
+		JSON.stringify({
+			event: request,
+			arguments: value,
+		}),
 	);
 }
 
