@@ -11,6 +11,8 @@ export const COMPILER_VERSION: string = require("../../package.json").version;
 export const NODE_MODULES = "node_modules";
 export const RBXTS_SCOPE = "@easy-games";
 
+export const META_EXT = ".meta";
+
 export const TS_EXT = ".ts";
 export const TSX_EXT = ".tsx";
 export const D_EXT = ".d";

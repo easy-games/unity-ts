@@ -96,6 +96,8 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 
 	let program: ts.EmitAndSemanticDiagnosticsBuilderProgram | undefined;
 	let pathTranslator: PathTranslator | undefined;
+
+	console.log("create program");
 	const createProgram = createProgramFactory(data, options);
 	function refreshProgram() {
 		program = createProgram([...fileNamesSet], options);
@@ -103,6 +105,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	}
 
 	function runInitialCompile() {
+		console.log("Run initial componile pls");
 		refreshProgram();
 		assert(program && pathTranslator);
 		cleanup(pathTranslator, data.projectOptions);
@@ -131,6 +134,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	const filesToCopy = new Set<string>();
 	const filesToClean = new Set<string>();
 	function runIncrementalCompile(additions: Set<string>, changes: Set<string>, removals: Set<string>): ts.EmitResult {
+		console.log("run incr cmpl");
 		const buildFile = watchBuildState.buildFile;
 
 		for (const fsPath of additions) {
@@ -266,6 +270,8 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 
 	const chokidarOptions: chokidar.WatchOptions = { ...CHOKIDAR_OPTIONS, usePolling };
 
+
+	console.log("starting chokidar");
 	chokidar
 		.watch(getRootDirs(options), chokidarOptions)
 		.on("add", collectAddEvent)
@@ -274,6 +280,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		.on("unlink", collectDeleteEvent)
 		.on("unlinkDir", collectDeleteEvent)
 		.once("ready", () => {
+			console.log("ready")
 			if (emitJsonToStdout) {
 				jsonReporter("startingCompile", { initial: true });
 			} else {
@@ -281,4 +288,6 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 			}
 			reportEmitResult(runCompile());
 		});
+
+	console.log("chokidar broken?");
 }
