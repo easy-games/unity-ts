@@ -26,27 +26,9 @@ function cleanupDirRecursively(pathTranslator: PathTranslator, dir: string) {
 export function cleanup(pathTranslator: PathTranslator, projectOptions: ProjectOptions) {
 	benchmarkIfVerbose(`cleanup orphaned files`, () => {
 		const outDir = pathTranslator.outDir;
-		const dirsToCleanup = [
-			path.join(outDir, "Client", "Resources", "TS"),
-			path.join(outDir, "Server", "Resources", "TS"),
-			path.join(outDir, "Shared", "Resources", "TS"),
-		];
+		const dirsToCleanup = [path.join(outDir)];
 
-		// if (projectOptions.type === ProjectType.Game) {
-		// 	const importsDir = path.join(outDir, "Imports");
-		// 	if (!fs.existsSync(importsDir)) {
-		// 		fs.mkdirSync(importsDir);
-		// 	}
-		// 	const files = fs.readdirSync(importsDir, { withFileTypes: true });
-		// 	for (const file of files) {
-		// 		if (file.isDirectory()) {
-		// 			console.log("found bundle: " + file + "\n");
-		// 			dirsToCleanup.push(file.name);
-		// 		}
-		// 	}
-		// }
-
-		for (let dir of dirsToCleanup) {
+		for (const dir of dirsToCleanup) {
 			if (fs.pathExistsSync(dir)) {
 				cleanupDirRecursively(pathTranslator, dir);
 			}

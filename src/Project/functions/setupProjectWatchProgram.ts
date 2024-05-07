@@ -1,5 +1,6 @@
 import chokidar from "chokidar";
 import fs from "fs-extra";
+import path from "path";
 import { ProjectData } from "Project";
 import { buildTypes } from "Project/functions/buildTypes";
 import { checkFileName } from "Project/functions/checkFileName";
@@ -12,6 +13,7 @@ import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProgramFactory } from "Project/functions/createProgramFactory";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
+import { createJsonDiagnosticReporter, jsonReporter } from "Project/functions/json";
 import { tryRemoveOutput } from "Project/functions/tryRemoveOutput";
 import { isCompilableFile } from "Project/util/isCompilableFile";
 import { walkDirectorySync } from "Project/util/walkDirectorySync";
@@ -38,6 +40,7 @@ function fixSlashes(fsPath: string) {
 
 export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean) {
 	const { fileNames, options } = getParsedCommandLine(data);
+	const emitJsonToStdout = data.projectOptions.json;
 	const fileNamesSet = new Set(fileNames);
 
 	let initialCompileCompleted = false;
@@ -49,21 +52,30 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	const watchBuildState = new AirshipBuildState();
 
 	const watchReporter = ts.createWatchStatusReporter(ts.sys, true);
-	const diagnosticReporter = ts.createDiagnosticReporter(ts.sys, true);
+	const diagnosticReporter = emitJsonToStdout
+		? createJsonDiagnosticReporter(data)
+		: ts.createDiagnosticReporter(ts.sys, true);
 
 	function reportText(messageText: string) {
-		watchReporter(
-			{
-				category: ts.DiagnosticCategory.Message,
+		if (emitJsonToStdout) {
+			jsonReporter("watchReport", {
 				messageText,
-				code: 0,
-				file: undefined,
-				length: undefined,
-				start: undefined,
-			},
-			ts.sys.newLine,
-			options,
-		);
+				category: ts.DiagnosticCategory.Message,
+			});
+		} else {
+			watchReporter(
+				{
+					category: ts.DiagnosticCategory.Message,
+					messageText,
+					code: 0,
+					file: undefined,
+					length: undefined,
+					start: undefined,
+				},
+				ts.sys.newLine,
+				options,
+			);
+		}
 	}
 
 	function reportEmitResult(emitResult: ts.EmitResult) {
@@ -71,7 +83,15 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 			diagnosticReporter(diagnostic);
 		}
 		const amtErrors = emitResult.diagnostics.filter(v => v.category === ts.DiagnosticCategory.Error).length;
-		reportText(`Found ${amtErrors} error${amtErrors === 1 ? "" : "s"}. Watching for file changes.`);
+		if (emitJsonToStdout) {
+			if (amtErrors > 0) {
+				jsonReporter("finishedCompileWithErrors", { errorCount: amtErrors });
+			} else {
+				jsonReporter("finishedCompile", {});
+			}
+		} else {
+			reportText(`Found ${amtErrors} error${amtErrors === 1 ? "" : "s"}. Watching for file changes.`);
+		}
 	}
 
 	let program: ts.EmitAndSemanticDiagnosticsBuilderProgram | undefined;
@@ -218,7 +238,13 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	function openEventCollection() {
 		if (!collecting) {
 			collecting = true;
-			reportText("File change detected. Starting incremental compilation...");
+
+			if (emitJsonToStdout) {
+				jsonReporter("startingCompile", { initial: false });
+			} else {
+				reportText("File change detected. Starting incremental compilation...");
+			}
+
 			setTimeout(closeEventCollection, 100);
 		}
 	}
@@ -248,7 +274,11 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		.on("unlink", collectDeleteEvent)
 		.on("unlinkDir", collectDeleteEvent)
 		.once("ready", () => {
-			reportText("Starting compilation in watch mode...");
+			if (emitJsonToStdout) {
+				jsonReporter("startingCompile", { initial: true });
+			} else {
+				reportText("Starting compilation in watch mode...");
+			}
 			reportEmitResult(runCompile());
 		});
 }

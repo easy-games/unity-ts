@@ -11,6 +11,7 @@ import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProjectData } from "Project/functions/createProjectData";
 import { createProjectProgram } from "Project/functions/createProjectProgram";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
+import { createJsonDiagnosticReporter } from "Project/functions/json";
 import { setupProjectWatchProgram } from "Project/functions/setupProjectWatchProgram";
 import { LogService } from "Shared/classes/LogService";
 import { DEFAULT_PROJECT_OPTIONS, ProjectType } from "Shared/constants";
@@ -43,6 +44,11 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 			string: true,
 			default: ".",
 			describe: "project path",
+		},
+		json: {
+			hidden: true,
+			boolean: true,
+			default: false,
 		},
 		package: {
 			string: true,
@@ -78,7 +84,11 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 				argv,
 			);
 
-			LogService.verbose = projectOptions.verbose === true;
+			LogService.verbose = projectOptions.verbose === true && !argv.json;
+
+			if (projectOptions.json && projectOptions.verbose) {
+				throw new ProjectError(`json mode cannot be used with --verbose flag`);
+			}
 
 			const compilerTsVersion = new ts.Version(ts.version);
 			const projectTsVersionRange = new ts.VersionRange(packageJson.devDependencies["typescript"]);
@@ -90,9 +100,11 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 				);
 			}
 
-			const diagnosticReporter = ts.createDiagnosticReporter(ts.sys, true);
-
 			const data = createProjectData(tsConfigPath, argv.package, projectOptions);
+
+			const diagnosticReporter = projectOptions.json
+				? createJsonDiagnosticReporter(data)
+				: ts.createDiagnosticReporter(ts.sys, true);
 
 			if (data.projectOptions.type === ProjectType.AirshipBundle) {
 				const split = packageJson.name.split("/");

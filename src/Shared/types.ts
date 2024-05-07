@@ -23,6 +23,7 @@ export interface ProjectOptions {
 	usePolling: boolean;
 	verbose: boolean;
 	watch: boolean;
+	json: boolean;
 	writeOnlyChanged: boolean;
 	optimizedLoops: boolean;
 	allowCommentDirectives: boolean;

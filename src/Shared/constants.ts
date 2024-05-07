@@ -48,6 +48,7 @@ export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	type: undefined,
 	watch: false,
 	usePolling: false,
+	json: false,
 	verbose: false,
 	noInclude: false,
 	logTruthyChanges: false,

@@ -26,6 +26,7 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpressionStatement } from "TSTransformer/nodes/statements/transformExpressionStatement";
 import { createTransformServices } from "TSTransformer/util/createTransformServices";
 import ts from "typescript";
+import { jsonReporter } from "./json";
 
 function emitResultFailure(messageText: string): ts.EmitResult {
 	return {
@@ -61,6 +62,7 @@ export function compileFiles(
 	buildState: BuildState,
 	sourceFiles: Array<ts.SourceFile>,
 ): ts.EmitResult {
+	const asJson = data.projectOptions.json;
 	const compilerOptions = program.getCompilerOptions();
 
 	const multiTransformState = new MultiTransformState();
@@ -246,6 +248,12 @@ export function compileFiles(
 				fs.outputFileSync(outPath, source);
 				emittedFiles.push(outPath);
 				writeCount++;
+
+				if (asJson) {
+					jsonReporter("compiledFile", {
+						fileName: sourceFile.fileName,
+					});
+				}
 
 				if (compilerOptions.declaration) {
 					proxyProgram.emit(sourceFile, ts.sys.writeFile, undefined, true, {

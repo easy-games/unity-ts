@@ -12,11 +12,9 @@ export function createProjectData(
 	packageDir: string,
 	projectOptions: ProjectOptions,
 ): ProjectData {
-	//const projectPath = // path.dirname(tsConfigPath);
-
 	const pkgJsonPath = ts.findPackageJson(packageDir, ts.sys as unknown as ts.LanguageServiceHost);
 	if (!pkgJsonPath) {
-		throw new ProjectError(`Unable to find package.json: ${packageDir}`);
+		throw new ProjectError(`Unable to find package.json in ${packageDir}`);
 	}
 
 	let isPackage = false;
