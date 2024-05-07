@@ -1,8 +1,6 @@
-import chalk from "chalk";
 import { findTsConfigPath, getPackageJson, getTsConfigProjectOptions } from "CLI/util/findTsConfigPath";
 import { existsSync, mkdirSync } from "fs";
 import { writeFileSync } from "fs-extra";
-import kleur from "kleur";
 import path from "path";
 import { buildTypes } from "Project/functions/buildTypes";
 import { cleanup } from "Project/functions/cleanup";
@@ -27,6 +25,7 @@ import yargs from "yargs";
 
 interface BuildFlags {
 	project: string;
+	package: string;
 }
 
 /**
@@ -44,6 +43,11 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 			string: true,
 			default: ".",
 			describe: "project path",
+		},
+		package: {
+			string: true,
+			default: "Typescript~",
+			describe: "The location of package.json & the node_modules",
 		},
 		verbose: {
 			boolean: true,
@@ -64,7 +68,7 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 	handler: async argv => {
 		try {
 			const tsConfigPath = findTsConfigPath(argv.project);
-			const packageJson = getPackageJson();
+			const packageJson = getPackageJson(argv.package);
 
 			// parse the contents of the retrieved JSON path as a partial `ProjectOptions`
 			const projectOptions: ProjectOptions = Object.assign(
@@ -88,7 +92,7 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 
 			const diagnosticReporter = ts.createDiagnosticReporter(ts.sys, true);
 
-			const data = createProjectData(tsConfigPath, projectOptions);
+			const data = createProjectData(tsConfigPath, argv.package, projectOptions);
 
 			if (data.projectOptions.type === ProjectType.AirshipBundle) {
 				const split = packageJson.name.split("/");

@@ -59,8 +59,8 @@ function addPackageIndexFiles(pathTranslator: PathTranslator, projectOptions: Pr
 	let typesDir: string;
 	if (projectOptions.type === ProjectType.AirshipBundle) {
 		typesDir = path.join("../../../Types~/");
-	} else if (projectOptions.type === ProjectType.Game) {
-		typesDir = path.join("../Bundles/Types~/");
+		// } else if (projectOptions.type === ProjectType.Game) {
+		// 	typesDir = path.join("../Bundles/Types~/");
 	} else {
 		LogService.writeLine("Skipping package index file gen.");
 		return;

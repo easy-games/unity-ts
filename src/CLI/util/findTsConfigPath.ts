@@ -27,8 +27,8 @@ export function getTsConfigProjectOptions(tsConfigPath?: string): Partial<Projec
 	}
 }
 
-export function getPackageJson(): PackageJson {
-	const path = "./package.json";
-	const rawJson = ts.sys.readFile("./package.json");
+export function getPackageJson(packageJsonPath = "."): PackageJson {
+	const relPath = path.join(packageJsonPath, "package.json");
+	const rawJson = ts.sys.readFile(relPath);
 	return JSON.parse(rawJson!);
 }
