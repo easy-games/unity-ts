@@ -1,4 +1,4 @@
-import path from "path";
+import { posix as path } from "path";
 import ts from "typescript";
 
 export function getRootDirs(compilerOptions: ts.CompilerOptions): Array<string> {

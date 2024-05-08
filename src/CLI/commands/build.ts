@@ -1,7 +1,7 @@
 import { findTsConfigPath, getPackageJson, getTsConfigProjectOptions } from "CLI/util/findTsConfigPath";
 import { existsSync, mkdirSync } from "fs";
 import { writeFileSync } from "fs-extra";
-import path from "path";
+import { posix as path } from "path";
 import { buildTypes } from "Project/functions/buildTypes";
 import { cleanup } from "Project/functions/cleanup";
 import { compileFiles } from "Project/functions/compileFiles";
@@ -75,6 +75,10 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 		try {
 			const tsConfigPath = findTsConfigPath(argv.project);
 			const packageJson = getPackageJson(argv.package);
+
+			if (!packageJson) {
+				throw new ProjectError(`Could not find package.json at ${argv.package}`);
+			}
 
 			// parse the contents of the retrieved JSON path as a partial `ProjectOptions`
 			const projectOptions: ProjectOptions = Object.assign(

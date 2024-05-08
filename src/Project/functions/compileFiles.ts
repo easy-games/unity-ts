@@ -3,6 +3,7 @@ import fs from "fs-extra";
 import path from "path";
 import { checkFileName } from "Project/functions/checkFileName";
 import { createNodeModulesPathMapping } from "Project/functions/createNodeModulesPathMapping";
+import { jsonReporter } from "Project/functions/json";
 import { transformPaths } from "Project/transformers/builtin/transformPaths";
 import { transformTypeReferenceDirectives } from "Project/transformers/builtin/transformTypeReferenceDirectives";
 import { createTransformerList, flattenIntoTransformers } from "Project/transformers/createTransformerList";
@@ -26,7 +27,6 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpressionStatement } from "TSTransformer/nodes/statements/transformExpressionStatement";
 import { createTransformServices } from "TSTransformer/util/createTransformServices";
 import ts from "typescript";
-import { jsonReporter } from "./json";
 
 function emitResultFailure(messageText: string): ts.EmitResult {
 	return {

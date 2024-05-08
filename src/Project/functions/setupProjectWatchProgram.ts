@@ -1,6 +1,5 @@
 import chokidar from "chokidar";
 import fs from "fs-extra";
-import path from "path";
 import { ProjectData } from "Project";
 import { buildTypes } from "Project/functions/buildTypes";
 import { checkFileName } from "Project/functions/checkFileName";
@@ -97,7 +96,6 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	let program: ts.EmitAndSemanticDiagnosticsBuilderProgram | undefined;
 	let pathTranslator: PathTranslator | undefined;
 
-	console.log("create program");
 	const createProgram = createProgramFactory(data, options);
 	function refreshProgram() {
 		program = createProgram([...fileNamesSet], options);
@@ -105,7 +103,6 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	}
 
 	function runInitialCompile() {
-		console.log("Run initial componile pls");
 		refreshProgram();
 		assert(program && pathTranslator);
 		cleanup(pathTranslator, data.projectOptions);
