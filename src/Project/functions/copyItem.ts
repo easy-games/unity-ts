@@ -11,7 +11,7 @@ export const isUnityFile = (file: string) => {
 
 export const isCopyableFile = (file: string) => {
 	return file.endsWith(LUA_EXT) || file.endsWith(DTS_EXT) || file.endsWith(JSON_EXT);
-}
+};
 
 export function copyItem(data: ProjectData, pathTranslator: PathTranslator, item: string) {
 	const output = pathTranslator.getOutputPath(item);

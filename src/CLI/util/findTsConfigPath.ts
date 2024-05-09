@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { ProjectOptions } from "Project";
 import { PackageJson, TypeScriptConfiguration } from "Shared/types";
-import ts, { TSConfig } from "typescript";
+import ts from "typescript";
 
 export function findTsConfigPath(projectPath: string) {
 	let tsConfigPath: string | undefined = path.resolve(projectPath);

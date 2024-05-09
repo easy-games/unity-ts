@@ -49,6 +49,7 @@ export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	rojo: undefined,
 	type: undefined,
 	watch: false,
+	package: "Typescript~",
 	usePolling: false,
 	json: false,
 	verbose: false,

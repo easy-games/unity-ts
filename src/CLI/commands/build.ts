@@ -1,7 +1,5 @@
 import { findTsConfigPath, getPackageJson, getTsConfigProjectOptions } from "CLI/util/findTsConfigPath";
-import { existsSync, mkdirSync } from "fs";
-import { writeFileSync } from "fs-extra";
-import { posix as path } from "path";
+import { existsSync } from "fs";
 import { buildTypes } from "Project/functions/buildTypes";
 import { cleanup } from "Project/functions/cleanup";
 import { compileFiles } from "Project/functions/compileFiles";
@@ -26,7 +24,7 @@ import yargs from "yargs";
 
 interface BuildFlags {
 	project: string;
-	package: string;
+	package: string | undefined;
 }
 
 /**
@@ -52,8 +50,7 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 		},
 		package: {
 			string: true,
-			default: "Typescript~",
-			describe: "The location of package.json & the node_modules",
+			describe: "The location of package.json",
 		},
 		verbose: {
 			boolean: true,
@@ -74,11 +71,6 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 	handler: async argv => {
 		try {
 			const tsConfigPath = findTsConfigPath(argv.project);
-			const packageJson = getPackageJson(argv.package);
-
-			if (!packageJson) {
-				throw new ProjectError(`Could not find package.json at ${argv.package}`);
-			}
 
 			// parse the contents of the retrieved JSON path as a partial `ProjectOptions`
 			const projectOptions: ProjectOptions = Object.assign(
@@ -87,6 +79,13 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 				getTsConfigProjectOptions(tsConfigPath),
 				argv,
 			);
+
+			const packageJsonDir = argv.package ?? projectOptions.package;
+			if (packageJsonDir === undefined || !existsSync(packageJsonDir)) {
+				throw new ProjectError(`package.json not found at ${packageJsonDir}`);
+			}
+
+			const packageJson = getPackageJson(packageJsonDir);
 
 			LogService.verbose = projectOptions.verbose === true && !argv.json;
 
@@ -104,23 +103,23 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 				);
 			}
 
-			const data = createProjectData(tsConfigPath, argv.package, projectOptions);
+			const data = createProjectData(tsConfigPath, packageJsonDir, projectOptions);
 
 			const diagnosticReporter = projectOptions.json
 				? createJsonDiagnosticReporter(data)
 				: ts.createDiagnosticReporter(ts.sys, true);
 
-			if (data.projectOptions.type === ProjectType.AirshipBundle) {
-				const split = packageJson.name.split("/");
-				const indexPath = path.join("..", "..", "..", "Types~", split[0], split[1], "index.d.ts");
-				const indexPathDir = path.dirname(indexPath);
-				if (!existsSync(indexPathDir)) {
-					mkdirSync(indexPathDir, {
-						recursive: true,
-					});
-				}
-				writeFileSync(indexPath, "");
-			}
+			// if (data.projectOptions.type === ProjectType.AirshipBundle) {
+			// 	const split = packageJson.name.split("/");
+			// 	const indexPath = path.join("..", "..", "..", "Types~", split[0], split[1], "index.d.ts");
+			// 	const indexPathDir = path.dirname(indexPath);
+			// 	if (!existsSync(indexPathDir)) {
+			// 		mkdirSync(indexPathDir, {
+			// 			recursive: true,
+			// 		});
+			// 	}
+			// 	writeFileSync(indexPath, "");
+			// }
 
 			if (projectOptions.watch) {
 				setupProjectWatchProgram(data, projectOptions.usePolling);
@@ -128,9 +127,7 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 				const program = createProjectProgram(data);
 				const pathTranslator = createPathTranslator(program, projectOptions);
 				cleanup(pathTranslator, projectOptions);
-				if (projectOptions.type === ProjectType.Game) {
-					// copyInclude(data);
-				}
+
 				if (projectOptions.copyNodeModules) {
 					await copyNodeModules(data);
 				}
