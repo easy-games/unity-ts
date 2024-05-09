@@ -1,3 +1,5 @@
+import readline from "node:readline";
+
 import chokidar from "chokidar";
 import fs from "fs-extra";
 import { ProjectData } from "Project";
@@ -12,7 +14,7 @@ import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProgramFactory } from "Project/functions/createProgramFactory";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
-import { createJsonDiagnosticReporter, jsonReporter } from "Project/functions/json";
+import { createJsonDiagnosticReporter, InputEvent, isCompilationEvent, jsonReporter } from "Project/functions/json";
 import { tryRemoveOutput } from "Project/functions/tryRemoveOutput";
 import { isCompilableFile } from "Project/util/isCompilableFile";
 import { walkDirectorySync } from "Project/util/walkDirectorySync";
@@ -22,7 +24,7 @@ import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { assert } from "Shared/util/assert";
 import { getRootDirs } from "Shared/util/getRootDirs";
 import { AirshipBuildState } from "TSTransformer";
-import ts from "typescript";
+import ts, { isArray } from "typescript";
 
 const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
 	ignored: /^.*\.(?!ts$|tsx$|d\.ts$|lua$)[^.]+$/gi,
@@ -40,7 +42,7 @@ function fixSlashes(fsPath: string) {
 
 export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean) {
 	const { fileNames, options } = getParsedCommandLine(data);
-	const emitJsonToStdout = data.projectOptions.json;
+	const useJsonEvents = data.projectOptions.json;
 	const fileNamesSet = new Set(fileNames);
 
 	let initialCompileCompleted = false;
@@ -52,12 +54,12 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	const watchBuildState = new AirshipBuildState();
 
 	const watchReporter = ts.createWatchStatusReporter(ts.sys, true);
-	const diagnosticReporter = emitJsonToStdout
+	const diagnosticReporter = useJsonEvents
 		? createJsonDiagnosticReporter(data)
 		: ts.createDiagnosticReporter(ts.sys, true);
 
 	function reportText(messageText: string) {
-		if (emitJsonToStdout) {
+		if (useJsonEvents) {
 			jsonReporter("watchReport", {
 				messageText,
 				category: ts.DiagnosticCategory.Message,
@@ -83,7 +85,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 			diagnosticReporter(diagnostic);
 		}
 		const amtErrors = emitResult.diagnostics.filter(v => v.category === ts.DiagnosticCategory.Error).length;
-		if (emitJsonToStdout) {
+		if (useJsonEvents) {
 			if (amtErrors > 0) {
 				jsonReporter("finishedCompileWithErrors", { errorCount: amtErrors });
 			} else {
@@ -240,7 +242,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		if (!collecting) {
 			collecting = true;
 
-			if (emitJsonToStdout) {
+			if (useJsonEvents) {
 				jsonReporter("startingCompile", { initial: false });
 			} else {
 				reportText("File change detected. Starting incremental compilation...");
@@ -265,6 +267,36 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		openEventCollection();
 	}
 
+	function isInputEvent(input: object): input is InputEvent {
+		return (
+			typeof input === "object" &&
+			"event" in input &&
+			"arguments" in input &&
+			typeof input.event === "string" &&
+			typeof input.arguments === "object"
+		);
+	}
+
+	function handleRpcEvent(input: string) {
+		try {
+			const message = JSON.parse(input) as Record<string, unknown>;
+			if (!isInputEvent(message)) return;
+
+			if (isCompilationEvent(message)) {
+				const { files } = message.arguments;
+				for (const file of files) {
+					collectChangeEvent(file);
+				}
+			}
+		} catch (err) {
+			if (err instanceof SyntaxError) {
+				jsonReporter("rpcInputError", {
+					error: err.message,
+				});
+			}
+		}
+	}
+
 	const chokidarOptions: chokidar.WatchOptions = { ...CHOKIDAR_OPTIONS, usePolling };
 
 	chokidar
@@ -275,11 +307,19 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		.on("unlink", collectDeleteEvent)
 		.on("unlinkDir", collectDeleteEvent)
 		.once("ready", () => {
-			if (emitJsonToStdout) {
+			if (useJsonEvents) {
 				jsonReporter("startingCompile", { initial: true });
 			} else {
 				reportText("Starting compilation in watch mode...");
 			}
 			reportEmitResult(runCompile());
 		});
+
+	if (useJsonEvents) {
+		const rl = readline.createInterface({
+			input: process.stdin,
+		});
+
+		rl.on("line", handleRpcEvent);
+	}
 }

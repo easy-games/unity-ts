@@ -37,6 +37,23 @@ interface RpcType {
 	startingCompile: StartCompile;
 	finishedCompile: FinishCompile;
 	finishedCompileWithErrors: FinishCompile & { errorCount: number };
+	rpcInputError: {
+		error: unknown;
+	};
+}
+
+export interface InputEvent<T extends object = object> {
+	readonly event: string;
+	readonly arguments: T;
+}
+
+interface CompilationArguments {
+	readonly files: Array<string>;
+}
+export interface CompilationEvent extends InputEvent<CompilationArguments> {}
+
+export function isCompilationEvent(event: InputEvent): event is CompilationEvent {
+	return event.event === "compile";
 }
 
 export function jsonReporter<K extends keyof RpcType>(request: K, value: RpcType[K]) {
