@@ -211,6 +211,12 @@ export function compileFiles(
 					}
 				}
 			}
+
+			if (asJson) {
+				jsonReporter("compiledFile", {
+					fileName: sourceFile.fileName,
+				});
+			}
 		});
 	}
 
@@ -249,11 +255,7 @@ export function compileFiles(
 				emittedFiles.push(outPath);
 				writeCount++;
 
-				if (asJson) {
-					jsonReporter("compiledFile", {
-						fileName: sourceFile.fileName,
-					});
-				}
+
 
 				if (compilerOptions.declaration) {
 					proxyProgram.emit(sourceFile, ts.sys.writeFile, undefined, true, {

@@ -87,11 +87,11 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 
 			const packageJson = getPackageJson(packageJsonDir);
 
-			LogService.verbose = projectOptions.verbose === true && !argv.json;
+			LogService.verbose = projectOptions.verbose === true;
 
-			if (projectOptions.json && projectOptions.verbose) {
-				throw new ProjectError(`json mode cannot be used with --verbose flag`);
-			}
+			// if (projectOptions.json && projectOptions.verbose) {
+			// 	throw new ProjectError(`json mode cannot be used with --verbose flag`);
+			// }
 
 			const compilerTsVersion = new ts.Version(ts.version);
 			const projectTsVersionRange = new ts.VersionRange(packageJson.devDependencies["typescript"]);

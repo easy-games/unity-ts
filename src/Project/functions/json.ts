@@ -73,8 +73,9 @@ export function createJsonDiagnosticReporter(data: ProjectData): ts.DiagnosticRe
 				? diagnostic.file?.getLineAndCharacterOfPosition(diagnostic.start)
 				: undefined;
 
+		const rootPath = path.dirname(data.projectOptions.package);
 		jsonReporter("fileDiagnostic", {
-			filePath: diagnostic.file ? path.relative(data.projectPath, diagnostic.file.fileName) : undefined,
+			filePath: diagnostic.file ? path.relative(rootPath, diagnostic.file.fileName) : undefined,
 			message: diagnostic.messageText,
 			code: diagnostic.code,
 			category: diagnostic.category,

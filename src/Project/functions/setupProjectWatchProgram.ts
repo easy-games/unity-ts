@@ -318,6 +318,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	if (useJsonEvents) {
 		const rl = readline.createInterface({
 			input: process.stdin,
+			output: process.stdout,
 		});
 
 		rl.on("line", handleRpcEvent);
