@@ -3,17 +3,21 @@ import path from "path";
 import { ProjectData } from "Project";
 import { isCompilableFile } from "Project/util/isCompilableFile";
 import { PathTranslator } from "Shared/classes/PathTranslator";
-import { DTS_EXT, META_EXT } from "Shared/constants";
+import { DTS_EXT, JSON_EXT, LUA_EXT, META_EXT } from "Shared/constants";
 
 export const isUnityFile = (file: string) => {
 	return file.endsWith(META_EXT);
 };
 
+export const isCopyableFile = (file: string) => {
+	return file.endsWith(LUA_EXT) || file.endsWith(DTS_EXT) || file.endsWith(JSON_EXT);
+}
+
 export function copyItem(data: ProjectData, pathTranslator: PathTranslator, item: string) {
 	const output = pathTranslator.getOutputPath(item);
 
 	// Exclude meta files
-	if (isUnityFile(item)) return;
+	if (!isCopyableFile(item)) return;
 
 	// Can't copy out
 	if (output == pathTranslator.outDir) return;

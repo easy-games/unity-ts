@@ -284,6 +284,7 @@ export function compileFiles(
 		});
 	}
 
+	let typescriptDir = path.dirname(data.tsConfigPath);
 	let editorMetadataPath: string;
 	{
 		if (projectType === ProjectType.AirshipBundle) {
@@ -300,7 +301,7 @@ export function compileFiles(
 
 			buildState.editorInfo.id = pkgJson.name;
 		} else {
-			editorMetadataPath = path.join(pathTranslator.outDir, "..", "TypeScriptEditorMetadata.aseditorinfo");
+			editorMetadataPath = path.join(typescriptDir, "TypeScriptEditorMetadata.aseditorinfo");
 		}
 
 		const oldBuildFileSource = fs.existsSync(editorMetadataPath)
@@ -314,7 +315,7 @@ export function compileFiles(
 		}
 	}
 
-	const buildFilePath = path.join(pathTranslator.outDir, "Shared", "Resources", "TS", "Airship.asbuildinfo");
+	const buildFilePath = path.join(typescriptDir, "Airship.asbuildinfo");
 	{
 		const oldBuildFileSource = fs.existsSync(buildFilePath) ? fs.readFileSync(buildFilePath).toString() : "";
 		const newBuildFileSource = JSON.stringify(buildFile, null, "\t");
