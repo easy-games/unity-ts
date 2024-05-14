@@ -26,7 +26,20 @@ function cleanupDirRecursively(pathTranslator: PathTranslator, dir: string) {
 export function cleanup(pathTranslator: PathTranslator, projectOptions: ProjectOptions) {
 	benchmarkIfVerbose(`cleanup orphaned files`, () => {
 		const outDir = pathTranslator.outDir;
-		const dirsToCleanup = [path.join(outDir)];
+
+		let dirsToCleanup: Array<string>;
+
+		const isLegacyProject = outDir.includes("Assets/Bundles");
+		if (isLegacyProject) {
+			// Handle legacy compiler stuff
+			dirsToCleanup = [
+				path.join(outDir, "Client", "Resources", "TS"),
+				path.join(outDir, "Server", "Resources", "TS"),
+				path.join(outDir, "Shared", "Resources", "TS"),
+			];
+		} else {
+			dirsToCleanup = [path.join(outDir)];
+		}
 
 		for (const dir of dirsToCleanup) {
 			if (fs.pathExistsSync(dir)) {
