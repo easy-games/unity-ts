@@ -50,6 +50,7 @@ export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	type: undefined,
 	watch: false,
 	package: ".",
+	runtimePath: "@Easy/Core/Shared/Resources/TS/Runtime", // backwards compat reasons - will change later.
 	usePolling: false,
 	json: false,
 	verbose: false,

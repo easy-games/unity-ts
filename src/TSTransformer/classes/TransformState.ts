@@ -1,5 +1,5 @@
 import luau, { render, RenderState, renderStatements, solveTempIds } from "@roblox-ts/luau-ast";
-import path from "path";
+import { posix as path } from "path";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { ProjectType } from "Shared/constants";
 import { AirshipBehaviour, ProjectData } from "Shared/types";
@@ -200,10 +200,13 @@ export class TransformState {
 	/**
 	 * Returns a `luau.VariableDeclaration` for RuntimeLib.lua
 	 */
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	public createRuntimeLibImport(sourceFile: ts.SourceFile) {
+		const runtimeLibPath = path.join(this.data.projectOptions.runtimePath, "RuntimeLib");
+
 		return luau.create(luau.SyntaxKind.VariableDeclaration, {
 			left: luau.globals.TS,
-			right: luau.call(luau.globals.require, [luau.string("@Easy/Core/Shared/Resources/TS/Runtime/RuntimeLib")]),
+			right: luau.call(luau.globals.require, [luau.string(runtimeLibPath)]),
 		});
 	}
 

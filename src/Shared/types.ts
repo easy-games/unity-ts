@@ -17,6 +17,7 @@ export interface TypeScriptConfiguration extends ts.TSConfig {
 export interface ProjectOptions {
 	includePath: string;
 	package: string;
+	runtimePath: string;
 	rojo: string | undefined;
 	type: ProjectType | undefined;
 	logTruthyChanges: boolean;
