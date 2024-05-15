@@ -9,7 +9,7 @@ import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProjectData } from "Project/functions/createProjectData";
 import { createProjectProgram } from "Project/functions/createProjectProgram";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
-import { createJsonDiagnosticReporter } from "Project/functions/json";
+import { createJsonDiagnosticReporter, jsonReporter } from "Project/functions/json";
 import { setupProjectWatchProgram } from "Project/functions/setupProjectWatchProgram";
 import { LogService } from "Shared/classes/LogService";
 import { DEFAULT_PROJECT_OPTIONS, ProjectType } from "Shared/constants";
@@ -132,6 +132,10 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 					await copyNodeModules(data);
 				}
 
+				if (projectOptions.json) {
+					jsonReporter("startingCompile", { initial: true });
+				}
+
 				copyFiles(data, pathTranslator, new Set(getRootDirs(program.getCompilerOptions())));
 				const emitResult = compileFiles(
 					program.getProgram(),
@@ -140,13 +144,23 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 					new AirshipBuildState(),
 					getChangedSourceFiles(program),
 				);
+
 				for (const diagnostic of emitResult.diagnostics) {
 					diagnosticReporter(diagnostic);
 				}
+
 				let containsErrors = false;
 				if (hasErrors(emitResult.diagnostics)) {
 					containsErrors = true;
 					process.exitCode = 1;
+
+					if (projectOptions.json) {
+						jsonReporter("finishedCompileWithErrors", {
+							errorCount: emitResult.diagnostics.length,
+						});
+					}
+				} else if (projectOptions.json) {
+					jsonReporter("finishedCompile", {});
 				}
 
 				// Build types
