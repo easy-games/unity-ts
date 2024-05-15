@@ -87,7 +87,7 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 
 			const packageJson = getPackageJson(packageJsonDir);
 
-			LogService.verbose = projectOptions.verbose === true;
+			LogService.verbose = projectOptions.verbose === true && projectOptions.json === false;
 
 			// if (projectOptions.json && projectOptions.verbose) {
 			// 	throw new ProjectError(`json mode cannot be used with --verbose flag`);
@@ -132,17 +132,19 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 					await copyNodeModules(data);
 				}
 
+				copyFiles(data, pathTranslator, new Set(getRootDirs(program.getCompilerOptions())));
+				const sourceFiles = getChangedSourceFiles(program);
+
 				if (projectOptions.json) {
-					jsonReporter("startingCompile", { initial: true });
+					jsonReporter("startingCompile", { initial: true, count: sourceFiles.length });
 				}
 
-				copyFiles(data, pathTranslator, new Set(getRootDirs(program.getCompilerOptions())));
 				const emitResult = compileFiles(
 					program.getProgram(),
 					data,
 					pathTranslator,
 					new AirshipBuildState(),
-					getChangedSourceFiles(program),
+					sourceFiles,
 				);
 
 				for (const diagnostic of emitResult.diagnostics) {

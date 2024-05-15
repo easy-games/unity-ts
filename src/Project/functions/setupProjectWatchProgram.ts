@@ -121,7 +121,18 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		}
 		copyFiles(data, pathTranslator, new Set(getRootDirs(options)));
 		const sourceFiles = getChangedSourceFiles(program);
+
+		if (useJsonEvents) {
+			jsonReporter("startingCompile", {
+				initial: true,
+				count: sourceFiles.length,
+			});
+		} else {
+			reportText("Starting compilation in watch mode...");
+		}
+
 		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, watchBuildState, sourceFiles);
+
 		if (!emitResult.emitSkipped) {
 			buildTypes(data);
 
@@ -219,6 +230,16 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 				filesToAdd = new Set();
 				filesToChange = new Set();
 				filesToDelete = new Set();
+
+				if (useJsonEvents) {
+					jsonReporter("startingCompile", {
+						initial: false,
+						count: filesToAdd.size + filesToChange.size + filesToDelete.size,
+					});
+				} else {
+					reportText("File change detected. Starting incremental compilation...");
+				}
+
 				return runIncrementalCompile(additions, changes, removals);
 			}
 		} catch (e) {
@@ -241,12 +262,6 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	function openEventCollection() {
 		if (!collecting) {
 			collecting = true;
-
-			if (useJsonEvents) {
-				jsonReporter("startingCompile", { initial: false });
-			} else {
-				reportText("File change detected. Starting incremental compilation...");
-			}
 
 			setTimeout(closeEventCollection, 100);
 		}
@@ -307,11 +322,6 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		.on("unlink", collectDeleteEvent)
 		.on("unlinkDir", collectDeleteEvent)
 		.once("ready", () => {
-			if (useJsonEvents) {
-				jsonReporter("startingCompile", { initial: true });
-			} else {
-				reportText("Starting compilation in watch mode...");
-			}
 			reportEmitResult(runCompile());
 		});
 

@@ -26,6 +26,7 @@ interface CompiledFile {}
 
 interface StartCompile {
 	initial: boolean;
+	count: number;
 }
 interface FinishCompile {}
 
