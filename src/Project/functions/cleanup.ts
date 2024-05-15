@@ -57,7 +57,6 @@ function addPackageIndexFiles(pathTranslator: PathTranslator, projectOptions: Pr
 		// } else if (projectOptions.type === ProjectType.Game) {
 		// 	typesDir = path.join("../Bundles/Types~/");
 	} else {
-		LogService.writeLine("Skipping package index file gen.");
 		return;
 	}
 	const files = fs.readdirSync(typesDir, { withFileTypes: true });
