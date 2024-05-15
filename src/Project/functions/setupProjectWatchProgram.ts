@@ -194,6 +194,16 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		assert(program && pathTranslator);
 
 		const sourceFiles = getChangedSourceFiles(program, options.incremental ? undefined : [...filesToCompile]);
+
+		if (useJsonEvents) {
+			jsonReporter("startingCompile", {
+				initial: false,
+				count: sourceFiles.length,
+			});
+		} else {
+			reportText("File change detected. Starting incremental compilation...");
+		}
+
 		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, watchBuildState, sourceFiles);
 		if (emitResult.emitSkipped) {
 			// exit before copying to prevent half-updated out directory
@@ -230,15 +240,6 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 				filesToAdd = new Set();
 				filesToChange = new Set();
 				filesToDelete = new Set();
-
-				if (useJsonEvents) {
-					jsonReporter("startingCompile", {
-						initial: false,
-						count: filesToAdd.size + filesToChange.size + filesToDelete.size,
-					});
-				} else {
-					reportText("File change detected. Starting incremental compilation...");
-				}
 
 				return runIncrementalCompile(additions, changes, removals);
 			}
