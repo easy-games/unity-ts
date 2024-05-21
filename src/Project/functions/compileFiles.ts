@@ -95,7 +95,8 @@ export function compileFiles(
 			const pluginConfigs = getPluginConfigs(data.tsConfigPath);
 			for (const pluginConfig of pluginConfigs) {
 				pluginConfig.compiler = {
-					package: data.projectOptions.package,
+					projectDir: path.relative(process.cwd(), path.dirname(data.tsConfigPath)) || ".",
+					packageDir: path.relative(process.cwd(), data.projectOptions.package),
 				};
 			}
 

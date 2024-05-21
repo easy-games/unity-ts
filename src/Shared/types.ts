@@ -55,7 +55,8 @@ export interface TransformerWatcher {
 }
 
 export interface TransformerCompilerArguments {
-	package: string;
+	packageDir: string;
+	projectDir: string;
 }
 
 export interface TransformerPluginConfig {
