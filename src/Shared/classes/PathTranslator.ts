@@ -118,10 +118,10 @@ export class PathTranslator {
 
 			pathInfo.exts.pop(); // pop .tsx?
 
-			// index -> init
-			if (pathInfo.fileName === INDEX_NAME) {
-				pathInfo.fileName = INIT_NAME;
-			}
+			// // index -> init
+			// if (pathInfo.fileName === INDEX_NAME) {
+			// 	pathInfo.fileName = INIT_NAME;
+			// }
 
 			if (isJson) {
 				pathInfo.exts.push(".json");
@@ -281,10 +281,10 @@ export class PathTranslator {
 				pathInfo.exts.pop(); // pop .d
 			}
 
-			// index -> init
-			if (pathInfo.fileName === INDEX_NAME) {
-				pathInfo.fileName = INIT_NAME;
-			}
+			// // index -> init
+			// if (pathInfo.fileName === INDEX_NAME) {
+			// 	pathInfo.fileName = INIT_NAME;
+			// }
 
 			pathInfo.exts.push(LUA_EXT); // push .lua
 		}

@@ -93,6 +93,12 @@ export function compileFiles(
 	if (compilerOptions.plugins && compilerOptions.plugins.length > 0) {
 		benchmarkIfVerbose(`Running transformers...`, () => {
 			const pluginConfigs = getPluginConfigs(data.tsConfigPath);
+			for (const pluginConfig of pluginConfigs) {
+				pluginConfig.compiler = {
+					package: data.projectOptions.package,
+				};
+			}
+
 			const transformerList = createTransformerList(program, pluginConfigs, data.projectPath);
 			const transformers = flattenIntoTransformers(transformerList);
 			if (transformers.length > 0) {
@@ -254,8 +260,6 @@ export function compileFiles(
 				fs.outputFileSync(outPath, source);
 				emittedFiles.push(outPath);
 				writeCount++;
-
-
 
 				if (compilerOptions.declaration) {
 					proxyProgram.emit(sourceFile, ts.sys.writeFile, undefined, true, {

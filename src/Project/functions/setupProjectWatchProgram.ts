@@ -24,7 +24,7 @@ import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { assert } from "Shared/util/assert";
 import { getRootDirs } from "Shared/util/getRootDirs";
 import { AirshipBuildState } from "TSTransformer";
-import ts, { isArray } from "typescript";
+import ts from "typescript";
 
 const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
 	ignored: /^.*\.(?!ts$|tsx$|d\.ts$|lua$)[^.]+$/gi,

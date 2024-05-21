@@ -54,6 +54,10 @@ export interface TransformerWatcher {
 	updateFile: (fileName: string, text: string) => void;
 }
 
+export interface TransformerCompilerArguments {
+	package: string;
+}
+
 export interface TransformerPluginConfig {
 	/**
 	 * Path to transformer or transformer module name
@@ -84,6 +88,11 @@ export interface TransformerPluginConfig {
 	 * any other properties provided to the transformer as config argument
 	 * */
 	[options: string]: unknown;
+
+	/**
+	 * Compiler arguments that transformers can use
+	 */
+	compiler: TransformerCompilerArguments;
 }
 
 export interface SourceFileWithTextRange {
