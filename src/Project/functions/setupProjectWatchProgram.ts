@@ -27,7 +27,7 @@ import { AirshipBuildState } from "TSTransformer";
 import ts from "typescript";
 
 const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
-	ignored: /^.*\.(?!ts$|tsx$|d\.ts$|lua$)[^.]+$/gi,
+	ignored: [/^.*\.(?!ts$|tsx$|d\.ts$|lua$)[^.]+$/gi, "**/node_modules/**"],
 	awaitWriteFinish: {
 		pollInterval: 10,
 		stabilityThreshold: 50,
