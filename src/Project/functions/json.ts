@@ -78,7 +78,7 @@ export function createJsonDiagnosticReporter(data: ProjectData): ts.DiagnosticRe
 		jsonReporter("fileDiagnostic", {
 			filePath: diagnostic.file ? path.relative(rootPath, diagnostic.file.fileName) : undefined,
 			message: diagnostic.messageText,
-			code: diagnostic.code,
+			code: typeof diagnostic.code === "number" ? diagnostic.code : -1,
 			category: diagnostic.category,
 			position: diagnostic.start,
 			source: diagnostic.source,
