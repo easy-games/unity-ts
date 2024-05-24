@@ -148,6 +148,8 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	function runIncrementalCompile(additions: Set<string>, changes: Set<string>, removals: Set<string>): ts.EmitResult {
 		const buildFile = watchBuildState.buildFile;
 
+		console.log("add", additions, "change", changes, "removals", removals);
+
 		for (const fsPath of additions) {
 			if (fs.statSync(fsPath).isDirectory()) {
 				walkDirectorySync(fsPath, item => {
@@ -259,6 +261,14 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	function isExcludedPath(fsPath: string) {
 		const outPath = options.outDir ?? path.join(options.baseUrl ?? process.cwd(), data.projectOptions.package);
 		const modulesPath = path.join(options.baseUrl ?? process.cwd(), data.projectOptions.package, "node_modules");
+
+		console.log(
+			"outPath",
+			fsPath,
+			outPath,
+			modulesPath,
+			fsPath.startsWith(outPath) || fsPath.startsWith(modulesPath),
+		);
 		return fsPath.startsWith(outPath) || fsPath.startsWith(modulesPath);
 	}
 
