@@ -26,8 +26,8 @@ import { getRootDirs } from "Shared/util/getRootDirs";
 import { AirshipBuildState } from "TSTransformer";
 import ts from "typescript";
 
+const IGNORE_LIST = [/^.*\.(?!ts$|tsx$|d\.ts$|lua$)[^.]+$/gi, "**/node_modules/**"];
 const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
-	ignored: [/^.*\.(?!ts$|tsx$|d\.ts$|lua$)[^.]+$/gi, "**/node_modules/**"],
 	awaitWriteFinish: {
 		pollInterval: 10,
 		stabilityThreshold: 50,
@@ -81,8 +81,6 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	}
 
 	function reportEmitResult(emitResult: ts.EmitResult) {
-		if (emitResult.emitSkipped) return;
-
 		for (const diagnostic of emitResult.diagnostics) {
 			diagnosticReporter(diagnostic);
 		}
@@ -148,12 +146,6 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	const filesToClean = new Set<string>();
 	function runIncrementalCompile(additions: Set<string>, changes: Set<string>, removals: Set<string>): ts.EmitResult {
 		const buildFile = watchBuildState.buildFile;
-
-		if (data.projectOptions.verbose) {
-			console.log("Additions", additions, "Changes", changes, "Removals", removals);
-		}
-
-		// console.log("additons", additions, "changes", changes, "removals", removals);
 
 		for (const fsPath of additions) {
 			if (fs.statSync(fsPath).isDirectory()) {
@@ -323,6 +315,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	}
 
 	const chokidarOptions: chokidar.WatchOptions = { ...CHOKIDAR_OPTIONS, usePolling };
+	chokidarOptions.ignored = [...IGNORE_LIST, `${options.outDir}/**`];
 
 	chokidar
 		.watch(getRootDirs(options), chokidarOptions)
