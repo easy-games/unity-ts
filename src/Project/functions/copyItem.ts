@@ -1,9 +1,9 @@
 import fs, { readdirSync } from "fs-extra";
 import path from "path";
 import { ProjectData } from "Project";
-import { isCompilableFile } from "Project/util/isCompilableFile";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { DTS_EXT, JSON_EXT, LUA_EXT, META_EXT } from "Shared/constants";
+import { isCompilableFile } from "Shared/util/isCompilableFile";
 
 export const isUnityFile = (file: string) => {
 	return file.endsWith(META_EXT);

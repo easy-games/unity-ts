@@ -2,6 +2,7 @@ import readline from "node:readline";
 
 import chokidar from "chokidar";
 import fs from "fs-extra";
+import path from "path";
 import { ProjectData } from "Project";
 import { buildTypes } from "Project/functions/buildTypes";
 import { checkFileName } from "Project/functions/checkFileName";
@@ -16,13 +17,13 @@ import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
 import { createJsonDiagnosticReporter, InputEvent, isCompilationEvent, jsonReporter } from "Project/functions/json";
 import { tryRemoveOutput } from "Project/functions/tryRemoveOutput";
-import { isCompilableFile } from "Project/util/isCompilableFile";
-import { walkDirectorySync } from "Project/util/walkDirectorySync";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { ProjectType } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { assert } from "Shared/util/assert";
 import { getRootDirs } from "Shared/util/getRootDirs";
+import { isCompilableFile } from "Shared/util/isCompilableFile";
+import { walkDirectorySync } from "Shared/util/walkDirectorySync";
 import { AirshipBuildState } from "TSTransformer";
 import ts from "typescript";
 
@@ -119,7 +120,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 					console.error(err);
 				});
 		}
-		copyFiles(data, pathTranslator, new Set(getRootDirs(options)));
+		copyFiles(data, pathTranslator, new Set(getRootDirs(options, data.projectOptions)));
 		const sourceFiles = getChangedSourceFiles(program);
 
 		if (useJsonEvents) {
@@ -194,7 +195,6 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		assert(program && pathTranslator);
 
 		const sourceFiles = getChangedSourceFiles(program, options.incremental ? undefined : [...filesToCompile]);
-		if (sourceFiles.length === 0) return { emitSkipped: true, emittedFiles: undefined, diagnostics: [] };
 
 		if (useJsonEvents) {
 			jsonReporter("startingCompile", {
@@ -256,6 +256,12 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		}
 	}
 
+	function isExcludedPath(fsPath: string) {
+		const outPath = options.outDir ?? path.join(options.baseUrl ?? process.cwd(), data.projectOptions.package);
+		const modulesPath = path.join(options.baseUrl ?? process.cwd(), data.projectOptions.package, "node_modules");
+		return fsPath.startsWith(outPath) || fsPath.startsWith(modulesPath);
+	}
+
 	function closeEventCollection() {
 		collecting = false;
 		reportEmitResult(runCompile());
@@ -270,16 +276,22 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	}
 
 	function collectAddEvent(fsPath: string) {
+		if (isExcludedPath(fsPath)) return;
+
 		filesToAdd.add(fixSlashes(fsPath));
 		openEventCollection();
 	}
 
 	function collectChangeEvent(fsPath: string) {
+		if (isExcludedPath(fsPath)) return;
+
 		filesToChange.add(fixSlashes(fsPath));
 		openEventCollection();
 	}
 
 	function collectDeleteEvent(fsPath: string) {
+		if (isExcludedPath(fsPath)) return;
+
 		filesToDelete.add(fixSlashes(fsPath));
 		openEventCollection();
 	}
@@ -315,10 +327,10 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	}
 
 	const chokidarOptions: chokidar.WatchOptions = { ...CHOKIDAR_OPTIONS, usePolling };
-	chokidarOptions.ignored = [...IGNORE_LIST, `${options.outDir}/**`];
+	chokidarOptions.ignored = IGNORE_LIST;
 
 	chokidar
-		.watch(getRootDirs(options), chokidarOptions)
+		.watch(getRootDirs(options, data.projectOptions), chokidarOptions)
 		.on("add", collectAddEvent)
 		.on("addDir", collectAddEvent)
 		.on("change", collectChangeEvent)

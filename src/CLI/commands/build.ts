@@ -132,7 +132,11 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 					await copyNodeModules(data);
 				}
 
-				copyFiles(data, pathTranslator, new Set(getRootDirs(program.getCompilerOptions())));
+				copyFiles(
+					data,
+					pathTranslator,
+					new Set(getRootDirs(program.getCompilerOptions(), data.projectOptions)),
+				);
 				const sourceFiles = getChangedSourceFiles(program);
 
 				if (projectOptions.json) {
