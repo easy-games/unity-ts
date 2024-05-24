@@ -18,7 +18,7 @@ import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
 import { createJsonDiagnosticReporter, InputEvent, isCompilationEvent, jsonReporter } from "Project/functions/json";
 import { tryRemoveOutput } from "Project/functions/tryRemoveOutput";
 import { PathTranslator } from "Shared/classes/PathTranslator";
-import { ProjectType } from "Shared/constants";
+import { LUA_EXT, ProjectType, TS_EXT, TSX_EXT } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { assert } from "Shared/util/assert";
 import { getRootDirs } from "Shared/util/getRootDirs";
@@ -258,18 +258,15 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		}
 	}
 
+	function isInterestingFile(fsPath: string) {
+		return fsPath.endsWith(TS_EXT) || fsPath.endsWith(TSX_EXT) || fsPath.endsWith(LUA_EXT);
+	}
+
 	function isExcludedPath(fsPath: string) {
 		const outPath = options.outDir ?? path.join(options.baseUrl ?? process.cwd(), data.projectOptions.package);
 		const modulesPath = path.join(options.baseUrl ?? process.cwd(), data.projectOptions.package, "node_modules");
 
-		console.log(
-			"outPath",
-			fsPath,
-			outPath,
-			modulesPath,
-			fsPath.startsWith(outPath) || fsPath.startsWith(modulesPath),
-		);
-		return fsPath.startsWith(outPath) || fsPath.startsWith(modulesPath);
+		return fsPath.startsWith(outPath) || fsPath.startsWith(modulesPath) || !isInterestingFile(fsPath);
 	}
 
 	function closeEventCollection() {
