@@ -81,6 +81,8 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	}
 
 	function reportEmitResult(emitResult: ts.EmitResult) {
+		if (emitResult.emitSkipped) return;
+
 		for (const diagnostic of emitResult.diagnostics) {
 			diagnosticReporter(diagnostic);
 		}
@@ -147,6 +149,12 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	function runIncrementalCompile(additions: Set<string>, changes: Set<string>, removals: Set<string>): ts.EmitResult {
 		const buildFile = watchBuildState.buildFile;
 
+		if (data.projectOptions.verbose) {
+			console.log("Additions", additions, "Changes", changes, "Removals", removals);
+		}
+
+		// console.log("additons", additions, "changes", changes, "removals", removals);
+
 		for (const fsPath of additions) {
 			if (fs.statSync(fsPath).isDirectory()) {
 				walkDirectorySync(fsPath, item => {
@@ -194,6 +202,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		assert(program && pathTranslator);
 
 		const sourceFiles = getChangedSourceFiles(program, options.incremental ? undefined : [...filesToCompile]);
+		if (sourceFiles.length === 0) return { emitSkipped: true, emittedFiles: undefined, diagnostics: [] };
 
 		if (useJsonEvents) {
 			jsonReporter("startingCompile", {
