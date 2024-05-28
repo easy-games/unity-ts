@@ -1018,7 +1018,7 @@ export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCall
 	GameObject: UNITY_GAMEOBJECT_METHODS,
 	GameObjectConstructor: UNITY_STATIC_GAMEOBJECT_METHODS,
 	Component: UNITY_COMPONENT_METHODS,
-	Object: UNITY_OBJECT_METHODS,
+	// Object: UNITY_OBJECT_METHODS,
 };
 
 // comment logic

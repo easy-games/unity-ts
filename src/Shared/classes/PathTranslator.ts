@@ -73,31 +73,35 @@ export class PathTranslator {
 		const makeRelative = this.makeRelativeFactory();
 		filePath = path.join(filePath);
 
-		if (this.projectOptions.type !== ProjectType.AirshipBundle) {
-			if (filePath.includes(path.join("src", "Shared"))) {
-				filePath = filePath.replace(path.join("src/Shared"), path.join("src/Shared/Resources/TS"));
-			} else if (filePath.includes(path.join("src/Server"))) {
-				filePath = filePath.replace(path.join("src/Server"), path.join("src/Server/Resources/TS"));
-			} else if (filePath.includes(path.join("src/Client"))) {
-				filePath = filePath.replace(path.join("src/Client"), path.join("src/Client/Resources/TS"));
-			} else if (filePath.includes(path.join("src/CoreClient"))) {
-				filePath = filePath.replace(path.join("src/CoreClient"), path.join("src/CoreClient/Resources/TS"));
-			} else if (filePath.includes(path.join("src/CoreServer"))) {
-				filePath = filePath.replace(path.join("src/CoreServer"), path.join("src/CoreServer/Resources/TS"));
-			} else if (filePath.includes(path.join("src/CoreShared"))) {
-				filePath = filePath.replace(path.join("src/CoreShared"), path.join("src/CoreShared/Resources/TS"));
-			}
-		}
+		const isLegacyProject = filePath.includes("Assets/Bundles");
 
-		let hasImports = false;
-		if (filePath.includes(path.join("@"))) {
-			hasImports = true;
-			if (filePath.includes(path.join("/Shared"))) {
-				filePath = filePath.replace(path.join("/Shared"), path.join("/Shared/Resources/TS"));
-			} else if (filePath.includes(path.join("/Server"))) {
-				filePath = filePath.replace(path.join("/Server"), path.join("/Server/Resources/TS"));
-			} else if (filePath.includes(path.join("/Client"))) {
-				filePath = filePath.replace(path.join("/Client"), path.join("/Client/Resources/TS"));
+		if (isLegacyProject) {
+			if (this.projectOptions.type !== ProjectType.AirshipBundle) {
+				if (filePath.includes(path.join("src", "Shared"))) {
+					filePath = filePath.replace(path.join("src/Shared"), path.join("src/Shared/Resources/TS"));
+				} else if (filePath.includes(path.join("src/Server"))) {
+					filePath = filePath.replace(path.join("src/Server"), path.join("src/Server/Resources/TS"));
+				} else if (filePath.includes(path.join("src/Client"))) {
+					filePath = filePath.replace(path.join("src/Client"), path.join("src/Client/Resources/TS"));
+				} else if (filePath.includes(path.join("src/CoreClient"))) {
+					filePath = filePath.replace(path.join("src/CoreClient"), path.join("src/CoreClient/Resources/TS"));
+				} else if (filePath.includes(path.join("src/CoreServer"))) {
+					filePath = filePath.replace(path.join("src/CoreServer"), path.join("src/CoreServer/Resources/TS"));
+				} else if (filePath.includes(path.join("src/CoreShared"))) {
+					filePath = filePath.replace(path.join("src/CoreShared"), path.join("src/CoreShared/Resources/TS"));
+				}
+			}
+
+			let hasImports = false;
+			if (filePath.includes(path.join("@"))) {
+				hasImports = true;
+				if (filePath.includes(path.join("/Shared"))) {
+					filePath = filePath.replace(path.join("/Shared"), path.join("/Shared/Resources/TS"));
+				} else if (filePath.includes(path.join("/Server"))) {
+					filePath = filePath.replace(path.join("/Server"), path.join("/Server/Resources/TS"));
+				} else if (filePath.includes(path.join("/Client"))) {
+					filePath = filePath.replace(path.join("/Client"), path.join("/Client/Resources/TS"));
+				}
 			}
 		}
 
@@ -114,10 +118,10 @@ export class PathTranslator {
 
 			pathInfo.exts.pop(); // pop .tsx?
 
-			// index -> init
-			if (pathInfo.fileName === INDEX_NAME) {
-				pathInfo.fileName = INIT_NAME;
-			}
+			// // index -> init
+			// if (pathInfo.fileName === INDEX_NAME) {
+			// 	pathInfo.fileName = INIT_NAME;
+			// }
 
 			if (isJson) {
 				pathInfo.exts.push(".json");
@@ -277,10 +281,10 @@ export class PathTranslator {
 				pathInfo.exts.pop(); // pop .d
 			}
 
-			// index -> init
-			if (pathInfo.fileName === INDEX_NAME) {
-				pathInfo.fileName = INIT_NAME;
-			}
+			// // index -> init
+			// if (pathInfo.fileName === INDEX_NAME) {
+			// 	pathInfo.fileName = INIT_NAME;
+			// }
 
 			pathInfo.exts.push(LUA_EXT); // push .lua
 		}

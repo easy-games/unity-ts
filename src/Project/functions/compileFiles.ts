@@ -3,6 +3,7 @@ import fs from "fs-extra";
 import path from "path";
 import { checkFileName } from "Project/functions/checkFileName";
 import { createNodeModulesPathMapping } from "Project/functions/createNodeModulesPathMapping";
+import { jsonReporter } from "Project/functions/json";
 import { transformPaths } from "Project/transformers/builtin/transformPaths";
 import { transformTypeReferenceDirectives } from "Project/transformers/builtin/transformTypeReferenceDirectives";
 import { createTransformerList, flattenIntoTransformers } from "Project/transformers/createTransformerList";
@@ -61,6 +62,7 @@ export function compileFiles(
 	buildState: BuildState,
 	sourceFiles: Array<ts.SourceFile>,
 ): ts.EmitResult {
+	const asJson = data.projectOptions.json;
 	const compilerOptions = program.getCompilerOptions();
 
 	const multiTransformState = new MultiTransformState();
@@ -91,6 +93,13 @@ export function compileFiles(
 	if (compilerOptions.plugins && compilerOptions.plugins.length > 0) {
 		benchmarkIfVerbose(`Running transformers...`, () => {
 			const pluginConfigs = getPluginConfigs(data.tsConfigPath);
+			for (const pluginConfig of pluginConfigs) {
+				pluginConfig.compiler = {
+					projectDir: path.relative(process.cwd(), path.dirname(data.tsConfigPath)) || ".",
+					packageDir: path.relative(process.cwd(), data.projectOptions.package),
+				};
+			}
+
 			const transformerList = createTransformerList(program, pluginConfigs, data.projectPath);
 			const transformers = flattenIntoTransformers(transformerList);
 			if (transformers.length > 0) {
@@ -209,6 +218,12 @@ export function compileFiles(
 					}
 				}
 			}
+
+			if (asJson) {
+				jsonReporter("compiledFile", {
+					fileName: sourceFile.fileName,
+				});
+			}
 		});
 	}
 
@@ -276,6 +291,7 @@ export function compileFiles(
 		});
 	}
 
+	let typescriptDir = path.dirname(data.tsConfigPath);
 	let editorMetadataPath: string;
 	{
 		if (projectType === ProjectType.AirshipBundle) {
@@ -292,7 +308,7 @@ export function compileFiles(
 
 			buildState.editorInfo.id = pkgJson.name;
 		} else {
-			editorMetadataPath = path.join(pathTranslator.outDir, "..", "TypeScriptEditorMetadata.aseditorinfo");
+			editorMetadataPath = path.join(typescriptDir, "TypeScriptEditorMetadata.aseditorinfo");
 		}
 
 		const oldBuildFileSource = fs.existsSync(editorMetadataPath)
@@ -306,7 +322,7 @@ export function compileFiles(
 		}
 	}
 
-	const buildFilePath = path.join(pathTranslator.outDir, "Shared", "Resources", "TS", "Airship.asbuildinfo");
+	const buildFilePath = path.join(typescriptDir, "Airship.asbuildinfo");
 	{
 		const oldBuildFileSource = fs.existsSync(buildFilePath) ? fs.readFileSync(buildFilePath).toString() : "";
 		const newBuildFileSource = JSON.stringify(buildFile, null, "\t");

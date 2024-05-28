@@ -7,12 +7,14 @@ import ts from "typescript";
 
 const PACKAGE_REGEX = /^@[a-z0-9-]*\//;
 
-export function createProjectData(tsConfigPath: string, projectOptions: ProjectOptions): ProjectData {
-	const projectPath = path.dirname(tsConfigPath);
-
-	const pkgJsonPath = ts.findPackageJson(projectPath, ts.sys as unknown as ts.LanguageServiceHost);
+export function createProjectData(
+	tsConfigPath: string,
+	packageDir: string,
+	projectOptions: ProjectOptions,
+): ProjectData {
+	const pkgJsonPath = ts.findPackageJson(packageDir, ts.sys as unknown as ts.LanguageServiceHost);
 	if (!pkgJsonPath) {
-		throw new ProjectError("Unable to find package.json");
+		throw new ProjectError(`Unable to find package.json in ${packageDir}`);
 	}
 
 	let isPackage = false;
@@ -27,7 +29,7 @@ export function createProjectData(tsConfigPath: string, projectOptions: ProjectO
 	const noInclude = projectOptions.noInclude;
 
 	// intentionally use || here for empty string case
-	const includePath = path.resolve(projectOptions.includePath || path.join(projectPath, "include"));
+	const includePath = path.resolve(projectOptions.includePath || path.join(packageDir, "include"));
 
 	const nodeModulesPath = path.join(path.dirname(pkgJsonPath), NODE_MODULES);
 
@@ -43,7 +45,7 @@ export function createProjectData(tsConfigPath: string, projectOptions: ProjectO
 		noInclude,
 		nodeModulesPath,
 		projectOptions,
-		projectPath,
+		projectPath: packageDir,
 		rojoConfigPath: undefined,
 		writeOnlyChanged,
 		optimizedLoops,

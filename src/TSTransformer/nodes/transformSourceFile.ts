@@ -9,8 +9,6 @@ import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 import { getAncestor } from "TSTransformer/util/traversal";
 import ts from "typescript";
-import { transformExpressionStatement } from "./statements/transformExpressionStatement";
-import { transformExpression } from "./expressions/transformExpression";
 
 function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [name: string, id: luau.AnyIdentifier] {
 	const declaration = exportSymbol.getDeclarations()?.[0];
@@ -185,7 +183,6 @@ function getLastNonCommentStatement(listNode?: luau.ListNode<luau.Statement>) {
 export function transformJsonSourceFile(state: TransformState, node: ts.SourceFile) {
 	const statements = transformStatementList(state, node.statements);
 
-	luau.list.unshift(statements, luau.comment(`Compiled with unity-ts v${COMPILER_VERSION}`));
 	luau.list.push(
 		statements,
 		luau.create(luau.SyntaxKind.ReturnStatement, {
@@ -230,7 +227,10 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 		}
 
 		// add build information to the tree
-		luau.list.unshift(statements, luau.comment(`Compiled with unity-ts v${COMPILER_VERSION}`));
+		luau.list.unshift(
+			statements,
+			luau.comment(` Compiled with the Airship Typescript Compiler v${COMPILER_VERSION}`),
+		);
 		return statements;
 	}
 }

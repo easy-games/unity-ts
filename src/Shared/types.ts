@@ -16,6 +16,8 @@ export interface TypeScriptConfiguration extends ts.TSConfig {
 
 export interface ProjectOptions {
 	includePath: string;
+	package: string;
+	runtimePath: string;
 	rojo: string | undefined;
 	type: ProjectType | undefined;
 	logTruthyChanges: boolean;
@@ -23,6 +25,7 @@ export interface ProjectOptions {
 	usePolling: boolean;
 	verbose: boolean;
 	watch: boolean;
+	json: boolean;
 	writeOnlyChanged: boolean;
 	optimizedLoops: boolean;
 	allowCommentDirectives: boolean;
@@ -49,6 +52,11 @@ export interface ProjectData {
 export interface TransformerWatcher {
 	service: ts.LanguageService;
 	updateFile: (fileName: string, text: string) => void;
+}
+
+export interface TransformerCompilerArguments {
+	packageDir: string;
+	projectDir: string;
 }
 
 export interface TransformerPluginConfig {
@@ -81,6 +89,11 @@ export interface TransformerPluginConfig {
 	 * any other properties provided to the transformer as config argument
 	 * */
 	[options: string]: unknown;
+
+	/**
+	 * Compiler arguments that transformers can use
+	 */
+	compiler: TransformerCompilerArguments;
 }
 
 export interface SourceFileWithTextRange {

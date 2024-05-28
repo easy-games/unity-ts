@@ -7,7 +7,10 @@ import ts from "typescript";
 
 export function createPathTranslator(program: ts.BuilderProgram, projectOptions: ProjectOptions) {
 	const compilerOptions = program.getCompilerOptions();
-	const rootDir = findAncestorDir([program.getProgram().getCommonSourceDirectory(), ...getRootDirs(compilerOptions)]);
+	const rootDir = findAncestorDir([
+		program.getProgram().getCommonSourceDirectory(),
+		...getRootDirs(compilerOptions, projectOptions),
+	]);
 	const outDir = compilerOptions.outDir!;
 	let buildInfoPath = ts.getTsBuildInfoEmitOutputFilePath(compilerOptions);
 	if (buildInfoPath !== undefined) {

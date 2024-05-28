@@ -11,6 +11,8 @@ export const COMPILER_VERSION: string = require("../../package.json").version;
 export const NODE_MODULES = "node_modules";
 export const RBXTS_SCOPE = "@easy-games";
 
+export const META_EXT = ".meta";
+
 export const TS_EXT = ".ts";
 export const TSX_EXT = ".tsx";
 export const D_EXT = ".d";
@@ -47,7 +49,10 @@ export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	rojo: undefined,
 	type: undefined,
 	watch: false,
+	package: ".",
+	runtimePath: "@Easy/Core/Shared/Resources/TS/Runtime", // backwards compat reasons - will change later.
 	usePolling: false,
+	json: false,
 	verbose: false,
 	noInclude: false,
 	logTruthyChanges: false,
