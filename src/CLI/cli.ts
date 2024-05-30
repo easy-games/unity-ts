@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 
+import build from "CLI/commands/build";
+import postTypes from "CLI/commands/postTypes";
+import prepareTypes from "CLI/commands/prepareTypes";
 import { CLIError } from "CLI/errors/CLIError";
-import { COMPILER_VERSION, PACKAGE_ROOT } from "Shared/constants";
-import yargs from "yargs";
+import { COMPILER_VERSION } from "Shared/constants";
+import * as yargs from "yargs";
 
 yargs
 	// help
@@ -17,21 +20,15 @@ yargs
 	.describe("version", "show version information")
 
 	// commands
-	.commandDir(`${PACKAGE_ROOT}/out/CLI/commands`)
+	.command(build)
+	.command(prepareTypes)
+	.command(postTypes)
 
 	// options
 	.recommendCommands()
 	.strict()
 	.wrap(yargs.terminalWidth())
 
-	// execute
-	// .fail((str) => {
-	// 	process.exitCode = 1;
-	// 	if (str) {
-	// 		// eslint-disable-next-line no-console
-	// 		console.log(str);
-	// 	}
-	// })
 	.parseAsync()
 	.catch(e => {
 		if (e instanceof CLIError) {
