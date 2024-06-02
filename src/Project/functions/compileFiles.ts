@@ -24,6 +24,7 @@ import {
 	TransformState,
 } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { FlameworkSymbolProvider } from "TSTransformer/classes/FlameworkSymbolProvider";
 import { transformExpressionStatement } from "TSTransformer/nodes/statements/transformExpressionStatement";
 import { createTransformServices } from "TSTransformer/util/createTransformServices";
 import ts from "typescript";
@@ -134,6 +135,8 @@ export function compileFiles(
 
 	const buildFile: AirshipBuildFile = buildState.buildFile;
 
+	const flamework = new FlameworkSymbolProvider(proxyProgram, compilerOptions, data);
+
 	for (let i = 0; i < sourceFiles.length; i++) {
 		const sourceFile = proxyProgram.getSourceFile(sourceFiles[i].fileName);
 		assert(sourceFile);
@@ -155,6 +158,7 @@ export function compileFiles(
 				reverseSymlinkMap,
 				typeChecker,
 				projectType,
+				flamework,
 				sourceFile,
 			);
 

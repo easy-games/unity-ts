@@ -6,6 +6,7 @@ import { AirshipBehaviour, ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { AirshipBuildState, MultiTransformState } from "TSTransformer";
+import { FlameworkSymbolProvider } from "TSTransformer/classes/FlameworkSymbolProvider";
 import { TransformServices, TryUses } from "TSTransformer/types";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
@@ -35,6 +36,7 @@ export class TransformState {
 
 	public readonly resolver: ts.EmitResolver;
 
+
 	constructor(
 		public readonly program: ts.Program,
 		public readonly data: ProjectData,
@@ -47,6 +49,7 @@ export class TransformState {
 		public readonly reverseSymlinkMap: Map<string, string>,
 		public readonly typeChecker: ts.TypeChecker,
 		public readonly projectType: ProjectType,
+		public readonly flamework: FlameworkSymbolProvider | undefined,
 		private readonly sourceFile: ts.SourceFile,
 	) {
 		this.sourceFileText = sourceFile.getFullText();
