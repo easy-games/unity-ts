@@ -4,7 +4,7 @@ import { CALL_MACROS } from "TSTransformer/macros/callMacros";
 import { CONSTRUCTOR_MACROS } from "TSTransformer/macros/constructorMacros";
 import { IDENTIFIER_MACROS } from "TSTransformer/macros/identifierMacros";
 import { PROPERTY_CALL_MACROS } from "TSTransformer/macros/propertyCallMacros";
-import { CallMacro, ConstructorMacro, IdentifierMacro, PropertyCallMacro } from "TSTransformer/macros/types";
+import { CallMacro, ConstructorMacro, CallDecoratorMacro, IdentifierMacro, PropertyCallMacro } from "TSTransformer/macros/types";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
@@ -104,6 +104,7 @@ export class MacroManager {
 	private callMacros = new Map<ts.Symbol, CallMacro>();
 	private constructorMacros = new Map<ts.Symbol, ConstructorMacro>();
 	private propertyCallMacros = new Map<ts.Symbol, PropertyCallMacro>();
+	private decoratorMacros = new Map<ts.Symbol, CallDecoratorMacro>();
 	private macroOnlySymbols = new Set<ts.Symbol>();
 
 	constructor(private readonly typeChecker: ts.TypeChecker) {
@@ -184,6 +185,13 @@ export class MacroManager {
 		}
 	}
 
+	public addDecoratorMacro(symbol: ts.Symbol, macro: CallDecoratorMacro, ignoreImport = false) {
+		this.decoratorMacros.set(symbol, macro);
+		if (ignoreImport) {
+			this.macroOnlySymbols.add(symbol);
+		}
+	}
+
 	public getSymbolOrThrow(name: string) {
 		const symbol = this.symbols.get(name);
 		assert(symbol);
@@ -192,6 +200,10 @@ export class MacroManager {
 
 	public isMacroOnlyClass(symbol: ts.Symbol) {
 		return this.symbols.get(symbol.name) === symbol && MACRO_ONLY_CLASSES.has(symbol.name);
+	}
+
+	public getDecoratorMacro(symbol: ts.Symbol) {
+		return this.decoratorMacros.get(symbol);
 	}
 
 	public getIdentifierMacro(symbol: ts.Symbol) {

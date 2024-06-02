@@ -8,6 +8,9 @@ import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
 import { MacroManager } from "TSTransformer/classes/MacroManager";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { FLAMEWORK_CALL_MACROS } from "TSTransformer/macros/flamework/callMacros";
+import { FLAMEWORK_DECORATOR_MACROS } from "TSTransformer/macros/flamework/decoratorMacros";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { transformIdentifier } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { TransformServices } from "TSTransformer/types";
 import ts from "typescript";
 
@@ -27,9 +30,11 @@ export class FlameworkSymbolProvider {
 	public flameworkRootDir = "AirshipPackages/@Easy/Core/Shared/Flamework";
 	private flameworkDir = this.resolveModuleDir(this.flameworkRootDir);
 
-	public readonly flameworkId = luau.tempId("FlameworkMacros");
-	public readonly moddingId = luau.tempId("ModdingMacros");
-	public readonly reflectionId = luau.tempId("ReflectMacros");
+	public readonly flameworkId = luau.tempId("Flamework");
+	public readonly moddingId = luau.tempId("Modding");
+	public readonly reflectionId = luau.tempId("Reflect");
+
+	public decorators = new Set<ts.Symbol>();
 
 	constructor(
 		private readonly program: ts.Program,
@@ -41,6 +46,18 @@ export class FlameworkSymbolProvider {
 	public Flamework(name: string) {
 		this.usesFlamework = true;
 		return luau.property(this.flameworkId, name);
+	}
+
+	public Reflect(name: string) {
+		this.usesReflect = true;
+		return luau.property(this.reflectionId, name);
+	}
+
+	getSourceFile(node: ts.Node) {
+		const parseNode = ts.getParseTreeNode(node);
+		if (!parseNode) throw new Error(`Could not find parse tree node`);
+
+		return ts.getSourceFileOfNode(parseNode);
 	}
 
 	private resolveModuleDir(moduleName: string) {
@@ -61,7 +78,6 @@ export class FlameworkSymbolProvider {
 	private registeredFiles = 0;
 	private registerFileSymbol(file: ts.SourceFile) {
 		const name = this.getName("typescript", path.dirname(this.data.tsConfigPath), file);
-		console.log("name is", name);
 
 		if (this.fileSymbols.has(name)) {
 			LogService.warn("duplicate file symbol. name=" + name + ", fileName=" + file.fileName);
@@ -112,8 +128,21 @@ export class FlameworkSymbolProvider {
 		this.moddingFile = this.getFile(this.flameworkRootDir + "/modding");
 		this.flameworkFile = this.getFile(this.flameworkRootDir + "/flamework");
 
+		const serviceDecorator = this.flameworkFile.get("Service");
+		const controllerDecorator = this.flameworkFile.get("Controller");
+		const singletonDecorator = this.flameworkFile.get("Singleton");
+
+		this.decorators = new Set([serviceDecorator, controllerDecorator, singletonDecorator]);
+
 		const macroManager = this.services.macroManager;
 		macroManager.addCallMacro(this.flameworkFile.get("Dependency"), FLAMEWORK_CALL_MACROS.Dependency);
+		// macroManager.addDecoratorMacro(serviceDecorator, FLAMEWORK_DECORATOR_MACROS.Service);
+		// macroManager.addDecoratorMacro(controllerDecorator, FLAMEWORK_DECORATOR_MACROS.Controller);
+		// macroManager.addDecoratorMacro(singletonDecorator, FLAMEWORK_DECORATOR_MACROS.Singleton);
+	}
+
+	isFlameworkDecorator(symbol: ts.Symbol) {
+		return this.decorators.has(symbol);
 	}
 
 	registerInterestingFiles() {
@@ -134,8 +163,6 @@ class FlameworkModuleFile {
 		const fileSymbol = macros.getSymbolFromNode(file);
 		assert(fileSymbol);
 		this.fileSymbol = fileSymbol;
-
-		console.log("register module", file.fileName, name, fileSymbol.name);
 	}
 
 	get(name: string) {

@@ -1,0 +1,181 @@
+import luau from "@roblox-ts/luau-ast";
+import { Statement } from "@roblox-ts/luau-ast/out/LuauAST/bundle";
+import { TransformState } from "TSTransformer/classes/TransformState";
+import { FlameworkClassInfo, FlameworkDecoratorInfo } from "TSTransformer/flamework";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { transformIdentifier } from "TSTransformer/nodes/expressions/transformIdentifier";
+import { getFlameworkNodeUid, getFlameworkSymbolUid } from "TSTransformer/util/flameworkId";
+import assert from "assert";
+import ts, { ClassLikeDeclaration, SyntaxKind } from "typescript";
+
+export function isFlameworkSingleton(state: TransformState, node: ts.ClassLikeDeclaration) {
+	if (!state.flamework) return false;
+	const symbol = state.services.macroManager.getSymbolFromNode(node);
+	const internalId = getFlameworkNodeUid(state, node);
+
+	if (!node.name || !symbol || !internalId) return;
+
+	const decorators = new Array<FlameworkDecoratorInfo>();
+
+	let hasFlameworkDecorators = false;
+	const nodeDecorators = ts.getDecorators(node);
+	if (nodeDecorators) {
+		for (const decorator of nodeDecorators) {
+			if (!ts.isCallExpression(decorator.expression)) continue;
+			const symbol = state.services.macroManager.getSymbolFromNode(decorator.expression.expression);
+			if (!symbol) continue;
+			if (!symbol.declarations?.[0]) continue;
+			if (!ts.isIdentifier(decorator.expression.expression)) continue;
+
+			const name = decorator.expression.expression.text;
+			const isFlameworkDecorator = state.flamework.isFlameworkDecorator(symbol);
+			if (isFlameworkDecorator) {
+				hasFlameworkDecorators = true;
+			}
+
+			decorators.push({
+				type: "WithNodes",
+				declaration: symbol.declarations[0],
+				arguments: decorator.expression.arguments.map(x => x),
+				internalId: getFlameworkSymbolUid(state, symbol),
+				isFlameworkDecorator,
+				name,
+				symbol,
+			});
+		}
+	}
+
+	if (hasFlameworkDecorators) {
+		const classInfo: FlameworkClassInfo = {
+			name: node.name.text,
+			internalId,
+			node,
+			decorators,
+			symbol,
+		};
+
+		state.airshipBuildState.classes.set(symbol, classInfo);
+		return true;
+	}
+
+	return false;
+}
+
+/**
+--(Flamework) AirshipInputSingleton metadata
+Reflect.defineMetadata(AirshipInputSingleton, "identifier", "@Easy/Core:Shared/Input/AirshipInputSingleton@AirshipInputSingleton")
+Reflect.defineMetadata(AirshipInputSingleton, "flamework:implements", { "$OnStart" })
+Reflect.decorate(AirshipInputSingleton, "$Controller", Controller, { {} })
+Reflect.decorate(AirshipInputSingleton, "$Service", Service, { {
+	loadOrder = -1,
+} })
+ */
+
+function identifierMetadata(state: TransformState, node: ClassLikeDeclaration): luau.CallStatement {
+	assert(node.name);
+	assert(state.flamework);
+
+	return luau.create(luau.SyntaxKind.CallStatement, {
+		expression: luau.call(state.flamework!.Reflect("defineMetadata"), [
+			transformExpression(state, node.name),
+			luau.string("identifier"),
+			luau.string(getFlameworkNodeUid(state, node)!),
+		]),
+	});
+}
+
+function getDecoratorArguments(state: TransformState, decorator: ts.LeftHandSideExpression) {
+	if (!ts.isCallExpression(decorator)) {
+		return luau.array();
+	}
+
+	return luau.array(decorator.arguments.map(arg => transformExpression(state, arg)));
+}
+
+function decorate(state: TransformState, id: luau.AnyIdentifier, name: luau.StringLiteral, args: luau.Array) {
+	return luau.create(luau.SyntaxKind.CallStatement, {
+		expression: luau.call(state.flamework!.Reflect("decorate"), [id, name, args]),
+	});
+}
+
+export function isFlameworkDecorator(state: TransformState, decorator: ts.Decorator) {
+	const expr = decorator.expression;
+	const type = state.typeChecker.getTypeAtLocation(expr);
+	return type.getProperty("_flamework_Decorator") !== undefined;
+}
+
+function generateDecoratorMetadata(state: TransformState, node: ClassLikeDeclaration) {
+	const list = luau.list.make<luau.Statement>();
+
+	const decorators = ts.canHaveDecorators(node) ? ts.getDecorators(node) : undefined;
+
+	if (decorators) {
+		for (const decorator of decorators) {
+			const expr = decorator.expression;
+			if (isFlameworkDecorator(state, decorator)) {
+				const identifier = ts.isCallExpression(expr) ? expr.expression : expr;
+				const symbol = state.services.macroManager.getSymbolFromNode(identifier);
+				assert(symbol);
+				assert(symbol.valueDeclaration);
+
+				luau.list.push(
+					list,
+					decorate(
+						state,
+						luau.id(node.name!.text),
+						luau.string(getFlameworkSymbolUid(state, symbol)),
+						getDecoratorArguments(state, expr),
+					),
+				);
+			}
+		}
+	}
+
+	return list;
+}
+
+function implementsClauses(state: TransformState, node: ClassLikeDeclaration, list: ReadonlyArray<string>) {
+	return luau.create(luau.SyntaxKind.CallStatement, {
+		expression: luau.call(state.flamework!.Reflect("defineMetadata"), [
+			transformExpression(state, node.name!),
+			luau.string("flamework:implements"),
+			luau.array(list.map(f => luau.string(f))),
+		]),
+	});
+}
+
+export function generateFlameworkMetadataForClass(state: TransformState, node: ClassLikeDeclaration) {
+	const list = luau.list.make<luau.Statement>();
+	if (!node.name) return list;
+
+	const classSymbol = state.services.macroManager.getSymbolFromNode(node);
+	if (!classSymbol) return list;
+
+	const classInfo = state.airshipBuildState.classes.get(classSymbol);
+	if (!classInfo) return list;
+
+	luau.list.push(list, luau.comment(" (Flamework) Singleton '" + node.name.text + "'"));
+	luau.list.push(list, identifierMetadata(state, node));
+
+	if (node.heritageClauses) {
+		const implementsList = new Array<string>();
+		for (const clause of node.heritageClauses) {
+			if (clause.token !== ts.SyntaxKind.ImplementsKeyword) continue;
+
+			for (const type of clause.types) {
+				const id = getFlameworkNodeUid(state, type);
+				if (!id) continue;
+				implementsList.push(id);
+			}
+		}
+
+		if (implementsList.length > 0) {
+			luau.list.push(list, implementsClauses(state, node, implementsList));
+		}
+	}
+
+	// Reflect.decorate(<Object>, "<ID>", <OBJ>, { <...ARGS> })
+	luau.list.pushList(list, generateDecoratorMetadata(state, node));
+
+	return list;
+}

@@ -263,4 +263,5 @@ export interface AirshipBehaviourInfo {
 export interface AirshipBuildFile {
 	readonly behaviours: Record<string, AirshipBehaviourInfo>; // TODO: Value
 	readonly extends: Record<string, Array<string>>;
+	readonly flameworkIdentifiers: { [key: string]: string };
 }
