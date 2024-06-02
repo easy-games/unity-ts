@@ -1,12 +1,88 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors, warnings } from "Shared/diagnostics";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { CallMacro, MacroList } from "TSTransformer/macros/types";
-import { getFlameworkSymbolUid } from "TSTransformer/util/flameworkId";
+import { CallMacro, MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
+import {
+	transformCallExpression,
+	transformCallExpressionInner,
+} from "TSTransformer/nodes/expressions/transformCallExpression";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { transformFunctionExpression } from "TSTransformer/nodes/expressions/transformFunctionExpression";
+import { transformIdentifier } from "TSTransformer/nodes/expressions/transformIdentifier";
+import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
+import { getFlameworkNodeUid, getFlameworkSymbolUid } from "TSTransformer/util/flameworkId";
 import ts from "typescript";
 
+export const FLAMEWORK_PROPERTY_CALL_MACROS = {
+	id: (state, node: ts.CallExpression): luau.Expression => {
+		const firstType = node.typeArguments?.[0];
+		if (firstType !== undefined) {
+			return luau.string(getFlameworkNodeUid(state, firstType) || "$p:error");
+		}
+
+		DiagnosticService.addDiagnostic(errors.flameworkIdNoType(node));
+		return luau.nil();
+	},
+	hash: () => {
+		// TODO: Probably remove this, there's no real reason to have this
+		return luau.nil();
+	},
+	implements: (state, node: ts.CallExpression): luau.Expression => {
+		const firstArg = node.arguments[0];
+		const firstType = node.typeArguments?.[0];
+		if (firstType !== undefined) {
+			if (ts.isPropertyAccessExpression(node.expression)) {
+				return luau.call(state.flamework!.Flamework("_implements"), [
+					transformExpression(state, firstArg),
+					luau.string(getFlameworkNodeUid(state, firstType) || "$p:error"),
+				]);
+			}
+		}
+
+		DiagnosticService.addDiagnostic(errors.flameworkIdNoType(node));
+		return luau.nil();
+	},
+} satisfies MacroList<PropertyCallMacro>;
+
+interface GenericInfo {
+	index: number;
+}
+function moddingGenericMacro(name: string, genericInfo: GenericInfo): CallMacro {
+	return (state, node, expression, args) => {
+		const typeArgument = node.typeArguments?.[0];
+		if (typeArgument === undefined) {
+			return luau.nil();
+		}
+
+		for (let i = 0; i < genericInfo.index; i++) {
+			const arg = args[i];
+
+			if (arg === undefined) {
+				args.push(luau.nil());
+			}
+		}
+
+		const argument = node.arguments[genericInfo.index];
+		if (argument !== undefined) {
+			const expr = transformExpression(state, argument);
+			args.push(expr);
+		} else {
+			args.push(luau.string(getFlameworkNodeUid(state, typeArgument)!));
+		}
+
+		return luau.call(luau.property(expression as luau.IndexableExpression, name), args);
+	};
+}
+
+export const FLAMEWORK_MODDING_PROPERTY_CALL_MACROS = {
+	getDecorator: moddingGenericMacro("getDecorator", { index: 2 }),
+	getDecorators: moddingGenericMacro("getDecorators", { index: 0 }),
+	getPropertyDecorators: moddingGenericMacro("getPropertyDecorators", { index: 1 }),
+	registerDependency: moddingGenericMacro("registerDependency", { index: 1 }),
+} satisfies MacroList<PropertyCallMacro>;
+
 export const FLAMEWORK_CALL_MACROS = {
-	Dependency: (state, node) => {
+	Dependency: (state, node: ts.CallExpression): luau.Expression => {
 		const firstArg = node.arguments[0];
 		const firstType = node.typeArguments?.[0];
 

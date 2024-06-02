@@ -185,6 +185,13 @@ export class MacroManager {
 		}
 	}
 
+	public addPropertyCallMacro(symbol: ts.Symbol, macro: PropertyCallMacro, ignoreImport = false) {
+		this.propertyCallMacros.set(symbol, macro);
+		if (ignoreImport) {
+			this.macroOnlySymbols.add(symbol);
+		}
+	}
+
 	public addDecoratorMacro(symbol: ts.Symbol, macro: CallDecoratorMacro, ignoreImport = false) {
 		this.decoratorMacros.set(symbol, macro);
 		if (ignoreImport) {

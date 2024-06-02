@@ -3,16 +3,15 @@ import assert from "assert";
 import fs from "fs";
 import path from "path";
 import { LogService } from "Shared/classes/LogService";
-import { ProjectData, ProjectOptions } from "Shared/types";
+import { ProjectData } from "Shared/types";
 import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
-import { MacroManager } from "TSTransformer/classes/MacroManager";
-import { TransformState } from "TSTransformer/classes/TransformState";
-import { FLAMEWORK_CALL_MACROS } from "TSTransformer/macros/flamework/callMacros";
-import { FLAMEWORK_DECORATOR_MACROS } from "TSTransformer/macros/flamework/decoratorMacros";
-import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { transformIdentifier } from "TSTransformer/nodes/expressions/transformIdentifier";
+import {
+	FLAMEWORK_CALL_MACROS,
+	FLAMEWORK_MODDING_PROPERTY_CALL_MACROS,
+	FLAMEWORK_PROPERTY_CALL_MACROS,
+} from "TSTransformer/macros/flamework/callMacros";
 import { TransformServices } from "TSTransformer/types";
-import ts from "typescript";
+import ts, { isIdentifier } from "typescript";
 
 const moduleResolutionCache = new Map<string, string | false>();
 const EXCLUDED_NAME_DIR = new Set(["src/", "lib/", "out/"]);
@@ -22,6 +21,7 @@ export class FlameworkSymbolProvider {
 
 	public moddingFile!: FlameworkModuleFile;
 	public flameworkFile!: FlameworkModuleFile;
+	public flamework!: FlameworkNamespace;
 
 	public usesFlamework = false;
 	public usesModding = false;
@@ -84,7 +84,7 @@ export class FlameworkSymbolProvider {
 			return this.fileSymbols.get(name)!;
 		}
 
-		const fileSymbol = new FlameworkModuleFile(this.services.macroManager, file, name);
+		const fileSymbol = new FlameworkModuleFile(this.program.getTypeChecker(), file, name);
 		this.fileSymbols.set(name, fileSymbol);
 		this.registeredFiles++;
 		return fileSymbol;
@@ -136,9 +136,16 @@ export class FlameworkSymbolProvider {
 
 		const macroManager = this.services.macroManager;
 		macroManager.addCallMacro(this.flameworkFile.get("Dependency"), FLAMEWORK_CALL_MACROS.Dependency);
-		// macroManager.addDecoratorMacro(serviceDecorator, FLAMEWORK_DECORATOR_MACROS.Service);
-		// macroManager.addDecoratorMacro(controllerDecorator, FLAMEWORK_DECORATOR_MACROS.Controller);
-		// macroManager.addDecoratorMacro(singletonDecorator, FLAMEWORK_DECORATOR_MACROS.Singleton);
+
+		this.flamework = this.flameworkFile.getNamespace("Flamework");
+		for (const [id, macro] of Object.entries(FLAMEWORK_PROPERTY_CALL_MACROS)) {
+			macroManager.addPropertyCallMacro(this.flamework.get(id), macro);
+		}
+
+		const modding = this.moddingFile.getNamespace("Modding");
+		for (const [id, macro] of Object.entries(FLAMEWORK_MODDING_PROPERTY_CALL_MACROS)) {
+			macroManager.addPropertyCallMacro(modding.get(id), macro);
+		}
 	}
 
 	isFlameworkDecorator(symbol: ts.Symbol) {
@@ -156,18 +163,76 @@ export class FlameworkSymbolProvider {
 	}
 }
 
+function isNamespaceDeclaration(node?: ts.Node): node is ts.NamespaceDeclaration {
+	return (
+		(node !== undefined &&
+			ts.isModuleDeclaration(node) &&
+			isIdentifier(node.name) &&
+			node.body &&
+			ts.isNamespaceBody(node.body)) ||
+		false
+	);
+}
+
 class FlameworkModuleFile {
 	public fileSymbol: ts.Symbol;
+	namespaces = new Map<string, FlameworkNamespace>();
 
-	public constructor(macros: MacroManager, private readonly file: ts.SourceFile, private name: string) {
-		const fileSymbol = macros.getSymbolFromNode(file);
+	public constructor(
+		public readonly typeChecker: ts.TypeChecker,
+		private readonly file: ts.SourceFile,
+		private name: string,
+	) {
+		const fileSymbol = typeChecker.getSymbolAtLocation(file);
 		assert(fileSymbol);
 		this.fileSymbol = fileSymbol;
+		this.register();
+	}
+
+	private register() {
+		for (const statement of this.file.statements) {
+			if (isNamespaceDeclaration(statement)) {
+				this.registerNamespace(statement);
+			}
+		}
+	}
+
+	private registerNamespace(node: ts.NamespaceDeclaration) {
+		assert(ts.isModuleBlock(node.body));
+
+		const namespaceSymbol = new FlameworkNamespace(this, node);
+		this.namespaces.set(node.name.text, namespaceSymbol);
 	}
 
 	get(name: string) {
 		const exportSymbol = this.fileSymbol.exports?.get(name as ts.__String);
 		assert(exportSymbol);
+
+		return exportSymbol;
+	}
+
+	getNamespace(name: string) {
+		const ns = this.namespaces.get(name);
+		assert(ns);
+		return ns;
+	}
+}
+
+class FlameworkNamespace {
+	public namespaceSymbol: ts.Symbol;
+
+	public constructor(
+		private readonly fileSymbol: FlameworkModuleFile,
+		private readonly node: ts.NamespaceDeclaration,
+	) {
+		const namespaceSymbol = fileSymbol.typeChecker.getSymbolAtLocation(node.name);
+		assert(namespaceSymbol);
+		this.namespaceSymbol = namespaceSymbol;
+	}
+
+	get(name: string) {
+		const exportSymbol = this.namespaceSymbol.exports?.get(name as ts.__String);
+		assert(exportSymbol, `Name ${name} not found in ${this.namespaceSymbol.name}`);
 
 		return exportSymbol;
 	}

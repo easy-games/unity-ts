@@ -266,6 +266,13 @@ export const errors = {
 		];
 	}),
 
+	flameworkIdNoType: errorWithContext(() => {
+		return [
+			"Macro Flamework.id<T> requires a type argument at T",
+			suggestion("Try adding a type argument to the function call"),
+		];
+	}),
+
 	dependencyInjectionNoConstructor: errorWithContext(() => {
 		return [
 			"Macro Dependency(C) requires a valid constructor argument at C",

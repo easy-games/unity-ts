@@ -96,7 +96,7 @@ export function compileFiles(
 		benchmarkIfVerbose(`Running transformers...`, () => {
 			const pluginConfigs = getPluginConfigs(data.tsConfigPath);
 			for (const pluginConfig of pluginConfigs) {
-				// TODO: if (pluginConfig.transform === "@easy-games/unity-flamework-transformer") useFlameworkInternal = false;
+				if (pluginConfig.transform === "@easy-games/unity-flamework-transformer") useFlameworkInternal = false;
 
 				pluginConfig.compiler = {
 					projectDir: path.relative(process.cwd(), path.dirname(data.tsConfigPath)) || ".",
