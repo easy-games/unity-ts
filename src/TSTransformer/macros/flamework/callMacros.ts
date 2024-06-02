@@ -2,14 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { errors, warnings } from "Shared/diagnostics";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { CallMacro, MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
-import {
-	transformCallExpression,
-	transformCallExpressionInner,
-} from "TSTransformer/nodes/expressions/transformCallExpression";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { transformFunctionExpression } from "TSTransformer/nodes/expressions/transformFunctionExpression";
-import { transformIdentifier } from "TSTransformer/nodes/expressions/transformIdentifier";
-import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
 import { getFlameworkNodeUid, getFlameworkSymbolUid } from "TSTransformer/util/flameworkId";
 import ts from "typescript";
 
@@ -28,11 +21,14 @@ export const FLAMEWORK_PROPERTY_CALL_MACROS = {
 		return luau.nil();
 	},
 	implements: (state, node: ts.CallExpression): luau.Expression => {
+		const flameworkImportId = state.addFileImport(state.flamework!.flameworkRootDir + "/index", "Flamework");
+		const Flamework_implements = luau.property(flameworkImportId, "_implements");
+
 		const firstArg = node.arguments[0];
 		const firstType = node.typeArguments?.[0];
 		if (firstType !== undefined) {
 			if (ts.isPropertyAccessExpression(node.expression)) {
-				return luau.call(state.Flamework("_implements"), [
+				return luau.call(Flamework_implements, [
 					transformExpression(state, firstArg),
 					luau.string(getFlameworkNodeUid(state, firstType) || "$p:error"),
 				]);
@@ -79,6 +75,9 @@ export const FLAMEWORK_MODDING_PROPERTY_CALL_MACROS = {
 
 export const FLAMEWORK_CALL_MACROS = {
 	Dependency: (state, node: ts.CallExpression): luau.Expression => {
+		const flameworkImportId = state.addFileImport(state.flamework!.flameworkRootDir + "/index", "Flamework");
+		const Flamework_resolveDependency = luau.property(flameworkImportId, "resolveDependency");
+
 		const firstArg = node.arguments[0];
 		const firstType = node.typeArguments?.[0];
 
@@ -96,7 +95,7 @@ export const FLAMEWORK_CALL_MACROS = {
 			}
 
 			DiagnosticService.addDiagnostic(warnings.dependencyInjectionDeprecated(node, firstArg));
-			return luau.call(state.Flamework("resolveDependency"), [luau.string(getFlameworkSymbolUid(state, symbol))]);
+			return luau.call(Flamework_resolveDependency, [luau.string(getFlameworkSymbolUid(state, symbol))]);
 		} else if (firstType && !firstArg) {
 			if (!ts.isTypeReferenceNode(firstType)) {
 				DiagnosticService.addDiagnostic(errors.expectedTypeReference(node, firstType));
@@ -109,7 +108,7 @@ export const FLAMEWORK_CALL_MACROS = {
 				return luau.nil();
 			}
 
-			return luau.call(state.Flamework("resolveDependency"), [luau.string(getFlameworkSymbolUid(state, symbol))]);
+			return luau.call(Flamework_resolveDependency, [luau.string(getFlameworkSymbolUid(state, symbol))]);
 		}
 
 		DiagnosticService.addDiagnostic(errors.dependencyInjectionNoType(node));

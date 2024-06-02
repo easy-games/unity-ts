@@ -65,8 +65,11 @@ function identifierMetadata(state: TransformState, node: ClassLikeDeclaration): 
 	assert(node.name);
 	assert(state.flamework);
 
+	const flameworkImportId = state.addFileImport(state.flamework!.flameworkRootDir + "/index", "Reflect");
+	const Reflect_defineMetadata = luau.property(flameworkImportId, "defineMetadata");
+
 	return luau.create(luau.SyntaxKind.CallStatement, {
-		expression: luau.call(state.Reflect("defineMetadata"), [
+		expression: luau.call(Reflect_defineMetadata, [
 			transformExpression(state, node.name),
 			luau.string("identifier"),
 			luau.string(getFlameworkNodeUid(state, node)!),
@@ -83,8 +86,11 @@ function getDecoratorArguments(state: TransformState, decorator: ts.LeftHandSide
 }
 
 function decorate(state: TransformState, id: luau.AnyIdentifier, name: luau.StringLiteral, args: luau.Array) {
+	const flameworkImportId = state.addFileImport(state.flamework!.flameworkRootDir + "/index", "Reflect");
+	const Reflect_decorate = luau.property(flameworkImportId, "decorate");
+
 	return luau.create(luau.SyntaxKind.CallStatement, {
-		expression: luau.call(state.Reflect("decorate"), [id, name, args]),
+		expression: luau.call(Reflect_decorate, [id, name, args]),
 	});
 }
 
@@ -125,8 +131,11 @@ function generateDecoratorMetadata(state: TransformState, node: ClassLikeDeclara
 }
 
 function implementsClauses(state: TransformState, node: ClassLikeDeclaration, list: ReadonlyArray<string>) {
+	const flameworkImportId = state.addFileImport(state.flamework!.flameworkRootDir + "/index", "Reflect");
+	const Reflect_defineMetadata = luau.property(flameworkImportId, "defineMetadata");
+
 	return luau.create(luau.SyntaxKind.CallStatement, {
-		expression: luau.call(state.Reflect("defineMetadata"), [
+		expression: luau.call(Reflect_defineMetadata, [
 			transformExpression(state, node.name!),
 			luau.string("flamework:implements"),
 			luau.array(list.map(f => luau.string(f))),

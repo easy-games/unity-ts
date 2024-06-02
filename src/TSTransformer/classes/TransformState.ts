@@ -10,7 +10,7 @@ import { FlameworkSymbolProvider } from "TSTransformer/classes/FlameworkSymbolPr
 import { TransformServices, TryUses } from "TSTransformer/types";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
-import ts from "typescript";
+import ts, { factory } from "typescript";
 
 /**
  * Represents the state of the transformation between TS -> Luau AST.
@@ -199,18 +199,59 @@ export class TransformState {
 		return luau.property(luau.globals.TS, name);
 	}
 
-	public useFlamework = false;
-	public readonly flameworkId = luau.tempId("Flamework");
-	public Flamework(name: string) {
-		this.useFlamework = true;
-		return luau.property(this.flameworkId, name);
-	}
+	public fileImports = new Map<string, Array<ImportInfo>>();
+	public addFileImport(importPath: string, name: string): luau.Identifier | luau.TemporaryIdentifier {
+		const file = this.sourceFile;
 
-	public useReflection = false;
-	public readonly reflectionId = luau.tempId("Reflect");
-	public Reflect(name: string) {
-		this.useReflection = true;
-		return luau.property(this.reflectionId, name);
+		let importInfos = this.fileImports.get(file.fileName);
+		if (!importInfos) this.fileImports.set(file.fileName, (importInfos = []));
+
+		let importInfo = importInfos.find(x => x.path === importPath);
+		if (!importInfo) importInfos.push((importInfo = { path: importPath, entries: [] }));
+
+		let identifier = importInfo.entries.find(x => x.name === name)?.identifier;
+		if (!identifier) {
+			if (!file.identifiers.has(name)) {
+				identifier = luau.id(name);
+				importInfo.entries.push({ name, identifier });
+			}
+		}
+
+		start: for (const statement of file.statements) {
+			if (!ts.isImportDeclaration(statement)) break;
+			if (!ts.isStringLiteral(statement.moduleSpecifier)) continue;
+			if (!statement.importClause || !ts.isImportClause(statement.importClause)) continue;
+			if (!statement.importClause.namedBindings || !ts.isNamedImports(statement.importClause.namedBindings)) {
+				continue;
+			}
+
+			for (const importElement of statement.importClause.namedBindings.elements) {
+				if (!this.resolver.isReferencedAliasDeclaration(importElement)) {
+					continue;
+				}
+
+				if (importElement.propertyName) {
+					if (importElement.propertyName.text === name) {
+						identifier = luau.id(importElement.name.text);
+						break start;
+					}
+				} else {
+					if (importElement.name.text === name) {
+						identifier = luau.id(importElement.name.text);
+						break start;
+					}
+				}
+			}
+		}
+
+		if (!identifier) {
+			importInfo.entries.push({
+				name,
+				identifier: (identifier = luau.tempId(name)),
+			});
+		}
+
+		return identifier;
 	}
 
 	/**
@@ -353,4 +394,13 @@ export class TransformState {
 	public getClassElementObjectKey(classElement: ts.ClassElement) {
 		return this.classElementToObjectKeyMap.get(classElement);
 	}
+}
+
+interface ImportItem {
+	name: string;
+	identifier: luau.Identifier | luau.TemporaryIdentifier;
+}
+interface ImportInfo {
+	path: string;
+	entries: Array<ImportItem>;
 }

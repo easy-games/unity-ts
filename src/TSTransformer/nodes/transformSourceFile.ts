@@ -221,27 +221,27 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 			);
 		}
 
-		if (state.useFlamework && state.flamework) {
+		const imports = state.fileImports.get(node.fileName) ?? [];
+		for (const importInfo of imports) {
+			if (importInfo.entries.length === 0) continue;
+
+			const tmpId = luau.tempId("import");
+
+			for (const entry of importInfo.entries) {
+				const identifier = entry.identifier;
+				const name = entry.name;
+
+				const stmt = luau.create(luau.SyntaxKind.VariableDeclaration, {
+					left: identifier,
+					right: luau.property(tmpId, name),
+				});
+				luau.list.unshift(statements, stmt);
+			}
+
 			const stmt = luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: state.flameworkId,
-				right: luau.property(
-					luau.call(luau.globals.require, [luau.string(state.flamework.flameworkRootDir + "/flamework")]),
-					"Flamework",
-				),
+				left: tmpId,
+				right: luau.call(luau.globals.require, [luau.string(importInfo.path)]),
 			});
-
-			luau.list.unshift(statements, stmt);
-		}
-
-		if (state.useReflection && state.flamework) {
-			const stmt = luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: state.reflectionId,
-				right: luau.property(
-					luau.call(luau.globals.require, [luau.string(state.flamework.flameworkRootDir + "/reflect")]),
-					"Reflect",
-				),
-			});
-
 			luau.list.unshift(statements, stmt);
 		}
 
