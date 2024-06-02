@@ -221,11 +221,6 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 			);
 		}
 
-		// add the Runtime library to the tree if it is used
-		if (state.usesRuntimeLib) {
-			luau.list.unshift(statements, state.createRuntimeLibImport(node));
-		}
-
 		if (state.flamework?.usesFlamework) {
 			const stmt = luau.create(luau.SyntaxKind.VariableDeclaration, {
 				left: state.flamework.flameworkId,
@@ -236,6 +231,23 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 			});
 
 			luau.list.unshift(statements, stmt);
+		}
+
+		if (state.flamework?.usesReflect) {
+			const stmt = luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: state.flamework.reflectionId,
+				right: luau.property(
+					luau.call(luau.globals.require, [luau.string(state.flamework.flameworkRootDir + "/reflect")]),
+					"Reflect",
+				),
+			});
+
+			luau.list.unshift(statements, stmt);
+		}
+
+		// add the Runtime library to the tree if it is used
+		if (state.usesRuntimeLib) {
+			luau.list.unshift(statements, state.createRuntimeLibImport(node));
 		}
 
 		// add build information to the tree
