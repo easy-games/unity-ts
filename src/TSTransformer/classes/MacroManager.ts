@@ -91,6 +91,10 @@ function getConstructorSymbol(node: ts.InterfaceDeclaration) {
 	throw new ProjectError(`MacroManager could not find constructor for ${node.name.text}` + TYPES_NOTICE);
 }
 
+export function isNamedDeclaration(node?: ts.Node): node is ts.NamedDeclaration & { name: ts.DeclarationName } {
+	return node !== undefined && ts.isNamedDeclaration(node);
+}
+
 /**
  * Manages the macros of the ts.
  */
@@ -100,8 +104,9 @@ export class MacroManager {
 	private callMacros = new Map<ts.Symbol, CallMacro>();
 	private constructorMacros = new Map<ts.Symbol, ConstructorMacro>();
 	private propertyCallMacros = new Map<ts.Symbol, PropertyCallMacro>();
+	private macroOnlySymbols = new Set<ts.Symbol>();
 
-	constructor(typeChecker: ts.TypeChecker) {
+	constructor(private readonly typeChecker: ts.TypeChecker) {
 		for (const [name, macro] of Object.entries(IDENTIFIER_MACROS)) {
 			const symbol = getGlobalSymbolByNameOrThrow(typeChecker, name, ts.SymbolFlags.Variable);
 			this.identifierMacros.set(symbol, macro);
@@ -168,6 +173,17 @@ export class MacroManager {
 		}
 	}
 
+	public isMacroOnlySymbol(symbol: ts.Symbol) {
+		return this.macroOnlySymbols.has(symbol);
+	}
+
+	public addCallMacro(symbol: ts.Symbol, macro: CallMacro, ignoreImport = true) {
+		this.callMacros.set(symbol, macro);
+		if (ignoreImport) {
+			this.macroOnlySymbols.add(symbol);
+		}
+	}
+
 	public getSymbolOrThrow(name: string) {
 		const symbol = this.symbols.get(name);
 		assert(symbol);
@@ -188,6 +204,20 @@ export class MacroManager {
 
 	public getConstructorMacro(symbol: ts.Symbol) {
 		return this.constructorMacros.get(symbol);
+	}
+
+	public getSymbolFromNode(node: ts.Node, followAlias = true): ts.Symbol | undefined {
+		if (isNamedDeclaration(node)) {
+			return this.getSymbolFromNode(node.name);
+		}
+
+		const symbol = this.typeChecker.getSymbolAtLocation(node);
+
+		if (symbol && followAlias) {
+			return ts.skipAlias(symbol, this.typeChecker);
+		} else {
+			return symbol;
+		}
 	}
 
 	public getPropertyCallMacro(symbol: ts.Symbol) {

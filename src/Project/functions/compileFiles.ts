@@ -90,11 +90,14 @@ export function compileFiles(
 	const progressMaxLength = `${sourceFiles.length}/${sourceFiles.length}`.length;
 
 	let proxyProgram = program;
+	let useFlameworkInternal = true;
 
 	if (compilerOptions.plugins && compilerOptions.plugins.length > 0) {
 		benchmarkIfVerbose(`Running transformers...`, () => {
 			const pluginConfigs = getPluginConfigs(data.tsConfigPath);
 			for (const pluginConfig of pluginConfigs) {
+				// TODO: if (pluginConfig.transform === "@easy-games/unity-flamework-transformer") useFlameworkInternal = false;
+
 				pluginConfig.compiler = {
 					projectDir: path.relative(process.cwd(), path.dirname(data.tsConfigPath)) || ".",
 					packageDir: path.relative(process.cwd(), data.projectOptions.package),
@@ -135,7 +138,11 @@ export function compileFiles(
 
 	const buildFile: AirshipBuildFile = buildState.buildFile;
 
-	const flamework = new FlameworkSymbolProvider(proxyProgram, compilerOptions, data);
+	let flamework: FlameworkSymbolProvider | undefined;
+	if (useFlameworkInternal) {
+		flamework = new FlameworkSymbolProvider(proxyProgram, compilerOptions, data, services);
+		flamework.registerInterestingFiles();
+	}
 
 	for (let i = 0; i < sourceFiles.length; i++) {
 		const sourceFile = proxyProgram.getSourceFile(sourceFiles[i].fileName);

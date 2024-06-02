@@ -36,7 +36,6 @@ export class TransformState {
 
 	public readonly resolver: ts.EmitResolver;
 
-
 	constructor(
 		public readonly program: ts.Program,
 		public readonly data: ProjectData,

@@ -226,6 +226,18 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 			luau.list.unshift(statements, state.createRuntimeLibImport(node));
 		}
 
+		if (state.flamework?.usesFlamework) {
+			const stmt = luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: state.flamework.flameworkId,
+				right: luau.property(
+					luau.call(luau.globals.require, [luau.string(state.flamework.flameworkRootDir + "/flamework")]),
+					"Flamework",
+				),
+			});
+
+			luau.list.unshift(statements, stmt);
+		}
+
 		// add build information to the tree
 		luau.list.unshift(
 			statements,

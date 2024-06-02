@@ -51,44 +51,6 @@ export function createImportExpression(
 
 	moduleOutPath = path.relative(state.pathTranslator.outDir, moduleOutPath);
 	moduleOutPath = makePosixPath(moduleOutPath);
-	// LogService.writeLine("import before=" + moduleOutPath);
-
-	// if (state.projectType === ProjectType.Package) {
-	// 	const packageName = state.data.projectOptions.nodePackageName!;
-	// 	// LogService.writeLine("packageName=" + packageName);
-	// 	const split = moduleOutPath.split(packageName);
-
-	// 	/**
-	// 	 * Special case: Github Actions
-	// 	 * Example path: /home/runner/work/flamework-core/flamework-core/out/modding.lua
-	// 	 */
-	// 	if (split.length >= 3) {
-	// 		moduleOutPath =
-	// 			"@Easy/Core/Shared/Resources/TSExtra/node_modules/@easy-games/" + packageName + split[split.length - 1];
-	// 	} else {
-	// 		moduleOutPath = "@Easy/Core/Shared/Resources/TSExtra/node_modules/@easy-games/" + packageName + split[1];
-	// 	}
-	// } else if (isInsideNodeModules) {
-	// 	let split = moduleOutPath.split("node_modules/");
-	// 	moduleOutPath = split[1];
-	// 	moduleOutPath = "@Easy/Core/Shared/Resources/TSExtra/node_modules/" + moduleOutPath;
-	// } else if (moduleOutPath.includes("Types~")) {
-	// 	let split = moduleOutPath.split("Types~");
-	// 	moduleOutPath = split[1];
-
-	// 	moduleOutPath = moduleOutPath.replace("Shared/", "Shared/Resources/TS/");
-	// 	moduleOutPath = moduleOutPath.replace("Server/", "Server/Resources/TS/");
-	// 	moduleOutPath = moduleOutPath.replace("Client/", "Client/Resources/TS/");
-	// } else {
-	// 	// LogService.writeLine("path: " + moduleOutPath);
-	// 	moduleOutPath = moduleOutPath.replace("Shared/", "Shared/Resources/TS/");
-	// 	moduleOutPath = moduleOutPath.replace("Server/", "Server/Resources/TS/");
-	// 	moduleOutPath = moduleOutPath.replace("Client/", "Client/Resources/TS/");
-	// }
-
-	// if (moduleOutPath.includes("/Assets/Bundles/")) {
-	// 	moduleOutPath = moduleOutPath.split("/Assets/Bundles/")[1];
-	// }
 
 	moduleOutPath = moduleOutPath.replace(".lua", "");
 

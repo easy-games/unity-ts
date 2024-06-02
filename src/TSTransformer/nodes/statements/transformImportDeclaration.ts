@@ -108,6 +108,11 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 				// named elements import logic
 				for (const element of importClauseNamedBindings.elements) {
 					const symbol = getOriginalSymbolOfNode(state.typeChecker, element.name);
+
+					if (symbol && state.services.macroManager.isMacroOnlySymbol(symbol)) {
+						continue;
+					}
+
 					// check that import is referenced and has a value at runtime
 					if (state.resolver.isReferencedAliasDeclaration(element) && (!symbol || isSymbolOfValue(symbol))) {
 						luau.list.pushList(
