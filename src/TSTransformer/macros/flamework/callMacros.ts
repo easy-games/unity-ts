@@ -32,7 +32,7 @@ export const FLAMEWORK_PROPERTY_CALL_MACROS = {
 		const firstType = node.typeArguments?.[0];
 		if (firstType !== undefined) {
 			if (ts.isPropertyAccessExpression(node.expression)) {
-				return luau.call(state.flamework!.Flamework("_implements"), [
+				return luau.call(state.Flamework("_implements"), [
 					transformExpression(state, firstArg),
 					luau.string(getFlameworkNodeUid(state, firstType) || "$p:error"),
 				]);
@@ -56,18 +56,14 @@ function moddingGenericMacro(name: string, genericInfo: GenericInfo): CallMacro 
 
 		for (let i = 0; i < genericInfo.index; i++) {
 			const arg = args[i];
+			if (arg !== undefined) continue;
 
-			if (arg === undefined) {
-				args.push(luau.nil());
-			}
+			args.push(luau.nil());
 		}
 
 		const argument = node.arguments[genericInfo.index];
-		if (argument !== undefined) {
-			const expr = transformExpression(state, argument);
-			args.push(expr);
-		} else {
-			args.push(luau.string(getFlameworkNodeUid(state, typeArgument)!));
+		if (argument === undefined) {
+			args.push(luau.string(getFlameworkNodeUid(state, typeArgument) || "$p:error"));
 		}
 
 		return luau.call(luau.property(expression as luau.IndexableExpression, name), args);
@@ -100,9 +96,7 @@ export const FLAMEWORK_CALL_MACROS = {
 			}
 
 			DiagnosticService.addDiagnostic(warnings.dependencyInjectionDeprecated(node, firstArg));
-			return luau.call(state.flamework!.Flamework("resolveDependency"), [
-				luau.string(getFlameworkSymbolUid(state, symbol)),
-			]);
+			return luau.call(state.Flamework("resolveDependency"), [luau.string(getFlameworkSymbolUid(state, symbol))]);
 		} else if (firstType && !firstArg) {
 			if (!ts.isTypeReferenceNode(firstType)) {
 				DiagnosticService.addDiagnostic(errors.expectedTypeReference(node, firstType));
@@ -115,9 +109,7 @@ export const FLAMEWORK_CALL_MACROS = {
 				return luau.nil();
 			}
 
-			return luau.call(state.flamework!.Flamework("resolveDependency"), [
-				luau.string(getFlameworkSymbolUid(state, symbol)),
-			]);
+			return luau.call(state.Flamework("resolveDependency"), [luau.string(getFlameworkSymbolUid(state, symbol))]);
 		}
 
 		DiagnosticService.addDiagnostic(errors.dependencyInjectionNoType(node));

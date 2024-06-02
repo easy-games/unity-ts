@@ -199,6 +199,20 @@ export class TransformState {
 		return luau.property(luau.globals.TS, name);
 	}
 
+	public useFlamework = false;
+	public readonly flameworkId = luau.tempId("Flamework");
+	public Flamework(name: string) {
+		this.useFlamework = true;
+		return luau.property(this.flameworkId, name);
+	}
+
+	public useReflection = false;
+	public readonly reflectionId = luau.tempId("Reflect");
+	public Reflect(name: string) {
+		this.useReflection = true;
+		return luau.property(this.reflectionId, name);
+	}
+
 	/**
 	 * Returns a `luau.VariableDeclaration` for RuntimeLib.lua
 	 */

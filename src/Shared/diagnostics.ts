@@ -308,4 +308,14 @@ export const warnings = {
 			suggestion("Please use Dependency<" + id.text + ">()"),
 		];
 	}),
+
+	flameworkTransformer: {
+		file: undefined,
+		code: " unity-ts" as unknown as number,
+		category: ts.DiagnosticCategory.Warning,
+		start: 0,
+		length: 0,
+		messageText:
+			"You are using an external version of Flamework (@easy-games/unity-flamework-transformer) in your 'plugins' of tsconfig.json - the compiler has a built in version, using the old version may have issues in future.",
+	} satisfies ts.Diagnostic,
 };

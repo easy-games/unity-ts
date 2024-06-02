@@ -29,11 +29,6 @@ export class FlameworkSymbolProvider {
 
 	public flameworkRootDir = "AirshipPackages/@Easy/Core/Shared/Flamework";
 	private flameworkDir = this.resolveModuleDir(this.flameworkRootDir);
-
-	public readonly flameworkId = luau.tempId("Flamework");
-	public readonly moddingId = luau.tempId("Modding");
-	public readonly reflectionId = luau.tempId("Reflect");
-
 	public decorators = new Set<ts.Symbol>();
 
 	constructor(
@@ -42,16 +37,6 @@ export class FlameworkSymbolProvider {
 		private readonly data: ProjectData,
 		private readonly services: TransformServices,
 	) {}
-
-	public Flamework(name: string) {
-		this.usesFlamework = true;
-		return luau.property(this.flameworkId, name);
-	}
-
-	public Reflect(name: string) {
-		this.usesReflect = true;
-		return luau.property(this.reflectionId, name);
-	}
 
 	getSourceFile(node: ts.Node) {
 		const parseNode = ts.getParseTreeNode(node);

@@ -221,9 +221,9 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 			);
 		}
 
-		if (state.flamework?.usesFlamework) {
+		if (state.useFlamework && state.flamework) {
 			const stmt = luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: state.flamework.flameworkId,
+				left: state.flameworkId,
 				right: luau.property(
 					luau.call(luau.globals.require, [luau.string(state.flamework.flameworkRootDir + "/flamework")]),
 					"Flamework",
@@ -233,9 +233,9 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 			luau.list.unshift(statements, stmt);
 		}
 
-		if (state.flamework?.usesReflect) {
+		if (state.useReflection && state.flamework) {
 			const stmt = luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: state.flamework.reflectionId,
+				left: state.reflectionId,
 				right: luau.property(
 					luau.call(luau.globals.require, [luau.string(state.flamework.flameworkRootDir + "/reflect")]),
 					"Reflect",

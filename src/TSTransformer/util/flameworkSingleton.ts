@@ -61,22 +61,12 @@ export function isFlameworkSingleton(state: TransformState, node: ts.ClassLikeDe
 	return false;
 }
 
-/**
---(Flamework) AirshipInputSingleton metadata
-Reflect.defineMetadata(AirshipInputSingleton, "identifier", "@Easy/Core:Shared/Input/AirshipInputSingleton@AirshipInputSingleton")
-Reflect.defineMetadata(AirshipInputSingleton, "flamework:implements", { "$OnStart" })
-Reflect.decorate(AirshipInputSingleton, "$Controller", Controller, { {} })
-Reflect.decorate(AirshipInputSingleton, "$Service", Service, { {
-	loadOrder = -1,
-} })
- */
-
 function identifierMetadata(state: TransformState, node: ClassLikeDeclaration): luau.CallStatement {
 	assert(node.name);
 	assert(state.flamework);
 
 	return luau.create(luau.SyntaxKind.CallStatement, {
-		expression: luau.call(state.flamework!.Reflect("defineMetadata"), [
+		expression: luau.call(state.Reflect("defineMetadata"), [
 			transformExpression(state, node.name),
 			luau.string("identifier"),
 			luau.string(getFlameworkNodeUid(state, node)!),
@@ -94,7 +84,7 @@ function getDecoratorArguments(state: TransformState, decorator: ts.LeftHandSide
 
 function decorate(state: TransformState, id: luau.AnyIdentifier, name: luau.StringLiteral, args: luau.Array) {
 	return luau.create(luau.SyntaxKind.CallStatement, {
-		expression: luau.call(state.flamework!.Reflect("decorate"), [id, name, args]),
+		expression: luau.call(state.Reflect("decorate"), [id, name, args]),
 	});
 }
 
@@ -136,7 +126,7 @@ function generateDecoratorMetadata(state: TransformState, node: ClassLikeDeclara
 
 function implementsClauses(state: TransformState, node: ClassLikeDeclaration, list: ReadonlyArray<string>) {
 	return luau.create(luau.SyntaxKind.CallStatement, {
-		expression: luau.call(state.flamework!.Reflect("defineMetadata"), [
+		expression: luau.call(state.Reflect("defineMetadata"), [
 			transformExpression(state, node.name!),
 			luau.string("flamework:implements"),
 			luau.array(list.map(f => luau.string(f))),

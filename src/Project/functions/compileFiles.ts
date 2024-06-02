@@ -13,6 +13,7 @@ import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagno
 import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { ProjectType } from "Shared/constants";
+import { warnings } from "Shared/diagnostics";
 import { AirshipBuildFile, ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
@@ -96,7 +97,11 @@ export function compileFiles(
 		benchmarkIfVerbose(`Running transformers...`, () => {
 			const pluginConfigs = getPluginConfigs(data.tsConfigPath);
 			for (const pluginConfig of pluginConfigs) {
-				if (pluginConfig.transform === "@easy-games/unity-flamework-transformer") useFlameworkInternal = false;
+				// Disable internal compiler flamework if external version in use
+				if (pluginConfig.transform === "@easy-games/unity-flamework-transformer") {
+					DiagnosticService.addDiagnostic(warnings.flameworkTransformer);
+					useFlameworkInternal = false;
+				}
 
 				pluginConfig.compiler = {
 					projectDir: path.relative(process.cwd(), path.dirname(data.tsConfigPath)) || ".",
