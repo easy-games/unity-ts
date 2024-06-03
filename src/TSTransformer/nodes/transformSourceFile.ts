@@ -208,6 +208,21 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 		// transform the `ts.Statements` of the source file into a `list.list<...>`
 		const statements = transformStatementList(state, node.statements);
 
+		const directiveComments = luau.list.make<luau.Comment>();
+		if (statements.head && luau.isComment(statements.head.value) && statements.head.value.text.startsWith("!")) {
+			luau.list.push(directiveComments, luau.list.shift(statements)! as luau.Comment);
+		}
+
+		const headerStatements = luau.list.make<luau.Statement>();
+		luau.list.push(
+			headerStatements,
+			luau.comment(
+				` Compiled with the Airship Typescript Compiler (${
+					state.flamework !== undefined ? "flamework: built-in" : "flamework: legacy"
+				}) v${COMPILER_VERSION}`,
+			),
+		);
+
 		handleExports(state, node, symbol, statements);
 
 		// moduleScripts must `return nil` if they do not export any values
@@ -250,15 +265,8 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 			luau.list.unshift(statements, state.createRuntimeLibImport(node));
 		}
 
-		// add build information to the tree
-		luau.list.unshift(
-			statements,
-			luau.comment(
-				` Compiled with the Airship Typescript Compiler (${
-					state.flamework !== undefined ? "flamework: built-in" : "flamework: legacy"
-				}) v${COMPILER_VERSION}`,
-			),
-		);
+		luau.list.unshiftList(statements, headerStatements);
+		luau.list.unshiftList(statements, directiveComments);
 		return statements;
 	}
 }
