@@ -316,6 +316,11 @@ export const warnings = {
 		start: 0,
 		length: 0,
 		messageText:
-			"You are using an external version of Flamework (@easy-games/unity-flamework-transformer) in your 'plugins' of tsconfig.json - the compiler has a built in version, using the old version may have issues in future.",
+			"You are using an external version of Flamework (@easy-games/unity-flamework-transformer) in your 'plugins' of tsconfig.json - " +
+			"the compiler has a built in version, the old version will no longer be maintained.",
 	} satisfies ts.Diagnostic,
+
+	flameworkDependencyRaceCondition: warning(
+		"The Dependency macro should not be used outside of a function as this may introduce race conditions.",
+	),
 };

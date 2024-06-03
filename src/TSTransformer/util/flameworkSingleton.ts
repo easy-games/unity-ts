@@ -1,12 +1,10 @@
 import luau from "@roblox-ts/luau-ast";
-import { Statement } from "@roblox-ts/luau-ast/out/LuauAST/bundle";
+import assert from "assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { FlameworkClassInfo, FlameworkDecoratorInfo } from "TSTransformer/flamework";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { transformIdentifier } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { getFlameworkNodeUid, getFlameworkSymbolUid } from "TSTransformer/util/flameworkId";
-import assert from "assert";
-import ts, { ClassLikeDeclaration, SyntaxKind } from "typescript";
+import ts, { ClassLikeDeclaration } from "typescript";
 
 export function isFlameworkSingleton(state: TransformState, node: ts.ClassLikeDeclaration) {
 	if (!state.flamework) return false;
@@ -194,7 +192,6 @@ export function generateFlameworkMetadataForClass(state: TransformState, node: C
 	const classInfo = state.airshipBuildState.classes.get(classSymbol);
 	if (!classInfo) return list;
 
-	luau.list.push(list, luau.comment(" (Flamework) Singleton '" + node.name.text + "'"));
 	luau.list.push(list, identifierMetadata(state, node));
 
 	if (node.heritageClauses) {

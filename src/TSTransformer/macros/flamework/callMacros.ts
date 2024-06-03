@@ -81,6 +81,10 @@ export const FLAMEWORK_CALL_MACROS = {
 		const firstArg = node.arguments[0];
 		const firstType = node.typeArguments?.[0];
 
+		if (node.parent.parent && ts.isSourceFile(node.parent.parent)) {
+			DiagnosticService.addDiagnostic(warnings.flameworkDependencyRaceCondition(node));
+		}
+
 		if (firstArg && !firstType) {
 			// TODO: Remove this usage in types + here soon
 			if (!ts.isIdentifier(firstArg)) {

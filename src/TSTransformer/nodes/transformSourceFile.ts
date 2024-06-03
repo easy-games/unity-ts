@@ -253,7 +253,11 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 		// add build information to the tree
 		luau.list.unshift(
 			statements,
-			luau.comment(` Compiled with the Airship Typescript Compiler v${COMPILER_VERSION}`),
+			luau.comment(
+				` Compiled with the Airship Typescript Compiler (${
+					state.flamework !== undefined ? "flamework: built-in" : "flamework: legacy"
+				}) v${COMPILER_VERSION}`,
+			),
 		);
 		return statements;
 	}
