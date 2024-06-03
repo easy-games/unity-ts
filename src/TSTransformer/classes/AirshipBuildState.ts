@@ -1,7 +1,7 @@
 import { readFileSync } from "fs";
 import path from "path";
-import { ProjectType } from "Shared/constants";
-import { AirshipBuildFile } from "Shared/types";
+import { COMPILER_VERSION, ProjectType } from "Shared/constants";
+import { AirshipBuildFile, FlameworkBuildInfo } from "Shared/types";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { FlameworkClassInfo } from "TSTransformer/flamework";
 import { getEnumMetadata } from "TSTransformer/util/airshipBehaviourUtils";
@@ -22,7 +22,10 @@ export class AirshipBuildState {
 		this.buildFile = buildFile ?? {
 			behaviours: {},
 			extends: {},
-			flameworkIdentifiers: {},
+			flamework: {
+				version: 1,
+				identifiers: {},
+			} satisfies FlameworkBuildInfo,
 		};
 	}
 
@@ -42,7 +45,10 @@ export class AirshipBuildState {
 		return this.idLookup.get(internalId);
 	}
 
-	public addFlameworkIdentifier(internalId: string, newId: string) {}
+	public addFlameworkIdentifier(internalId: string, id: string) {
+		this.buildFile.flamework.identifiers[internalId] = id;
+		this.idLookup.set(internalId, id);
+	}
 
 	private typeIdCache = new Map<string, string>();
 	public getUniqueIdForType(transformState: TransformState, type: ts.Type, sourceFile: ts.SourceFile) {

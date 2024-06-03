@@ -67,6 +67,14 @@ export function compileFiles(
 	const asJson = data.projectOptions.json;
 	const compilerOptions = program.getCompilerOptions();
 
+	const pkgJson: { name: string } = JSON.parse(
+		fs
+			.readFileSync(path.join(program.getCurrentDirectory(), data.projectOptions.package, "package.json"))
+			.toString(),
+	);
+
+	buildState.editorInfo.id = pkgJson.name;
+
 	const multiTransformState = new MultiTransformState();
 
 	for (const sourceFile of program.getSourceFiles()) {
@@ -310,22 +318,7 @@ export function compileFiles(
 	let typescriptDir = path.dirname(data.tsConfigPath);
 	let editorMetadataPath: string;
 	{
-		if (projectType === ProjectType.AirshipBundle) {
-			editorMetadataPath = path.join(
-				pathTranslator.outDir,
-				"Server",
-				"Resources",
-				"PackageTypeScriptMetadata.aseditorinfo",
-			);
-
-			const pkgJson: { name: string } = JSON.parse(
-				fs.readFileSync(path.join(program.getCurrentDirectory(), "package.json")).toString(),
-			);
-
-			buildState.editorInfo.id = pkgJson.name;
-		} else {
-			editorMetadataPath = path.join(typescriptDir, "TypeScriptEditorMetadata.aseditorinfo");
-		}
+		editorMetadataPath = path.join(typescriptDir, "TypeScriptEditorMetadata.aseditorinfo");
 
 		const oldBuildFileSource = fs.existsSync(editorMetadataPath)
 			? fs.readFileSync(editorMetadataPath).toString()

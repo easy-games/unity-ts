@@ -225,7 +225,7 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 		for (const importInfo of imports) {
 			if (importInfo.entries.length === 0) continue;
 
-			const tmpId = luau.tempId("import");
+			const tmpId = luau.tempId(importInfo.entries[0].name);
 
 			for (const entry of importInfo.entries) {
 				const identifier = entry.identifier;

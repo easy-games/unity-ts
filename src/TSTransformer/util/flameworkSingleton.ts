@@ -85,16 +85,25 @@ function getDecoratorArguments(state: TransformState, decorator: ts.LeftHandSide
 	return luau.array(decorator.arguments.map(arg => transformExpression(state, arg)));
 }
 
-function decorate(state: TransformState, id: luau.AnyIdentifier, name: luau.StringLiteral, args: luau.Array) {
+function decorate(
+	state: TransformState,
+	object: luau.AnyIdentifier,
+	decoratorId: luau.StringLiteral,
+	decorator: luau.AnyIdentifier,
+	args: luau.Array,
+) {
 	const flameworkImportId = state.addFileImport(state.flamework!.flameworkRootDir + "/index", "Reflect");
 	const Reflect_decorate = luau.property(flameworkImportId, "decorate");
 
 	return luau.create(luau.SyntaxKind.CallStatement, {
-		expression: luau.call(Reflect_decorate, [id, name, args]),
+		expression: luau.call(Reflect_decorate, [object, decoratorId, decorator, args]),
 	});
 }
 
-export function isFlameworkDecorator(state: TransformState, decorator: ts.Decorator) {
+export function isFlameworkDecorator(
+	state: TransformState,
+	decorator: ts.Decorator,
+): decorator is ts.Decorator & { expression: ts.CallExpression | ts.Identifier } {
 	const expr = decorator.expression;
 	const type = state.typeChecker.getTypeAtLocation(expr);
 	return type.getProperty("_flamework_Decorator") !== undefined;
@@ -107,12 +116,13 @@ function generateDecoratorMetadata(state: TransformState, node: ClassLikeDeclara
 
 	if (decorators) {
 		for (const decorator of decorators) {
-			const expr = decorator.expression;
 			if (isFlameworkDecorator(state, decorator)) {
+				const expr = decorator.expression;
 				const identifier = ts.isCallExpression(expr) ? expr.expression : expr;
 				const symbol = state.services.macroManager.getSymbolFromNode(identifier);
 				assert(symbol);
 				assert(symbol.valueDeclaration);
+				assert(ts.isIdentifier(identifier));
 
 				luau.list.push(
 					list,
@@ -120,6 +130,7 @@ function generateDecoratorMetadata(state: TransformState, node: ClassLikeDeclara
 						state,
 						luau.id(node.name!.text),
 						luau.string(getFlameworkSymbolUid(state, symbol)),
+						luau.id(identifier.text),
 						getDecoratorArguments(state, expr),
 					),
 				);
@@ -141,6 +152,36 @@ function implementsClauses(state: TransformState, node: ClassLikeDeclaration, li
 			luau.array(list.map(f => luau.string(f))),
 		]),
 	});
+}
+
+function generateMethodMetadata(state: TransformState, method: ts.FunctionLikeDeclaration): luau.List<luau.Statement> {
+	const flameworkImportId = state.addFileImport(state.flamework!.flameworkRootDir + "/index", "Reflect");
+	const Reflect_defineMetadata = luau.property(flameworkImportId, "defineMetadata");
+
+	const list = luau.list.make<luau.Statement>();
+
+	const parameters = new Array<string>();
+	for (const parameter of method.parameters) {
+		if (parameter.type) {
+			const id = getFlameworkNodeUid(state, parameter.type);
+			parameters.push(id || "$p:error");
+		}
+	}
+
+	if (parameters.length > 0) {
+		luau.list.push(
+			list,
+			luau.create(luau.SyntaxKind.CallStatement, {
+				expression: luau.call(Reflect_defineMetadata, [
+					transformExpression(state, (method.parent as ts.ClassLikeDeclaration).name!),
+					luau.string("flamework:parameters"),
+					luau.array(parameters.map(param => luau.string(param))),
+				]),
+			}),
+		);
+	}
+
+	return list;
 }
 
 export function generateFlameworkMetadataForClass(state: TransformState, node: ClassLikeDeclaration) {
@@ -171,6 +212,15 @@ export function generateFlameworkMetadataForClass(state: TransformState, node: C
 		if (implementsList.length > 0) {
 			luau.list.push(list, implementsClauses(state, node, implementsList));
 		}
+	}
+
+	// Constructor metadata
+	const constructor = node.members.find((member): member is ts.ConstructorDeclaration =>
+		ts.isConstructorDeclaration(member),
+	);
+	if (constructor) {
+		// Handle dependency injection
+		luau.list.pushList(list, generateMethodMetadata(state, constructor));
 	}
 
 	// Reflect.decorate(<Object>, "<ID>", <OBJ>, { <...ARGS> })

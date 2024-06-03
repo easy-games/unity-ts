@@ -67,18 +67,23 @@ export function getFlameworkInternalId(state: TransformState, node: ts.NamedDecl
 
 	return {
 		isPackage: false,
-		internalId: `${relativePath.replace(/(\.d)?.ts$/, "")}@${fullName}`,
+		internalId: `${state.airshipBuildState.editorInfo.id}:${relativePath.replace(/(\.d)?.ts$/, "")}@${fullName}`,
 	};
 }
 
 export function getFlameworkDeclarationUid(state: TransformState, declaration: ts.Declaration) {
 	const { isPackage, internalId } = getFlameworkInternalId(state, declaration);
 
+	const id = state.airshipBuildState.getFlameworkIdentifier(internalId);
+	if (id) return id;
+
 	if (isPackage) {
 		return internalId;
 	}
 
-	return formatInternalid(state, internalId);
+	const newId = formatInternalid(state, internalId);
+	state.airshipBuildState.addFlameworkIdentifier(internalId, newId);
+	return newId;
 }
 
 export function getFlameworkSymbolUid(state: TransformState, symbol: ts.Symbol) {
