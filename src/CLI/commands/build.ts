@@ -103,6 +103,7 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 				);
 			}
 
+			projectOptions.nodePackageName = packageJson.name;
 			const data = createProjectData(tsConfigPath, packageJsonDir, projectOptions);
 
 			const diagnosticReporter = projectOptions.json

@@ -19,7 +19,7 @@ export function createProjectData(
 
 	let isPackage = false;
 	try {
-		const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath).toString());
+		const pkgJson: { name: string } = JSON.parse(fs.readFileSync(pkgJsonPath).toString());
 		isPackage = PACKAGE_REGEX.test(pkgJson.name ?? "");
 	} catch (e) {
 		// errors if no pkgJson, so assume not a package

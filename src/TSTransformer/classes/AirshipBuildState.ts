@@ -1,8 +1,9 @@
 import { readFileSync } from "fs";
 import path from "path";
-import { ProjectType } from "Shared/constants";
-import { AirshipBuildFile } from "Shared/types";
+import { COMPILER_VERSION, ProjectType } from "Shared/constants";
+import { AirshipBuildFile, FlameworkBuildInfo } from "Shared/types";
 import { TransformState } from "TSTransformer/classes/TransformState";
+import { FlameworkClassInfo } from "TSTransformer/flamework";
 import { getEnumMetadata } from "TSTransformer/util/airshipBehaviourUtils";
 import ts, { findPackageJson, getPackageJsonInfo } from "typescript";
 
@@ -15,11 +16,16 @@ interface EditorInfo {
 
 export class AirshipBuildState {
 	public readonly buildFile: AirshipBuildFile;
+	public readonly classes = new Map<ts.Symbol, FlameworkClassInfo>();
 
 	public constructor(buildFile?: AirshipBuildFile) {
 		this.buildFile = buildFile ?? {
 			behaviours: {},
 			extends: {},
+			flamework: {
+				version: 1,
+				identifiers: {},
+			} satisfies FlameworkBuildInfo,
 		};
 	}
 
@@ -32,6 +38,16 @@ export class AirshipBuildState {
 
 	public getEnumById(id: string): EnumRecord | undefined {
 		return this.editorInfo.enum[id];
+	}
+
+	private idLookup = new Map<string, string>();
+	public getFlameworkIdentifier(internalId: string) {
+		return this.idLookup.get(internalId);
+	}
+
+	public addFlameworkIdentifier(internalId: string, id: string) {
+		this.buildFile.flamework.identifiers[internalId] = id;
+		this.idLookup.set(internalId, id);
 	}
 
 	private typeIdCache = new Map<string, string>();

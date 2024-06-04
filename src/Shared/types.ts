@@ -29,7 +29,7 @@ export interface ProjectOptions {
 	writeOnlyChanged: boolean;
 	optimizedLoops: boolean;
 	allowCommentDirectives: boolean;
-	nodePackageName: string | undefined;
+	nodePackageName: string;
 	copyNodeModules: boolean;
 }
 
@@ -260,7 +260,29 @@ export interface AirshipBehaviourInfo {
 	readonly extends: Array<string>;
 }
 
+interface FlameworkBuildDecorator {
+	name: string;
+	internalId: string;
+	isFlameworkDecorator: boolean;
+}
+
+interface FlameworkBuildClass {
+	filePath: string;
+	internalId: string;
+	decorators: Array<FlameworkBuildDecorator>;
+}
+
+export interface FlameworkBuildInfo {
+	version: number;
+	identifierPrefix?: string;
+	salt?: string;
+	stringHashes?: { [key: string]: string };
+	identifiers: { [key: string]: string };
+	classes?: Array<FlameworkBuildClass>;
+}
+
 export interface AirshipBuildFile {
 	readonly behaviours: Record<string, AirshipBehaviourInfo>; // TODO: Value
 	readonly extends: Record<string, Array<string>>;
+	readonly flamework: FlameworkBuildInfo;
 }

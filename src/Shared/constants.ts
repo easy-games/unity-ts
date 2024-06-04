@@ -59,6 +59,6 @@ export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	writeOnlyChanged: false,
 	optimizedLoops: false,
 	allowCommentDirectives: false,
-	nodePackageName: undefined,
+	nodePackageName: "",
 	copyNodeModules: false,
 };

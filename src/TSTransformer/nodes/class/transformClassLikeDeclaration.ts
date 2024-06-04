@@ -33,6 +33,8 @@ import {
 	isValidAirshipBehaviourExportType,
 } from "TSTransformer/util/airshipBehaviourUtils";
 import { isAirshipBehaviourClass, isRootAirshipBehaviourClass } from "TSTransformer/util/extendsAirshipBehaviour";
+import { getFlameworkNodeUid } from "TSTransformer/util/flameworkId";
+import { generateFlameworkMetadataForClass, isFlameworkSingleton } from "TSTransformer/util/flameworkSingleton";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
@@ -754,6 +756,17 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 
 	luau.list.pushList(statementsInner, transformDecorators(state, node, returnVar));
 
+	const isFlameworkSingletonClass = isFlameworkSingleton(state, node);
+	if (isFlameworkSingletonClass) {
+		// Handle flamework classes
+		const flameworkMetadata = generateFlameworkMetadataForClass(state, node);
+		luau.list.pushList(statementsInner, flameworkMetadata);
+		luau.list.unshift(
+			statements,
+			luau.comment(`▼ Airship Flamework Class '${getFlameworkNodeUid(state, node)}' ▼`),
+		);
+	}
+
 	luau.list.push(
 		statements,
 		luau.create(luau.SyntaxKind.DoStatement, {
@@ -775,6 +788,8 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 			luau.list.unshift(statements, luau.comment(`▼ AirshipBehaviour Class '${behaviourInfo.id}' ▼`));
 			luau.list.push(statements, luau.comment(`▲ AirshipBehaviour Class ▲`));
 		}
+	} else if (isFlameworkSingletonClass) {
+		luau.list.push(statements, luau.comment(`▲ Airship Flamework Class ▲`));
 	}
 
 	return { statements, name: returnVar };
