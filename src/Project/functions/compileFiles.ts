@@ -26,7 +26,6 @@ import {
 } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { FlameworkSymbolProvider } from "TSTransformer/classes/FlameworkSymbolProvider";
-import { transformExpressionStatement } from "TSTransformer/nodes/statements/transformExpressionStatement";
 import { createTransformServices } from "TSTransformer/util/createTransformServices";
 import ts from "typescript";
 

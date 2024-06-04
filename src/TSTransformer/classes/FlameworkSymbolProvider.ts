@@ -165,7 +165,7 @@ class FlameworkModuleFile {
 
 	public constructor(
 		public readonly typeChecker: ts.TypeChecker,
-		private readonly file: ts.SourceFile,
+		public readonly file: ts.SourceFile,
 		private name: string,
 	) {
 		const fileSymbol = typeChecker.getSymbolAtLocation(file);

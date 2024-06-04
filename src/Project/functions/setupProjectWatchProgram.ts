@@ -18,7 +18,7 @@ import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
 import { createJsonDiagnosticReporter, InputEvent, isCompilationEvent, jsonReporter } from "Project/functions/json";
 import { tryRemoveOutput } from "Project/functions/tryRemoveOutput";
 import { PathTranslator } from "Shared/classes/PathTranslator";
-import { LUA_EXT, ProjectType, TS_EXT, TSX_EXT } from "Shared/constants";
+import { DTS_EXT, LUA_EXT, ProjectType, TS_EXT, TSX_EXT } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { assert } from "Shared/util/assert";
 import { getRootDirs } from "Shared/util/getRootDirs";
@@ -148,8 +148,6 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	function runIncrementalCompile(additions: Set<string>, changes: Set<string>, removals: Set<string>): ts.EmitResult {
 		const buildFile = watchBuildState.buildFile;
 
-		console.log("add", additions, "change", changes, "removals", removals);
-
 		for (const fsPath of additions) {
 			if (fs.statSync(fsPath).isDirectory()) {
 				walkDirectorySync(fsPath, item => {
@@ -197,6 +195,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		assert(program && pathTranslator);
 
 		const sourceFiles = getChangedSourceFiles(program, options.incremental ? undefined : [...filesToCompile]);
+		console.log("changedSourceFiles", sourceFiles.map(src => src.fileName))
 
 		if (useJsonEvents) {
 			jsonReporter("startingCompile", {
@@ -259,7 +258,9 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	}
 
 	function isInterestingFile(fsPath: string) {
-		return fsPath.endsWith(TS_EXT) || fsPath.endsWith(TSX_EXT) || fsPath.endsWith(LUA_EXT);
+		return (
+			fsPath.endsWith(TS_EXT) || fsPath.endsWith(TSX_EXT) || fsPath.endsWith(LUA_EXT) || fsPath.endsWith(DTS_EXT)
+		);
 	}
 
 	function isExcludedPath(fsPath: string) {

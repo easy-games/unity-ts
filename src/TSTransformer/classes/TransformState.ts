@@ -5,6 +5,7 @@ import { ProjectType } from "Shared/constants";
 import { AirshipBehaviour, ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
+import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
 import { AirshipBuildState, MultiTransformState } from "TSTransformer";
 import { FlameworkSymbolProvider } from "TSTransformer/classes/FlameworkSymbolProvider";
 import { TransformServices, TryUses } from "TSTransformer/types";
@@ -202,6 +203,19 @@ export class TransformState {
 	public fileImports = new Map<string, Array<ImportInfo>>();
 	public addFileImport(importPath: string, name: string): luau.Identifier | luau.TemporaryIdentifier {
 		const file = this.sourceFile;
+
+		if (importPath === this.flamework?.flameworkRootDir + "/index") {
+			if (file === this.flamework?.flameworkFile.file) {
+				return luau.id("Flamework");
+			}
+
+			const flameworkDir = path.dirname(this.flamework!.flameworkFile.file.fileName);
+			const modulePath = path.join(flameworkDir, name === "Reflect" ? "reflect" : "flamework");
+
+			if (isPathDescendantOf(file.fileName, flameworkDir)) {
+				importPath = "./" + path.relative(path.dirname(file.fileName), modulePath) || ".";
+			}
+		}
 
 		let importInfos = this.fileImports.get(file.fileName);
 		if (!importInfos) this.fileImports.set(file.fileName, (importInfos = []));
