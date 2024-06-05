@@ -317,7 +317,7 @@ export const warnings = {
 		length: 0,
 		messageText:
 			"You are using an external version of Flamework (@easy-games/unity-flamework-transformer) in your 'plugins' of tsconfig.json - " +
-			"the compiler has a built in version, the old version will no longer be maintained.",
+			"please remove this from the file as it will not be maintained in future.",
 	} satisfies ts.Diagnostic,
 
 	flameworkDependencyRaceCondition: warning(
