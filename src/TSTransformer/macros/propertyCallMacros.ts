@@ -980,6 +980,7 @@ const UNITY_GAMEOBJECT_METHODS: MacroList<PropertyCallMacro> = {
 };
 const UNITY_STATIC_GAMEOBJECT_METHODS: MacroList<PropertyCallMacro> = {
 	FindObjectOfType: makeTypeArgumentAsStringMacro("FindObjectOfType"),
+	FindObjectsByType: makeTypeArgumentAsStringMacro("FindObjectsByType"),
 };
 const UNITY_COMPONENT_METHODS: MacroList<PropertyCallMacro> = {
 	GetComponent: makeTypeArgumentAsStringMacro("GetComponent"),
