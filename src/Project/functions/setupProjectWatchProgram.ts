@@ -195,7 +195,6 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		assert(program && pathTranslator);
 
 		const sourceFiles = getChangedSourceFiles(program, options.incremental ? undefined : [...filesToCompile]);
-		console.log("changedSourceFiles", sourceFiles.map(src => src.fileName))
 
 		if (useJsonEvents) {
 			jsonReporter("startingCompile", {
