@@ -4,7 +4,13 @@ import { CALL_MACROS } from "TSTransformer/macros/callMacros";
 import { CONSTRUCTOR_MACROS } from "TSTransformer/macros/constructorMacros";
 import { IDENTIFIER_MACROS } from "TSTransformer/macros/identifierMacros";
 import { PROPERTY_CALL_MACROS } from "TSTransformer/macros/propertyCallMacros";
-import { CallMacro, ConstructorMacro, CallDecoratorMacro, IdentifierMacro, PropertyCallMacro } from "TSTransformer/macros/types";
+import {
+	CallDecoratorMacro,
+	CallMacro,
+	ConstructorMacro,
+	IdentifierMacro,
+	PropertyCallMacro,
+} from "TSTransformer/macros/types";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
@@ -12,7 +18,7 @@ function getType(typeChecker: ts.TypeChecker, node: ts.Node) {
 	return typeChecker.getTypeAtLocation(skipUpwards(node));
 }
 
-const TYPES_NOTICE = "\nYou may need to update your @rbxts/compiler-types!";
+const TYPES_NOTICE = "\nYou may need to update the @Easy/Core package (through the Airship -> Packages menu)";
 
 export const SYMBOL_NAMES = {
 	globalThis: "globalThis",
@@ -78,7 +84,7 @@ function getGlobalSymbolByNameOrThrow(typeChecker: ts.TypeChecker, name: string,
 		return symbol;
 	}
 
-	throw new ProjectError(`MacroManager could not find symbol for ${name}` + TYPES_NOTICE);
+	throw new ProjectError(`The types for symbol '${name}' could not be found` + TYPES_NOTICE);
 }
 
 function getConstructorSymbol(node: ts.InterfaceDeclaration) {
@@ -88,7 +94,7 @@ function getConstructorSymbol(node: ts.InterfaceDeclaration) {
 			return member.symbol;
 		}
 	}
-	throw new ProjectError(`MacroManager could not find constructor for ${node.name.text}` + TYPES_NOTICE);
+	throw new ProjectError(`The types for constructor '${node.name.text}' could not be found` + TYPES_NOTICE);
 }
 
 export function isNamedDeclaration(node?: ts.Node): node is ts.NamedDeclaration & { name: ts.DeclarationName } {
@@ -145,7 +151,7 @@ export class MacroManager {
 				const methodSymbol = methodMap.get(methodName);
 				if (!methodSymbol) {
 					throw new ProjectError(
-						`MacroManager could not find method for ${className}.${methodName}` + TYPES_NOTICE,
+						`The types for method ${className}.${methodName} could not be found` + TYPES_NOTICE,
 					);
 				}
 				this.propertyCallMacros.set(methodSymbol, macro);
@@ -157,7 +163,7 @@ export class MacroManager {
 			if (symbol) {
 				this.symbols.set(symbolName, symbol);
 			} else {
-				throw new ProjectError(`MacroManager could not find symbol for ${symbolName}` + TYPES_NOTICE);
+				throw new ProjectError(`The types for symbol '${symbolName}' could not be found` + TYPES_NOTICE);
 			}
 		}
 
