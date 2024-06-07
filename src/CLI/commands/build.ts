@@ -93,15 +93,15 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 			// 	throw new ProjectError(`json mode cannot be used with --verbose flag`);
 			// }
 
-			const compilerTsVersion = new ts.Version(ts.version);
-			const projectTsVersionRange = new ts.VersionRange(packageJson.devDependencies["typescript"]);
+			// const compilerTsVersion = new ts.Version(ts.version);
+			// const projectTsVersionRange = new ts.VersionRange(packageJson.devDependencies["typescript"]);
 
-			if (!projectTsVersionRange.test(compilerTsVersion)) {
-				// In future we're gonna auto-upgrade here, we want this frictionless
-				throw new ProjectError(
-					`Project TypeScript version range is ${projectTsVersionRange.toString()}, compiler ts version is ${compilerTsVersion}`,
-				);
-			}
+			// if (!projectTsVersionRange.test(compilerTsVersion)) {
+			// 	// In future we're gonna auto-upgrade here, we want this frictionless
+			// 	throw new ProjectError(
+			// 		`Project TypeScript version range is ${projectTsVersionRange.toString()}, compiler ts version is ${compilerTsVersion}`,
+			// 	);
+			// }
 
 			projectOptions.nodePackageName = packageJson.name;
 			const data = createProjectData(tsConfigPath, packageJsonDir, projectOptions);
