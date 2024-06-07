@@ -55,7 +55,7 @@ jobs:
 
             - name: "Check out base branch"
               working-directory: airship
-              shell: cmd
+              shell: bash
               run: git checkout -b airship-typescript-compiler/${{ github.sha }}
 
             - name: "Merge Compiler Into Airship"
