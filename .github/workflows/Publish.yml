@@ -8,8 +8,8 @@ on:
             type: environment
             default: platform-staging
             required: true
-    push:
-        branches: [main]
+    # push:
+    #     branches: [main]
 
 jobs:
     publish:
@@ -32,10 +32,56 @@ jobs:
               run: |
                   npm ci
 
-            - name: Publish
+            - name: Build Internal Compiler Bundle
               run: |
-                  npm --no-git-tag-version version "$(cat package.json | grep '"version":' | sed -E 's/.*"version": "([0-9]+\.[0-9]+\.)[0-9]+".*/\1/')${{github.run_number}}"
-                  npm publish --tag ${{vars.NPM_TAG}}
-              env:
-                  # We use EASY_AUTH_TOKEN because that's what's in the .npmrc
-                  NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+                  npm run bundle
+
+            # - name: Publish
+            #   run: |
+            #       npm --no-git-tag-version version "$(cat package.json | grep '"version":' | sed -E 's/.*"version": "([0-9]+\.[0-9]+\.)[0-9]+".*/\1/')${{github.run_number}}"
+            #       npm publish --tag ${{vars.NPM_TAG}}
+            #   env:
+            #       # We use EASY_AUTH_TOKEN because that's what's in the .npmrc
+            #       NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+
+            - name: "Checkout foreign repository"
+              uses: actions/checkout@v4
+              with:
+                repository: easy-games/airship
+                path: airship
+                persist-credentials: true
+                lfs: true
+                token: ${{ secrets.PULL_PACKAGE_PAT }}
+
+            - name: "Check out base branch"
+              working-directory: airship
+              shell: cmd
+              run: git checkout -b airship-typescript-compiler/${{ github.sha }}
+
+            - name: "Merge Compiler Into Airship"
+              shell: bash
+              run: |
+                rm -rf airship/Editor/TypescriptCompiler~
+                mkdir airship/Editor/TypescriptCompiler~
+                cp dist/utsc.js airship/Editor/TypescriptCompiler~
+
+                cd airship
+                git add airship/Editor/TypescriptCompiler~
+
+                if git diff --staged --exit-code; then
+                  echo "No changes to commit"
+                else
+                  git commit -m "Update Windows Plugin"
+
+                  for i in {1..5}; do
+                      git push origin airship-typescript-compiler/${{ github.sha }} && break || {
+                        if [ $i -eq 5 ]; then 
+                          exit 1
+                        fi
+                        if [ $i -ne 1 ]; then
+                          echo "Push attempt $i failed, retrying in 5 seconds..."
+                          sleep 5
+                        fi
+                      }
+                  done
+                fi
