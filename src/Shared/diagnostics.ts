@@ -134,6 +134,7 @@ export const errors = {
 	// banned features
 	noAny: error("Using values of type `any` is not supported!", suggestion("Use `unknown` instead.")),
 	noVar: error("`var` keyword is not supported!", suggestion("Use `let` or `const` instead.")),
+	noUsing: error("`using` keyword is not supported!", suggestion("Use `let` or `const` instead.")),
 	noGetterSetter: error("Getters and Setters are not supported!", issue(457)),
 	noEqualsEquals: error("operator `==` is not supported!", suggestion("Use `===` instead.")),
 	noExclamationEquals: error("operator `!=` is not supported!", suggestion("Use `!==` instead.")),
