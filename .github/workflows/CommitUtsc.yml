@@ -37,6 +37,17 @@ jobs:
           lfs: true
           persist-credentials: true
 
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v2.4.0
+        with:
+          node-version: 16
+          registry-url: 'https://registry.npmjs.org'
+          scope: "@easy-games"
+
+      - name: Install Dependencies
+        run: |
+          npm ci
+
       - name: "Build Npm Project"
         run: |
           npm run bundle
