@@ -39,8 +39,8 @@ jobs:
               env:
                   # We use EASY_AUTH_TOKEN because that's what's in the .npmrc
                   NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
-    # commit_utsc:
-    #     uses: "./.github/workflows/CommitUtsc.yml"
-    #     secrets: inherit
-    #     with:
-    #         environment: ${{ inputs.environment }}
+    commit_utsc:
+        uses: "./.github/workflows/CommitUtsc.yml"
+        secrets: inherit
+        with:
+            environment: ${{ inputs.environment }}
