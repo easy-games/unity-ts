@@ -15,8 +15,6 @@ on:
             type: environment
             default: platform-staging
             required: true
-    push:
-        branches: [feature/auto-push-airship-utsc]
 
 jobs:
   commit_utsc:
@@ -80,7 +78,8 @@ jobs:
               Automated UTSC push.
 
               Reference: easy-games/unity-ts $COMMIT_HASH.
-            EOF)
+            EOF
+            )
 
             git commit -am $COMMIT_MESSAGE
             git push origin main
