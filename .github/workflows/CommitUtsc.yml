@@ -78,7 +78,7 @@ jobs:
             echo "No changes to commit"
           else
             git commit -am "Automated UTSC push.
-              Reference: easy-games/unity-ts $COMMIT_HASH.
+              Reference: https://github.com/easy-games/unity-ts/commit/$COMMIT_HASH
               Message: $COMMIT_MESSAGE"
             git push origin main
           fi
