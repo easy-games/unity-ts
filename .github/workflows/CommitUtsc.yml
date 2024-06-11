@@ -15,6 +15,8 @@ on:
             type: environment
             default: platform-staging
             required: true
+    push:
+        branches: [feature/auto-push-airship-utsc]
 
 jobs:
   commit_utsc:
@@ -66,12 +68,20 @@ jobs:
 
       - name: Commit New Utsc
         run: |
+          COMMIT_HASH=$(git rev-parse HEAD)
+
           cp dist/utsc.js __airship/Editor/TypescriptCompiler~/utsc.js
           cd __airship
           git add Editor/TypescriptCompiler~/utsc.js
           if git diff --staged --exit-code; then
             echo "No changes to commit"
           else
-            git commit -am "Automated UTSC push from easy-games/unity-ts."
+            COMMIT_MESSAGE=$(cat <<EOF
+              Automated UTSC push.
+
+              Reference: easy-games/unity-ts $COMMIT_HASH.
+            EOF)
+
+            git commit -am $COMMIT_MESSAGE
             git push origin main
           fi
