@@ -71,4 +71,9 @@ jobs:
           cp dist/utsc.js __airship/Editor/TypescriptCompiler~/utsc.js
           cd __airship
           git add Editor/TypescriptCompiler~/utsc.js
-          git commit -am "Automated UTSC push from easy-games/unity-ts."
+          if git diff --staged --exit-code; then
+            echo "No changes to commit"
+          else
+            git commit -am "Automated UTSC push from easy-games/unity-ts."
+            git push origin main
+          fi
