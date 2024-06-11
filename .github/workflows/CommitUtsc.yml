@@ -69,6 +69,7 @@ jobs:
       - name: Commit New Utsc
         run: |
           COMMIT_HASH=$(git rev-parse HEAD)
+          COMMIT_MESSAGE=$(git log -1 --pretty=%B $COMMIT_HASH)
 
           cp dist/utsc.js __airship/Editor/TypescriptCompiler~/utsc.js
           cd __airship
@@ -77,6 +78,7 @@ jobs:
             echo "No changes to commit"
           else
             git commit -am "Automated UTSC push.
-              Reference: easy-games/unity-ts $COMMIT_HASH."
+              Reference: easy-games/unity-ts $COMMIT_HASH.
+              Message: $COMMIT_MESSAGE"
             git push origin main
           fi
