@@ -15,6 +15,8 @@ on:
             type: environment
             default: platform-staging
             required: true
+    push:
+      branches: [feature/auto-push-airship-utsc]
 
 jobs:
   commit_utsc:
