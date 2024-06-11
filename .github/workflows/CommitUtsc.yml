@@ -24,6 +24,11 @@ jobs:
     environment: ${{ inputs.environment || 'platform-staging' }}
 
     steps:
+      - name: "Setup Git Config"
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+
       - name: Generate a token
         id: generate-token
         uses: actions/create-github-app-token@v1
