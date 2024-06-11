@@ -30,6 +30,7 @@ jobs:
         with:
           app-id: ${{ secrets.DEPLOY_APP_ID }}
           private-key: ${{ secrets.DEPLOY_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
 
       - name: "Check out repository"
         uses: actions/checkout@v3
@@ -52,7 +53,7 @@ jobs:
         run: |
           npm run bundle
 
-      - name: Checkout Luau Plugin
+      - name: Checkout Airship Repo
         uses: actions/checkout@v3
         with:
           repository: easy-games/airship
