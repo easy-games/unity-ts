@@ -5,7 +5,7 @@ on:
         inputs:
           environment:
             description: GCP Project
-            type: environment
+            type: string
             default: platform-staging
             required: true
     workflow_dispatch:
