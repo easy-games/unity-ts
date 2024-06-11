@@ -1,0 +1,55 @@
+name: Commit Utsc
+
+on:
+    workflow_call:
+        inputs:
+          environment:
+            description: GCP Project
+            type: environment
+            default: platform-staging
+            required: true
+    workflow_dispatch:
+        inputs:
+          environment:
+            description: GCP Project
+            type: environment
+            default: platform-staging
+            required: true
+
+jobs:
+  commit_utsc:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'platform-staging' }}
+
+    steps:
+      - name: Generate a token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.DEPLOY_APP_ID }}
+          private-key: ${{ secrets.DEPLOY_APP_PRIVATE_KEY }}
+
+      - name: "Check out repository"
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+          persist-credentials: true
+
+      - name: "Build Npm Project"
+        run: |
+          npm run bundle
+
+      - name: Checkout Luau Plugin
+        uses: actions/checkout@v3
+        with:
+          repository: easy-games/airship
+          path: __airship
+          ref: main
+          token: ${{ steps.generate-token.outputs.token }}
+
+      - name: Commit New Utsc
+        run: |
+          cp dist/utsc.js __airship/Editor/TypescriptCompiler~/utsc.js
+          cd __airship
+          git add Editor/TypescriptCompiler~/utsc.js
+          git commit -am "Automated UTSC push from easy-games/unity-ts."
