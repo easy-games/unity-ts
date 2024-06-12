@@ -15,6 +15,12 @@ export type CallMacro = (
 	args: Array<luau.Expression>,
 ) => luau.Expression;
 
+export type CallDecoratorMacro = (
+	state: TransformState,
+	decorator: ts.Decorator,
+	node: ts.ClassLikeDeclaration | ts.MethodDeclaration | ts.PropertyDeclaration | ts.ParameterDeclaration,
+) => luau.Statement<luau.SyntaxKind> | undefined;
+
 export type PropertyCallMacro = (
 	state: TransformState,
 	node: ts.CallExpression & { expression: ts.PropertyAccessExpression | ts.ElementAccessExpression },

@@ -5,7 +5,22 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { isAirshipDecorator } from "TSTransformer/util/airshipBehaviourUtils";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
-import ts from "typescript";
+import { isFlameworkDecorator } from "TSTransformer/util/flameworkSingleton";
+import { getFirstDefinedSymbol } from "TSTransformer/util/types";
+import ts, { isCallExpression } from "typescript";
+
+function getFlameworkDecoratorMacro(state: TransformState, decorator: ts.Decorator) {
+	if (!ts.isCallExpression(decorator.expression)) {
+		return;
+	}
+
+	const symbol = state.services.macroManager.getSymbolFromNode(decorator.expression.expression);
+	if (symbol) {
+		return state.services.macroManager.getDecoratorMacro(symbol);
+	}
+
+	return undefined;
+}
 
 function transformMemberDecorators(
 	state: TransformState,
@@ -22,8 +37,8 @@ function transformMemberDecorators(
 	if (!name || ts.isPrivateIdentifier(name)) return result;
 
 	for (const decorator of decorators ?? []) {
-		// Skip emitting Airship related decorators
-		if (isAirshipDecorator(state, decorator)) {
+		// Skip emitting Airship or Flamework decorators (they're metadata related...)
+		if (isAirshipDecorator(state, decorator) || isFlameworkDecorator(state, decorator)) {
 			continue;
 		}
 

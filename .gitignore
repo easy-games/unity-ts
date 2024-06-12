@@ -12,3 +12,5 @@ out
 /tests/*.rbxlx
 /tests/*.rbxlx.lock
 /tests/include
+
+/dist/**

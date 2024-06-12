@@ -1,7 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
-import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { createIsDestroyedLuauMethodCall, isUnityObjectType } from "TSTransformer/util/airshipBehaviourUtils";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { getKindName } from "TSTransformer/util/getKindName";
@@ -121,7 +120,7 @@ export function createBinaryFromOperator(
 	// bitwise
 	const bit32Name = BITWISE_OPERATOR_MAP.get(operatorKind);
 	if (bit32Name !== undefined) {
-		return luau.call(luau.property(luau.globals.bit32, bit32Name), [left, right]);
+		return luau.call(luau.property(luau.id("sbit32"), bit32Name), [left, right]);
 	}
 
 	if (operatorKind === ts.SyntaxKind.CommaToken) {

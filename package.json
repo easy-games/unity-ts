@@ -1,6 +1,6 @@
 {
 	"name": "@easy-games/unity-ts",
-	"version": "3.0.0",
+	"version": "3.2.0",
 	"publishConfig": {
 		"access": "public"
 	},
@@ -15,7 +15,8 @@
 		"build": "tspc -b",
 		"build-watch": "tspc -b -w",
 		"eslint": "eslint \"src/**/*.ts\" --max-warnings 0",
-		"devlink": "npm run build && cd devlink && npm link"
+		"devlink": "npm run build && cd devlink && npm link",
+		"bundle": "npm run build && esbuild out/CLI/cli.js --bundle --outfile=dist/utsc.js --platform=node --minify"
 	},
 	"repository": {
 		"type": "git",
@@ -71,6 +72,7 @@
 		"@types/yargs": "^17.0.12",
 		"@typescript-eslint/eslint-plugin": "^5.36.2",
 		"@typescript-eslint/parser": "^5.36.2",
+		"esbuild": "0.21.4",
 		"eslint": "^8.23.0",
 		"eslint-config-prettier": "^8.5.0",
 		"eslint-plugin-no-autofix": "^1.2.3",

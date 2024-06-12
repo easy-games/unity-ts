@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { ProjectOptions } from "Project";
 import { PackageJson, TypeScriptConfiguration } from "Shared/types";
-import ts, { TSConfig } from "typescript";
+import ts from "typescript";
 
 export function findTsConfigPath(projectPath: string) {
 	let tsConfigPath: string | undefined = path.resolve(projectPath);
@@ -27,8 +27,8 @@ export function getTsConfigProjectOptions(tsConfigPath?: string): Partial<Projec
 	}
 }
 
-export function getPackageJson(): PackageJson {
-	const path = "./package.json";
-	const rawJson = ts.sys.readFile("./package.json");
-	return JSON.parse(rawJson!);
+export function getPackageJson(packageJsonPath = "."): PackageJson {
+	const relPath = path.join(packageJsonPath, "package.json");
+	const rawJson = ts.sys.readFile(relPath);
+	return rawJson ? JSON.parse(rawJson) : undefined!;
 }

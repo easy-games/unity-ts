@@ -1,16 +1,13 @@
-import path from "path";
+import { ProjectOptions } from "Shared/types";
 import ts from "typescript";
 
-export function getRootDirs(compilerOptions: ts.CompilerOptions): Array<string> {
+export function getRootDirs(compilerOptions: ts.CompilerOptions, projectOptions: ProjectOptions): Array<string> {
 	if (compilerOptions.rootDir !== undefined) {
 		return [compilerOptions.rootDir];
-	} else if (compilerOptions.rootDirs !== undefined) {
+	} else if (compilerOptions.rootDirs !== undefined && compilerOptions.rootDirs.length > 0) {
 		return compilerOptions.rootDirs;
 	}
-	const rootDirs = [
-		path.join(compilerOptions.baseUrl!, "Server"),
-		path.join(compilerOptions.baseUrl!, "Client"),
-		path.join(compilerOptions.baseUrl!, "Shared"),
-	];
-	return rootDirs;
+
+	const base = compilerOptions.baseUrl ?? process.cwd();
+	return [base];
 }

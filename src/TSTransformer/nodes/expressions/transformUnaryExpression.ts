@@ -65,7 +65,7 @@ export function transformPrefixUnaryExpression(state: TransformState, node: ts.P
 		const checks = createTruthinessChecks(state, transformExpression(state, node.operand), node.operand);
 		return luau.unary("not", checks);
 	} else if (node.operator === ts.SyntaxKind.TildeToken) {
-		return luau.call(luau.property(luau.globals.bit32, "bnot"), [transformExpression(state, node.operand)]);
+		return luau.call(luau.property(luau.id("sbit32"), "bnot"), [transformExpression(state, node.operand)]);
 	}
 	return assertNever(node.operator, "transformPrefixUnaryExpression");
 }

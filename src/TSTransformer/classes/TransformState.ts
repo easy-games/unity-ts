@@ -1,15 +1,17 @@
 import luau, { render, RenderState, renderStatements, solveTempIds } from "@roblox-ts/luau-ast";
-import path from "path";
+import { posix as path } from "path";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { ProjectType } from "Shared/constants";
 import { AirshipBehaviour, ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
+import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
 import { AirshipBuildState, MultiTransformState } from "TSTransformer";
+import { FlameworkSymbolProvider } from "TSTransformer/classes/FlameworkSymbolProvider";
 import { TransformServices, TryUses } from "TSTransformer/types";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
-import ts from "typescript";
+import ts, { factory } from "typescript";
 
 /**
  * Represents the state of the transformation between TS -> Luau AST.
@@ -47,6 +49,7 @@ export class TransformState {
 		public readonly reverseSymlinkMap: Map<string, string>,
 		public readonly typeChecker: ts.TypeChecker,
 		public readonly projectType: ProjectType,
+		public readonly flamework: FlameworkSymbolProvider | undefined,
 		private readonly sourceFile: ts.SourceFile,
 	) {
 		this.sourceFileText = sourceFile.getFullText();
@@ -205,13 +208,84 @@ export class TransformState {
 		return luau.property(luau.globals.TS, name);
 	}
 
+	public fileImports = new Map<string, Array<ImportInfo>>();
+	public addFileImport(importPath: string, name: string): luau.Identifier | luau.TemporaryIdentifier {
+		const file = this.sourceFile;
+
+		if (importPath === this.flamework?.flameworkRootDir + "/index") {
+			if (file === this.flamework?.flameworkFile.file) {
+				return luau.id("Flamework");
+			}
+
+			const flameworkDir = path.dirname(this.flamework!.flameworkFile.file.fileName);
+			const modulePath = path.join(flameworkDir, name === "Reflect" ? "reflect" : "flamework");
+
+			if (isPathDescendantOf(file.fileName, flameworkDir)) {
+				importPath = "./" + path.relative(path.dirname(file.fileName), modulePath) || ".";
+			}
+		}
+
+		let importInfos = this.fileImports.get(file.fileName);
+		if (!importInfos) this.fileImports.set(file.fileName, (importInfos = []));
+
+		let importInfo = importInfos.find(x => x.path === importPath);
+		if (!importInfo) importInfos.push((importInfo = { path: importPath, entries: [] }));
+
+		let identifier = importInfo.entries.find(x => x.name === name)?.identifier;
+		if (!identifier) {
+			if (!file.identifiers.has(name)) {
+				identifier = luau.id(name);
+				importInfo.entries.push({ name, identifier });
+			}
+		}
+
+		start: for (const statement of file.statements) {
+			if (!ts.isImportDeclaration(statement)) break;
+			if (!ts.isStringLiteral(statement.moduleSpecifier)) continue;
+			if (!statement.importClause || !ts.isImportClause(statement.importClause)) continue;
+			if (!statement.importClause.namedBindings || !ts.isNamedImports(statement.importClause.namedBindings)) {
+				continue;
+			}
+
+			for (const importElement of statement.importClause.namedBindings.elements) {
+				if (!this.resolver.isReferencedAliasDeclaration(importElement)) {
+					continue;
+				}
+
+				if (importElement.propertyName) {
+					if (importElement.propertyName.text === name) {
+						identifier = luau.id(importElement.name.text);
+						break start;
+					}
+				} else {
+					if (importElement.name.text === name) {
+						identifier = luau.id(importElement.name.text);
+						break start;
+					}
+				}
+			}
+		}
+
+		if (!identifier) {
+			importInfo.entries.push({
+				name,
+				identifier: (identifier = luau.tempId(name)),
+			});
+		}
+
+		return identifier;
+	}
+
 	/**
 	 * Returns a `luau.VariableDeclaration` for RuntimeLib.lua
 	 */
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	public createRuntimeLibImport(sourceFile: ts.SourceFile) {
+		const runtimeLibPath = path.join(this.data.projectOptions.runtimePath, "RuntimeLib");
+
 		return luau.create(luau.SyntaxKind.VariableDeclaration, {
 			left: luau.globals.TS,
-			right: luau.call(luau.globals.require, [luau.string("@Easy/Core/Shared/Resources/TS/Runtime/RuntimeLib")]),
+			right: luau.call(luau.globals.require, [luau.string(runtimeLibPath)]),
 		});
 	}
 
@@ -342,4 +416,13 @@ export class TransformState {
 	public getClassElementObjectKey(classElement: ts.ClassElement) {
 		return this.classElementToObjectKeyMap.get(classElement);
 	}
+}
+
+interface ImportItem {
+	name: string;
+	identifier: luau.Identifier | luau.TemporaryIdentifier;
+}
+interface ImportInfo {
+	path: string;
+	entries: Array<ImportItem>;
 }

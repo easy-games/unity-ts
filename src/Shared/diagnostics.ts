@@ -78,6 +78,13 @@ function errorWithContext<T extends Array<any> = []>(
 	return diagnosticWithContext(ts.DiagnosticCategory.Error, contextFormatter, ...messages);
 }
 
+function warningWithContext<T extends Array<any> = []>(
+	contextFormatter: DiagnosticContextFormatter<T>,
+	...messages: Array<string | false>
+): DiagnosticFactory<T> {
+	return diagnosticWithContext(ts.DiagnosticCategory.Warning, contextFormatter, ...messages);
+}
+
 function errorText(...messages: Array<string>) {
 	return diagnosticText(ts.DiagnosticCategory.Error, ...messages);
 }
@@ -250,6 +257,32 @@ export const errors = {
 			`Invalid Rojo configuration. $path fields should be relative to out directory.`,
 			suggestion(`Change the value of $path from "${partitionPath}" to "${suggestedPath}".`),
 		),
+
+	// Flamework
+	dependencyInjectionNoType: errorWithContext(() => {
+		return [
+			"Macro Dependency<T> requires a type argument at T",
+			suggestion("Try adding a type argument to the function call"),
+		];
+	}),
+
+	flameworkIdNoType: errorWithContext(() => {
+		return [
+			"Macro Flamework.id<T> requires a type argument at T",
+			suggestion("Try adding a type argument to the function call"),
+		];
+	}),
+
+	dependencyInjectionNoConstructor: errorWithContext(() => {
+		return [
+			"Macro Dependency(C) requires a valid constructor argument at C",
+			suggestion("It is recommended you use Dependency<T>() rather than Dependency(C)"),
+		];
+	}),
+
+	expectedTypeReference: errorWithContext((_typeNode: ts.TypeNode) => {
+		return ["Function expects a type reference"];
+	}),
 };
 
 export const warnings = {
@@ -267,5 +300,27 @@ export const warnings = {
 		),
 	runtimeLibUsedInReplicatedFirst: warning(
 		"This statement would generate a call to the runtime library. The runtime library should not be used from ReplicatedFirst.",
+	),
+
+	dependencyInjectionDeprecated: warningWithContext((id: ts.Identifier) => {
+		return [
+			"This usage of Dependency is deprecated and will be removed in future",
+			suggestion("Please use Dependency<" + id.text + ">()"),
+		];
+	}),
+
+	flameworkTransformer: {
+		file: undefined,
+		code: " unity-ts" as unknown as number,
+		category: ts.DiagnosticCategory.Warning,
+		start: 0,
+		length: 0,
+		messageText:
+			"You are using an external version of Flamework (@easy-games/unity-flamework-transformer) in your 'plugins' of tsconfig.json - " +
+			"please remove this from the file as it will not be maintained in future.",
+	} satisfies ts.Diagnostic,
+
+	flameworkDependencyRaceCondition: warning(
+		"The Dependency macro should not be used outside of a function as this may introduce race conditions.",
 	),
 };

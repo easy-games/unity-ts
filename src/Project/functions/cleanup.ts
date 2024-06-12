@@ -26,27 +26,22 @@ function cleanupDirRecursively(pathTranslator: PathTranslator, dir: string) {
 export function cleanup(pathTranslator: PathTranslator, projectOptions: ProjectOptions) {
 	benchmarkIfVerbose(`cleanup orphaned files`, () => {
 		const outDir = pathTranslator.outDir;
-		const dirsToCleanup = [
-			path.join(outDir, "Client", "Resources", "TS"),
-			path.join(outDir, "Server", "Resources", "TS"),
-			path.join(outDir, "Shared", "Resources", "TS"),
-		];
 
-		// if (projectOptions.type === ProjectType.Game) {
-		// 	const importsDir = path.join(outDir, "Imports");
-		// 	if (!fs.existsSync(importsDir)) {
-		// 		fs.mkdirSync(importsDir);
-		// 	}
-		// 	const files = fs.readdirSync(importsDir, { withFileTypes: true });
-		// 	for (const file of files) {
-		// 		if (file.isDirectory()) {
-		// 			console.log("found bundle: " + file + "\n");
-		// 			dirsToCleanup.push(file.name);
-		// 		}
-		// 	}
-		// }
+		let dirsToCleanup: Array<string>;
 
-		for (let dir of dirsToCleanup) {
+		const isLegacyProject = outDir.includes("Assets/Bundles");
+		if (isLegacyProject) {
+			// Handle legacy compiler stuff
+			dirsToCleanup = [
+				path.join(outDir, "Client", "Resources", "TS"),
+				path.join(outDir, "Server", "Resources", "TS"),
+				path.join(outDir, "Shared", "Resources", "TS"),
+			];
+		} else {
+			dirsToCleanup = [path.join(outDir)];
+		}
+
+		for (const dir of dirsToCleanup) {
 			if (fs.pathExistsSync(dir)) {
 				cleanupDirRecursively(pathTranslator, dir);
 			}
@@ -59,10 +54,9 @@ function addPackageIndexFiles(pathTranslator: PathTranslator, projectOptions: Pr
 	let typesDir: string;
 	if (projectOptions.type === ProjectType.AirshipBundle) {
 		typesDir = path.join("../../../Types~/");
-	} else if (projectOptions.type === ProjectType.Game) {
-		typesDir = path.join("../Bundles/Types~/");
+		// } else if (projectOptions.type === ProjectType.Game) {
+		// 	typesDir = path.join("../Bundles/Types~/");
 	} else {
-		LogService.writeLine("Skipping package index file gen.");
 		return;
 	}
 	const files = fs.readdirSync(typesDir, { withFileTypes: true });

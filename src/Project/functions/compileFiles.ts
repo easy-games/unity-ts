@@ -3,6 +3,7 @@ import fs from "fs-extra";
 import path from "path";
 import { checkFileName } from "Project/functions/checkFileName";
 import { createNodeModulesPathMapping } from "Project/functions/createNodeModulesPathMapping";
+import { jsonReporter } from "Project/functions/json";
 import { transformPaths } from "Project/transformers/builtin/transformPaths";
 import { transformTypeReferenceDirectives } from "Project/transformers/builtin/transformTypeReferenceDirectives";
 import { createTransformerList, flattenIntoTransformers } from "Project/transformers/createTransformerList";
@@ -12,6 +13,7 @@ import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagno
 import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { ProjectType } from "Shared/constants";
+import { warnings } from "Shared/diagnostics";
 import { AirshipBuildFile, ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
@@ -23,7 +25,7 @@ import {
 	TransformState,
 } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { transformExpressionStatement } from "TSTransformer/nodes/statements/transformExpressionStatement";
+import { FlameworkSymbolProvider } from "TSTransformer/classes/FlameworkSymbolProvider";
 import { createTransformServices } from "TSTransformer/util/createTransformServices";
 import ts from "typescript";
 
@@ -61,7 +63,16 @@ export function compileFiles(
 	buildState: BuildState,
 	sourceFiles: Array<ts.SourceFile>,
 ): ts.EmitResult {
+	const asJson = data.projectOptions.json;
 	const compilerOptions = program.getCompilerOptions();
+
+	const pkgJson: { name: string } = JSON.parse(
+		fs
+			.readFileSync(path.join(program.getCurrentDirectory(), data.projectOptions.package, "package.json"))
+			.toString(),
+	);
+
+	buildState.editorInfo.id = pkgJson.name;
 
 	const multiTransformState = new MultiTransformState();
 
@@ -87,10 +98,24 @@ export function compileFiles(
 	const progressMaxLength = `${sourceFiles.length}/${sourceFiles.length}`.length;
 
 	let proxyProgram = program;
+	let useFlameworkInternal = true;
 
 	if (compilerOptions.plugins && compilerOptions.plugins.length > 0) {
 		benchmarkIfVerbose(`Running transformers...`, () => {
 			const pluginConfigs = getPluginConfigs(data.tsConfigPath);
+			for (const pluginConfig of pluginConfigs) {
+				// Disable internal compiler flamework if external version in use
+				if (pluginConfig.transform === "@easy-games/unity-flamework-transformer") {
+					DiagnosticService.addDiagnostic(warnings.flameworkTransformer);
+					useFlameworkInternal = false;
+				}
+
+				pluginConfig.compiler = {
+					projectDir: path.relative(process.cwd(), path.dirname(data.tsConfigPath)) || ".",
+					packageDir: path.relative(process.cwd(), data.projectOptions.package),
+				};
+			}
+
 			const transformerList = createTransformerList(program, pluginConfigs, data.projectPath);
 			const transformers = flattenIntoTransformers(transformerList);
 			if (transformers.length > 0) {
@@ -125,6 +150,12 @@ export function compileFiles(
 
 	const buildFile: AirshipBuildFile = buildState.buildFile;
 
+	let flamework: FlameworkSymbolProvider | undefined;
+	if (useFlameworkInternal) {
+		flamework = new FlameworkSymbolProvider(proxyProgram, compilerOptions, data, services);
+		flamework.registerInterestingFiles();
+	}
+
 	for (let i = 0; i < sourceFiles.length; i++) {
 		const sourceFile = proxyProgram.getSourceFile(sourceFiles[i].fileName);
 		assert(sourceFile);
@@ -146,6 +177,7 @@ export function compileFiles(
 				reverseSymlinkMap,
 				typeChecker,
 				projectType,
+				flamework,
 				sourceFile,
 			);
 
@@ -208,6 +240,12 @@ export function compileFiles(
 						fileMap.push(behaviour.name);
 					}
 				}
+			}
+
+			if (asJson) {
+				jsonReporter("compiledFile", {
+					fileName: sourceFile.fileName,
+				});
 			}
 		});
 	}
@@ -276,24 +314,10 @@ export function compileFiles(
 		});
 	}
 
+	let typescriptDir = path.dirname(data.tsConfigPath);
 	let editorMetadataPath: string;
 	{
-		if (projectType === ProjectType.AirshipBundle) {
-			editorMetadataPath = path.join(
-				pathTranslator.outDir,
-				"Server",
-				"Resources",
-				"PackageTypeScriptMetadata.aseditorinfo",
-			);
-
-			const pkgJson: { name: string } = JSON.parse(
-				fs.readFileSync(path.join(program.getCurrentDirectory(), "package.json")).toString(),
-			);
-
-			buildState.editorInfo.id = pkgJson.name;
-		} else {
-			editorMetadataPath = path.join(pathTranslator.outDir, "..", "TypeScriptEditorMetadata.aseditorinfo");
-		}
+		editorMetadataPath = path.join(typescriptDir, "TypeScriptEditorMetadata.aseditorinfo");
 
 		const oldBuildFileSource = fs.existsSync(editorMetadataPath)
 			? fs.readFileSync(editorMetadataPath).toString()
@@ -306,7 +330,7 @@ export function compileFiles(
 		}
 	}
 
-	const buildFilePath = path.join(pathTranslator.outDir, "Shared", "Resources", "TS", "Airship.asbuildinfo");
+	const buildFilePath = path.join(typescriptDir, "Airship.asbuildinfo");
 	{
 		const oldBuildFileSource = fs.existsSync(buildFilePath) ? fs.readFileSync(buildFilePath).toString() : "";
 		const newBuildFileSource = JSON.stringify(buildFile, null, "\t");

@@ -980,10 +980,14 @@ const UNITY_GAMEOBJECT_METHODS: MacroList<PropertyCallMacro> = {
 };
 const UNITY_STATIC_GAMEOBJECT_METHODS: MacroList<PropertyCallMacro> = {
 	FindObjectOfType: makeTypeArgumentAsStringMacro("FindObjectOfType"),
+	FindObjectsByType: makeTypeArgumentAsStringMacro("FindObjectsByType"),
 };
 const UNITY_COMPONENT_METHODS: MacroList<PropertyCallMacro> = {
 	GetComponent: makeTypeArgumentAsStringMacro("GetComponent"),
 	GetComponents: makeTypeArgumentAsStringMacro("GetComponents"),
+};
+const UNITY_OBJECT_METHODS: MacroList<PropertyCallMacro> = {
+	IsA: makeTypeArgumentAsStringMacro("IsA"),
 };
 
 export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCallMacro> } = {
@@ -1015,6 +1019,7 @@ export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCall
 	GameObject: UNITY_GAMEOBJECT_METHODS,
 	GameObjectConstructor: UNITY_STATIC_GAMEOBJECT_METHODS,
 	Component: UNITY_COMPONENT_METHODS,
+	// Object: UNITY_OBJECT_METHODS,
 };
 
 // comment logic

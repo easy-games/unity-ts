@@ -4,7 +4,13 @@ import { CALL_MACROS } from "TSTransformer/macros/callMacros";
 import { CONSTRUCTOR_MACROS } from "TSTransformer/macros/constructorMacros";
 import { IDENTIFIER_MACROS } from "TSTransformer/macros/identifierMacros";
 import { PROPERTY_CALL_MACROS } from "TSTransformer/macros/propertyCallMacros";
-import { CallMacro, ConstructorMacro, IdentifierMacro, PropertyCallMacro } from "TSTransformer/macros/types";
+import {
+	CallDecoratorMacro,
+	CallMacro,
+	ConstructorMacro,
+	IdentifierMacro,
+	PropertyCallMacro,
+} from "TSTransformer/macros/types";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
@@ -12,7 +18,7 @@ function getType(typeChecker: ts.TypeChecker, node: ts.Node) {
 	return typeChecker.getTypeAtLocation(skipUpwards(node));
 }
 
-const TYPES_NOTICE = "\nYou may need to update your @rbxts/compiler-types!";
+const TYPES_NOTICE = "\nYou may need to update the @Easy/Core package (through the Airship -> Packages menu)";
 
 export const SYMBOL_NAMES = {
 	globalThis: "globalThis",
@@ -78,7 +84,7 @@ function getGlobalSymbolByNameOrThrow(typeChecker: ts.TypeChecker, name: string,
 		return symbol;
 	}
 
-	throw new ProjectError(`MacroManager could not find symbol for ${name}` + TYPES_NOTICE);
+	throw new ProjectError(`The types for symbol '${name}' could not be found` + TYPES_NOTICE);
 }
 
 function getConstructorSymbol(node: ts.InterfaceDeclaration) {
@@ -88,7 +94,11 @@ function getConstructorSymbol(node: ts.InterfaceDeclaration) {
 			return member.symbol;
 		}
 	}
-	throw new ProjectError(`MacroManager could not find constructor for ${node.name.text}` + TYPES_NOTICE);
+	throw new ProjectError(`The types for constructor '${node.name.text}' could not be found` + TYPES_NOTICE);
+}
+
+export function isNamedDeclaration(node?: ts.Node): node is ts.NamedDeclaration & { name: ts.DeclarationName } {
+	return node !== undefined && ts.isNamedDeclaration(node);
 }
 
 /**
@@ -100,8 +110,10 @@ export class MacroManager {
 	private callMacros = new Map<ts.Symbol, CallMacro>();
 	private constructorMacros = new Map<ts.Symbol, ConstructorMacro>();
 	private propertyCallMacros = new Map<ts.Symbol, PropertyCallMacro>();
+	private decoratorMacros = new Map<ts.Symbol, CallDecoratorMacro>();
+	private macroOnlySymbols = new Set<ts.Symbol>();
 
-	constructor(typeChecker: ts.TypeChecker) {
+	constructor(private readonly typeChecker: ts.TypeChecker) {
 		for (const [name, macro] of Object.entries(IDENTIFIER_MACROS)) {
 			const symbol = getGlobalSymbolByNameOrThrow(typeChecker, name, ts.SymbolFlags.Variable);
 			this.identifierMacros.set(symbol, macro);
@@ -139,7 +151,7 @@ export class MacroManager {
 				const methodSymbol = methodMap.get(methodName);
 				if (!methodSymbol) {
 					throw new ProjectError(
-						`MacroManager could not find method for ${className}.${methodName}` + TYPES_NOTICE,
+						`The types for method ${className}.${methodName} could not be found` + TYPES_NOTICE,
 					);
 				}
 				this.propertyCallMacros.set(methodSymbol, macro);
@@ -151,7 +163,7 @@ export class MacroManager {
 			if (symbol) {
 				this.symbols.set(symbolName, symbol);
 			} else {
-				throw new ProjectError(`MacroManager could not find symbol for ${symbolName}` + TYPES_NOTICE);
+				throw new ProjectError(`The types for symbol '${symbolName}' could not be found` + TYPES_NOTICE);
 			}
 		}
 
@@ -168,6 +180,31 @@ export class MacroManager {
 		}
 	}
 
+	public isMacroOnlySymbol(symbol: ts.Symbol) {
+		return this.macroOnlySymbols.has(symbol);
+	}
+
+	public addCallMacro(symbol: ts.Symbol, macro: CallMacro, ignoreImport = true) {
+		this.callMacros.set(symbol, macro);
+		if (ignoreImport) {
+			this.macroOnlySymbols.add(symbol);
+		}
+	}
+
+	public addPropertyCallMacro(symbol: ts.Symbol, macro: PropertyCallMacro, ignoreImport = false) {
+		this.propertyCallMacros.set(symbol, macro);
+		if (ignoreImport) {
+			this.macroOnlySymbols.add(symbol);
+		}
+	}
+
+	public addDecoratorMacro(symbol: ts.Symbol, macro: CallDecoratorMacro, ignoreImport = false) {
+		this.decoratorMacros.set(symbol, macro);
+		if (ignoreImport) {
+			this.macroOnlySymbols.add(symbol);
+		}
+	}
+
 	public getSymbolOrThrow(name: string) {
 		const symbol = this.symbols.get(name);
 		assert(symbol);
@@ -176,6 +213,10 @@ export class MacroManager {
 
 	public isMacroOnlyClass(symbol: ts.Symbol) {
 		return this.symbols.get(symbol.name) === symbol && MACRO_ONLY_CLASSES.has(symbol.name);
+	}
+
+	public getDecoratorMacro(symbol: ts.Symbol) {
+		return this.decoratorMacros.get(symbol);
 	}
 
 	public getIdentifierMacro(symbol: ts.Symbol) {
@@ -188,6 +229,20 @@ export class MacroManager {
 
 	public getConstructorMacro(symbol: ts.Symbol) {
 		return this.constructorMacros.get(symbol);
+	}
+
+	public getSymbolFromNode(node: ts.Node, followAlias = true): ts.Symbol | undefined {
+		if (isNamedDeclaration(node)) {
+			return this.getSymbolFromNode(node.name);
+		}
+
+		const symbol = this.typeChecker.getSymbolAtLocation(node);
+
+		if (symbol && followAlias) {
+			return ts.skipAlias(symbol, this.typeChecker);
+		} else {
+			return symbol;
+		}
 	}
 
 	public getPropertyCallMacro(symbol: ts.Symbol) {
