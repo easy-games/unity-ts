@@ -41,10 +41,6 @@ export function validateCompilerOptions(opts: ts.CompilerOptions, nodeModulesPat
 		errors.push(`${y(`"strict"`)} must be ${y(`true`)}`);
 	}
 
-	if (opts.target !== ENFORCED_OPTIONS.target) {
-		// errors.push(`${y(`"target"`)} must be ${y(`"ESNext"`)}`);
-	}
-
 	if (opts.module !== ENFORCED_OPTIONS.module) {
 		errors.push(`${y(`"module"`)} must be ${y(`commonjs`)}`);
 	}
@@ -61,15 +57,11 @@ export function validateCompilerOptions(opts: ts.CompilerOptions, nodeModulesPat
 		errors.push(`${y(`"allowSyntheticDefaultImports"`)} must be ${y(`true`)}`);
 	}
 
-	const rbxtsModules = path.join(nodeModulesPath, RBXTS_SCOPE);
+	const base = opts.baseUrl ?? process.cwd();
+	const rbxtsModules = path.join(base, "AirshipPackages", "@Easy", "Core", "Shared", "Types");
 	if (opts.typeRoots === undefined || !validateTypeRoots(rbxtsModules, opts.typeRoots)) {
-		errors.push(`${y(`"typeRoots"`)} must contain ${y(rbxtsModules)}`);
+		errors.push(`${y(`"typeRoots"`)} must contain ${y(path.relative(base, rbxtsModules))}`);
 	}
-
-	// configurable compiler options
-	// if (opts.rootDir === undefined && opts.rootDirs === undefined) {
-	// 	errors.push(`${y(`"rootDir"`)} or ${y(`"rootDirs"`)} must be defined`);
-	// }
 
 	if (opts.outDir === undefined) {
 		errors.push(`${y(`"outDir"`)} must be defined`);
@@ -78,11 +70,7 @@ export function validateCompilerOptions(opts: ts.CompilerOptions, nodeModulesPat
 	// throw if errors
 	if (errors.length > 0) {
 		throw new ProjectError(
-			[
-				`Invalid "tsconfig.json" configuration!`,
-				`https://roblox-ts.com/docs/quick-start#project-folder-setup`,
-				errors.map(e => `- ${e}\n`).join(""),
-			].join("\n"),
+			[`Invalid "tsconfig.json" configuration!`, errors.map(e => `- ${e}\n`).join("")].join("\n"),
 		);
 	}
 }

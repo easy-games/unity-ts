@@ -110,9 +110,6 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		refreshProgram();
 		assert(program && pathTranslator);
 		cleanup(pathTranslator, data.projectOptions);
-		if (data.projectOptions.type !== ProjectType.AirshipBundle) {
-			// copyInclude(data);
-		}
 		if (data.projectOptions.copyNodeModules) {
 			copyNodeModules(data)
 				.then(() => {})

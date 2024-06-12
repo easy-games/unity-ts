@@ -68,14 +68,7 @@ export class AirshipBuildState {
 		);
 
 		const typeName = typeChecker.typeToString(type);
-		let value = (parsePath.dir + path.sep + parsePath.name + "@" + typeName).replace(/\\/g, "/");
-
-		if (transformState.projectType === ProjectType.AirshipBundle) {
-			const pkgJson: { name: string } = JSON.parse(
-				readFileSync(path.join(transformState.program.getCurrentDirectory(), "package.json")).toString(),
-			);
-			value = pkgJson.name + "/" + value;
-		}
+		const value = (parsePath.dir + path.sep + parsePath.name + "@" + typeName).replace(/\\/g, "/");
 
 		this.typeIdCache.set(fullTypePath, value);
 		return value;

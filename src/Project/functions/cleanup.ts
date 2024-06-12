@@ -52,13 +52,8 @@ export function cleanup(pathTranslator: PathTranslator, projectOptions: ProjectO
 }
 function addPackageIndexFiles(pathTranslator: PathTranslator, projectOptions: ProjectOptions): void {
 	let typesDir: string;
-	if (projectOptions.type === ProjectType.AirshipBundle) {
-		typesDir = path.join("../../../Types~/");
-		// } else if (projectOptions.type === ProjectType.Game) {
-		// 	typesDir = path.join("../Bundles/Types~/");
-	} else {
-		return;
-	}
+	return;
+
 	const files = fs.readdirSync(typesDir, { withFileTypes: true });
 	for (const file of files) {
 		if (!file.isDirectory()) continue;
