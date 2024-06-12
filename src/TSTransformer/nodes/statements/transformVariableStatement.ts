@@ -167,7 +167,11 @@ export function transformVariableDeclaration(
 }
 
 export function isVarDeclaration(node: ts.VariableDeclarationList) {
-	return !(node.flags & ts.NodeFlags.Const) && !(node.flags & ts.NodeFlags.Let);
+	return !(node.flags & ts.NodeFlags.Const) && !(node.flags & ts.NodeFlags.Let) && !(node.flags & ts.NodeFlags.Using);
+}
+
+export function isUsingDeclaration(node: ts.VariableDeclarationList) {
+	return !!(node.flags & ts.NodeFlags.Using);
 }
 
 export function transformVariableDeclarationList(
@@ -176,6 +180,10 @@ export function transformVariableDeclarationList(
 ): luau.List<luau.Statement> {
 	if (isVarDeclaration(node)) {
 		DiagnosticService.addDiagnostic(errors.noVar(node));
+	}
+
+	if (isUsingDeclaration(node)) {
+		DiagnosticService.addDiagnostic(errors.noUsing(node));
 	}
 
 	const statements = luau.list.make<luau.Statement>();

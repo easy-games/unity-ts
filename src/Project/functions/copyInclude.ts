@@ -2,16 +2,12 @@ import copyfiles from "copyfiles";
 import fs from "fs-extra";
 import path from "path";
 import { LogService } from "Shared/classes/LogService";
-import { INCLUDE_PATH, ProjectType } from "Shared/constants";
+import { INCLUDE_PATH } from "Shared/constants";
 import { ProjectData } from "Shared/types";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
 
 export function copyInclude(data: ProjectData) {
-	if (
-		!data.noInclude &&
-		data.projectOptions.type !== ProjectType.Package &&
-		!(data.projectOptions.type === undefined && data.isPackage)
-	) {
+	if (!data.noInclude && !(data.projectOptions.type === undefined && data.isPackage)) {
 		benchmarkIfVerbose("copy include files", () => {
 			fs.copySync(INCLUDE_PATH, data.includePath, { dereference: true });
 		});

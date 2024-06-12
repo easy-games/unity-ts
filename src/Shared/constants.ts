@@ -39,9 +39,6 @@ export const PARENT_FIELD = "Parent";
 
 export enum ProjectType {
 	Game = "game",
-	Model = "model",
-	Package = "package",
-	AirshipBundle = "airshipbundle",
 }
 
 export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
@@ -50,7 +47,7 @@ export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	type: undefined,
 	watch: false,
 	package: ".",
-	runtimePath: "@Easy/Core/Shared/Resources/TS/Runtime", // backwards compat reasons - will change later.
+	runtimePath: "AirshipPackages/@Easy/Core/Shared/Runtime",
 	usePolling: false,
 	json: false,
 	verbose: false,
