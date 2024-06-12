@@ -1,15 +1,13 @@
 #!/usr/bin/env node
 
 import build from "CLI/commands/build";
-import postTypes from "CLI/commands/postTypes";
-import prepareTypes from "CLI/commands/prepareTypes";
 import { CLIError } from "CLI/errors/CLIError";
 import { COMPILER_VERSION } from "Shared/constants";
 import * as yargs from "yargs";
 
 yargs
 	// help
-	.usage("unity-ts - A TypeScript-to-Luau Compiler for Unity")
+	.usage("The Typescript Compiler for Airship")
 	.help("help")
 	.alias("h", "help")
 	.describe("help", "show help information")
@@ -20,9 +18,8 @@ yargs
 	.describe("version", "show version information")
 
 	// commands
+	.command("$0", "Build a project", build)
 	.command(build)
-	.command(prepareTypes)
-	.command(postTypes)
 
 	// options
 	.recommendCommands()
