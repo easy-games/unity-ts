@@ -24,7 +24,11 @@ export function isAirshipBehaviourClass(state: TransformState, node: ts.ClassLik
 		const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipBehaviourSymbolOrThrow();
 
 		// check if the immediate extends is AirshipBehaviour
-		const type = state.typeChecker.getTypeAtLocation(node);
+		let type = state.typeChecker.getTypeAtLocation(node);
+		if (type.isNullableType()) {
+			type = type.getNonNullableType();
+		}
+
 		const symbol = getOriginalSymbolOfNode(state.typeChecker, extendsNode.expression);
 		if (symbol === airshipBehaviourSymbol) {
 			return true;

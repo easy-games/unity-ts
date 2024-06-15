@@ -334,6 +334,9 @@ type: ts.Type,
 		}
 	} else if (isAirshipBehaviourType(state, type)) {
 		prop.type = "AirshipBehaviour";
+
+		type = typeChecker.getNonNullableType(type);
+
 		prop.objectType = typeChecker.typeToString(type);
 		prop.fileRef = state.getOutputPathFromType(type);
 	} else if (isEnum) {
