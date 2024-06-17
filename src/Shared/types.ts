@@ -183,6 +183,8 @@ export interface AirshipBehaviourFieldExport {
 
 	readonly ref?: string;
 
+	readonly fileRef?: string;
+
 	readonly nullable?: boolean;
 
 	/**

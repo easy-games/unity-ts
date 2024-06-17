@@ -1,5 +1,5 @@
 import luau, { render, RenderState, renderStatements, solveTempIds } from "@roblox-ts/luau-ast";
-import { posix as path } from "path";
+import { default as systemPath, posix as path } from "path";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { ProjectType } from "Shared/constants";
 import { AirshipBehaviour, ProjectData } from "Shared/types";
@@ -69,6 +69,14 @@ export class TransformState {
 		};
 		this.tryUsesStack.push(tryUses);
 		return tryUses;
+	}
+
+	public getOutputPathFromType(type: ts.Type) {
+		const node = type.symbol?.valueDeclaration;
+		if (node) {
+			const sourceFile = node.getSourceFile();
+			return systemPath.relative(this.pathTranslator.rootDir, sourceFile.fileName).replace("\\", "/");
+		}
 	}
 
 	private typeIdCache = new Map<number, string>();

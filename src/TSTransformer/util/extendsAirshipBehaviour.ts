@@ -24,7 +24,11 @@ export function isAirshipBehaviourClass(state: TransformState, node: ts.ClassLik
 		const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipBehaviourSymbolOrThrow();
 
 		// check if the immediate extends is AirshipBehaviour
-		const type = state.typeChecker.getTypeAtLocation(node);
+		let type = state.typeChecker.getTypeAtLocation(node);
+		if (type.isNullableType()) {
+			type = type.getNonNullableType();
+		}
+
 		const symbol = getOriginalSymbolOfNode(state.typeChecker, extendsNode.expression);
 		if (symbol === airshipBehaviourSymbol) {
 			return true;
@@ -44,4 +48,20 @@ export function isAirshipBehaviourClass(state: TransformState, node: ts.ClassLik
 	}
 
 	return false;
+}
+
+export function isAirshipBehaviourType(state: TransformState, type: ts.Type) {
+	const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipBehaviourSymbolOrThrow();
+
+	// Get the inheritance tree, otherwise
+	const inheritance = getAncestorTypeSymbols(state, type);
+	if (inheritance.length === 0) {
+		return false;
+	}
+
+	// Get the root inheriting symbol (Should match AirshipBehaviour for this to be "extending" AirshipBehaviour)
+	const baseTypeDeclaration = inheritance[inheritance.length - 1];
+	if (baseTypeDeclaration !== undefined) {
+		return baseTypeDeclaration === airshipBehaviourSymbol;
+	}
 }

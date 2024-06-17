@@ -32,7 +32,7 @@ import {
 	isUnityObjectType,
 	isValidAirshipBehaviourExportType,
 } from "TSTransformer/util/airshipBehaviourUtils";
-import { isAirshipBehaviourClass, isRootAirshipBehaviourClass } from "TSTransformer/util/extendsAirshipBehaviour";
+import { isAirshipBehaviourClass, isAirshipBehaviourType, isRootAirshipBehaviourClass } from "TSTransformer/util/extendsAirshipBehaviour";
 import { getFlameworkNodeUid } from "TSTransformer/util/flameworkId";
 import { generateFlameworkMetadataForClass, isFlameworkSingleton } from "TSTransformer/util/flameworkSingleton";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
@@ -276,7 +276,7 @@ function writeEnumInfo(
 function createAirshipProperty(
 	state: TransformState,
 	name: string,
-	type: ts.Type,
+type: ts.Type,
 	node: ts.PropertyDeclaration,
 	decorators: Array<AirshipBehaviourFieldDecorator>,
 ): Writable<AirshipBehaviourFieldExport> {
@@ -332,6 +332,13 @@ function createAirshipProperty(
 				objectType: isObject ? typeString : undefined,
 			};
 		}
+	} else if (isAirshipBehaviourType(state, type)) {
+		prop.type = "AirshipBehaviour";
+
+		type = typeChecker.getNonNullableType(type);
+
+		prop.objectType = typeChecker.typeToString(type);
+		prop.fileRef = state.getOutputPathFromType(type);
 	} else if (isEnum) {
 		if (type.isNullableType()) prop.nullable = true;
 		prop.nullable = type.isNullableType();
