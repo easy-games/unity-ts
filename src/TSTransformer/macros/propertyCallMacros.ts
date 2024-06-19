@@ -952,16 +952,21 @@ const makeTypeArgumentAsStringMacro =
 		}
 
 		if (type) {
+			args.unshift(luau.string(state.typeChecker.typeToString(type)));
 			return luau.create(luau.SyntaxKind.MethodCallExpression, {
 				expression: convertToIndexableExpression(expression),
 				name: method,
-				args: luau.list.make(luau.string(state.typeChecker.typeToString(type))),
+				args: luau.list.make(...args),
 			});
 		} else {
+			if (defaultTypeName !== undefined) {
+				args.unshift(luau.string(defaultTypeName));
+			}
+
 			return luau.create(luau.SyntaxKind.MethodCallExpression, {
 				expression: convertToIndexableExpression(expression),
 				name: method,
-				args: defaultTypeName ? luau.list.make(luau.string(defaultTypeName)) : luau.list.make(...args),
+				args: luau.list.make(...args),
 			});
 		}
 	};
