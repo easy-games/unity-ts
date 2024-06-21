@@ -11,7 +11,7 @@ import {
 	AirshipBehaviourJson,
 } from "Shared/types";
 import { assert } from "Shared/util/assert";
-import { AirshipBuildState, SYMBOL_NAMES, TransformState } from "TSTransformer";
+import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformClassConstructor } from "TSTransformer/nodes/class/transformClassConstructor";
 import { transformDecorators } from "TSTransformer/nodes/class/transformDecorators";
@@ -26,13 +26,16 @@ import {
 	getEnumMetadata,
 	getEnumValue,
 	getUnityObjectInitializerDefaultValue,
-	isAirshipDecorator,
 	isEnumType,
 	isPublicWritablePropertyDeclaration,
 	isUnityObjectType,
 	isValidAirshipBehaviourExportType,
 } from "TSTransformer/util/airshipBehaviourUtils";
-import { isAirshipBehaviourClass, isAirshipBehaviourType, isRootAirshipBehaviourClass } from "TSTransformer/util/extendsAirshipBehaviour";
+import {
+	isAirshipBehaviourClass,
+	isAirshipBehaviourType,
+	isRootAirshipBehaviourClass,
+} from "TSTransformer/util/extendsAirshipBehaviour";
 import { getFlameworkNodeUid } from "TSTransformer/util/flameworkId";
 import { generateFlameworkMetadataForClass, isFlameworkSingleton } from "TSTransformer/util/flameworkSingleton";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
@@ -276,7 +279,7 @@ function writeEnumInfo(
 function createAirshipProperty(
 	state: TransformState,
 	name: string,
-type: ts.Type,
+	type: ts.Type,
 	node: ts.PropertyDeclaration,
 	decorators: Array<AirshipBehaviourFieldDecorator>,
 ): Writable<AirshipBehaviourFieldExport> {
@@ -377,7 +380,7 @@ type: ts.Type,
 			const initializer = node.initializer;
 			if (initializer) {
 				const objectInitializer = getUnityObjectInitializerDefaultValue(state, initializer);
-				if (objectInitializer) prop.default = objectInitializer;
+				if (objectInitializer !== undefined) prop.default = objectInitializer;
 			}
 		}
 	}
