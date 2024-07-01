@@ -124,6 +124,12 @@ export interface AirshipBehaviourJson {
 	readonly properties: Array<AirshipBehaviourFieldExport>;
 }
 
+export enum EnumType {
+	StringEnum,
+	IntEnum,
+	FlagEnum,
+}
+
 export interface AirshipBehaviour {
 	readonly name: string;
 	readonly id: string;
@@ -173,16 +179,15 @@ type AirshipFieldDefaultValue =
 /**
  * Metadata about a public serializable member in the AirshipBehaviour
  */
-export interface AirshipBehaviourFieldExport extends AirshipItemType {
+export interface AirshipBehaviourFieldExport extends AirshipTypeReference {
 	/**
 	 * The name of the property
 	 */
 	readonly name: string;
-	/**
-	 * The type of the property
-	 */
-	readonly type: string;
 
+	/**
+	 * The Typescript reference id for the field (used for enums)
+	 */
 	readonly ref?: string;
 
 	readonly nullable?: boolean;
@@ -198,18 +203,32 @@ export interface AirshipBehaviourFieldExport extends AirshipItemType {
 	 * Item information about multi-item types such as Arrays
 	 * - If `type` is `Array`: Will contain information about the array - `items.type` will be the array item type
 	 */
-	readonly items: AirshipItemType | undefined;
+	readonly items: AirshipTypeReference | undefined;
 	/**
 	 * Applied attributes (in TS, decorators) of this property
 	 */
 	readonly decorators: ReadonlyArray<AirshipBehaviourFieldDecorator>;
 }
 
-interface AirshipItemType {
+interface AirshipTypeReference {
 	/**
-	 * If type is `object` (i.e. UnityEngine.Object) - will contain the matching type
+	 * The type of this reference
+	 * - Primitive type e.g. `string`, `number`, `boolean`
+	 * - Data type e.g. `Vector3`, `Vector2`, `Color` etc.
+	 * - `Array` if it's an array
+	 * - `AirshipBehaviour` (`AirshipComponent`)
+	 * - `object` (`UnityEngine.Object`)
 	 */
 	readonly type: string;
+
+	/**
+	 * If {@link type} is set to
+	 * - `"AirshipBehaviour"` - will contain the `AirshipComponent` name, {@link fileRef} will contain the script location relative to the project
+	 * or
+	 * - `"object"` - will contain the `UnityEngine.Object` type name
+	 *
+	 * otherwise `undefined`
+	 */
 	readonly objectType: string | undefined;
 
 	/**

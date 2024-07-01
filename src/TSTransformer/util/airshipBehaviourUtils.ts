@@ -4,6 +4,7 @@ import {
 	AirshipBehaviourCallValue,
 	AirshipBehaviourMethodCallValue,
 	AirshipBehaviourStaticMemberValue,
+	EnumType,
 } from "Shared/types";
 import { TransformState } from "TSTransformer";
 import { isAirshipBehaviourType } from "TSTransformer/util/extendsAirshipBehaviour";
@@ -95,12 +96,6 @@ export function getEnumValue(state: TransformState, value: ts.PropertyAccessExpr
 
 export function getEnumKey(value: ts.PropertyAccessExpression) {
 	return value.name.text;
-}
-
-export enum EnumType {
-	StringEnum,
-	IntEnum,
-	FlagEnum,
 }
 
 type EnumRecord = Record<string, string | number>;

@@ -9,6 +9,7 @@ import {
 	AirshipBehaviourFieldDecoratorParameter,
 	AirshipBehaviourFieldExport,
 	AirshipBehaviourJson,
+	EnumType,
 } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
@@ -21,7 +22,6 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import {
 	EnumMetadata,
-	EnumType,
 	getAncestorTypeSymbols,
 	getEnumMetadata,
 	getEnumValue,
