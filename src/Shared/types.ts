@@ -18,6 +18,7 @@ export interface ProjectOptions {
 	includePath: string;
 	package: string;
 	runtimePath: string;
+	incremental: boolean;
 	rojo: string | undefined;
 	type: ProjectType | undefined;
 	logTruthyChanges: boolean;

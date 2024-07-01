@@ -1,4 +1,3 @@
-import fs from "fs-extra";
 import { ProjectData } from "Project";
 import { createReadBuildProgramHost } from "Project/util/createReadBuildProgramHost";
 import { COMPILER_VERSION } from "Shared/constants";
@@ -14,11 +13,6 @@ function createCompilerHost(data: ProjectData, compilerOptions: ts.CompilerOptio
 	contentsToHash += `type=${String(data.projectOptions.type)},`;
 	contentsToHash += `isPackage=${String(data.isPackage)},`;
 	contentsToHash += `plugins=${JSON.stringify(compilerOptions.plugins ?? [])},`;
-
-	if (data.rojoConfigPath && fs.existsSync(data.rojoConfigPath)) {
-		contentsToHash += fs.readFileSync(data.rojoConfigPath).toString();
-	}
-
 	assert(host.createHash);
 
 	const origCreateHash = host.createHash;
@@ -33,7 +27,7 @@ export function createProgramFactory(
 ): ts.CreateProgram<ts.EmitAndSemanticDiagnosticsBuilderProgram> {
 	return (
 		rootNames: ReadonlyArray<string> | undefined,
-		compilerOptions: ts.CompilerOptions | undefined = options,
+		compilerOptions: ts.CompilerOptions = options,
 		host = createCompilerHost(data, options),
 		oldProgram = ts.readBuilderProgram(options, createReadBuildProgramHost()),
 	) => ts.createEmitAndSemanticDiagnosticsBuilderProgram(rootNames, compilerOptions, host, oldProgram);

@@ -61,6 +61,11 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 			boolean: true,
 			describe: "enable watch mode",
 		},
+		incremental: {
+			alias: "i",
+			boolean: false,
+			describe: "Build with incremental mode",
+		},
 		writeOnlyChanged: {
 			alias: "writeOnlyChanged",
 			boolean: true,

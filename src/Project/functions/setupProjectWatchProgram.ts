@@ -43,6 +43,7 @@ function fixSlashes(fsPath: string) {
 
 export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean) {
 	const { fileNames, options } = getParsedCommandLine(data);
+
 	const useJsonEvents = data.projectOptions.json;
 	const fileNamesSet = new Set(fileNames);
 

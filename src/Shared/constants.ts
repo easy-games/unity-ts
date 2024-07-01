@@ -53,6 +53,7 @@ export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	verbose: false,
 	noInclude: false,
 	logTruthyChanges: false,
+	incremental: false,
 	writeOnlyChanged: false,
 	optimizedLoops: true,
 	luauPackages: [],
