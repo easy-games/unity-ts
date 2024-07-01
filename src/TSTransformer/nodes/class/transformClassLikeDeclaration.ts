@@ -325,15 +325,16 @@ function createAirshipProperty(
 				prop.items = {
 					type: enumTypeString,
 					objectType: undefined,
+					ref: enumRef,
 				};
-
-				prop.ref = enumRef;
 			}
 		} else if (isAirshipBehaviourType(state, arrayItemType)) {
+			const fileRef = state.getOutputPathFromType(arrayItemType);
+
 			prop.items = {
 				type: "AirshipBehaviour",
 				objectType: typeString,
-				fileRef: state.getOutputPathFromType(arrayItemType),
+				fileRef,
 			};
 		} else {
 			prop.items = {
