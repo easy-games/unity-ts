@@ -173,7 +173,7 @@ type AirshipFieldDefaultValue =
 /**
  * Metadata about a public serializable member in the AirshipBehaviour
  */
-export interface AirshipBehaviourFieldExport {
+export interface AirshipBehaviourFieldExport extends AirshipItemType {
 	/**
 	 * The name of the property
 	 */
@@ -185,8 +185,6 @@ export interface AirshipBehaviourFieldExport {
 
 	readonly ref?: string;
 
-	readonly fileRef?: string;
-
 	readonly nullable?: boolean;
 
 	/**
@@ -197,29 +195,27 @@ export interface AirshipBehaviourFieldExport {
 	readonly default: AirshipFieldDefaultValue | Array<AirshipFieldDefaultValue>;
 
 	/**
-	 * If type is `object` (i.e. UnityEngine.Object) - will contain the matching type
-	 */
-	readonly objectType: string | undefined;
-	/**
 	 * Item information about multi-item types such as Arrays
 	 * - If `type` is `Array`: Will contain information about the array - `items.type` will be the array item type
 	 */
-	readonly items:
-		| {
-				/**
-				 * The type of items in the collection (i.e. `Array`)
-				 */
-				type: string;
-				/**
-				 * If type is `object` (i.e. UnityEngine.Object) - will contain the matching type
-				 */
-				objectType: string | undefined;
-		  }
-		| undefined;
+	readonly items: AirshipItemType | undefined;
 	/**
 	 * Applied attributes (in TS, decorators) of this property
 	 */
 	readonly decorators: ReadonlyArray<AirshipBehaviourFieldDecorator>;
+}
+
+interface AirshipItemType {
+	/**
+	 * If type is `object` (i.e. UnityEngine.Object) - will contain the matching type
+	 */
+	readonly type: string;
+	readonly objectType: string | undefined;
+
+	/**
+	 * A file reference for the given type (for `AirshipBehaviour`)
+	 */
+	readonly fileRef?: string;
 }
 
 export interface AirshipBehaviourFieldDecoratorParameter {
