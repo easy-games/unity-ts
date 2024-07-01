@@ -3,6 +3,7 @@
 	- This will optimize loops like `for (let i = 1; i <= 10; i++) {}` into `for i = 1, 10 do end`
 - Fixed emit around `a.b()` and `a[b]()` in certain conditions
 - Fix an issue where .d.ts changes in watch mode would not register for other files
+- `AirshipBehaviour` now supports arrays of Typescript Enums + AirshipBehaviours
 - Updated `@roblox-ts/luau-ast` to latest to fix emit issues
 	- Changes listed at https://github.com/roblox-ts/luau-ast/pull/483
 
