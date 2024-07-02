@@ -203,6 +203,16 @@ export interface AirshipBehaviourFieldExport extends AirshipTypeReference {
 	 * Applied attributes (in TS, decorators) of this property
 	 */
 	readonly decorators: ReadonlyArray<AirshipBehaviourFieldDecorator>;
+
+	/**
+	 * A file reference for the given type (for `AirshipBehaviour`)
+	 */
+	readonly fileRef?: string;
+
+	/**
+	 * The Typescript reference id for the field (used for enums)
+	 */
+	readonly ref?: string;
 }
 
 interface AirshipTypeReference {
@@ -225,16 +235,6 @@ interface AirshipTypeReference {
 	 * otherwise `undefined`
 	 */
 	readonly objectType: string | undefined;
-
-	/**
-	 * A file reference for the given type (for `AirshipBehaviour`)
-	 */
-	readonly fileRef?: string;
-
-	/**
-	 * The Typescript reference id for the field (used for enums)
-	 */
-	readonly ref?: string;
 }
 
 export interface AirshipBehaviourFieldDecoratorParameter {
