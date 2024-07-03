@@ -977,11 +977,14 @@ const UNITY_GAMEOBJECT_METHODS: MacroList<PropertyCallMacro> = {
 	GetComponents: makeTypeArgumentAsStringMacro("GetComponents"),
 	GetAirshipComponents: makeTypeArgumentAsStringMacro("GetAirshipComponents"),
 	AddComponent: makeTypeArgumentAsStringMacro("AddComponent"),
+	GetComponentInParent: makeTypeArgumentAsStringMacro("GetComponentInParent"),
 	AddAirshipComponent: makeTypeArgumentAsStringMacro("AddAirshipComponent"),
 	GetComponentsInChildren: makeTypeArgumentAsStringMacro("GetComponentsInChildren"),
 	GetAirshipComponentsInChildren: makeTypeArgumentAsStringMacro("GetAirshipComponentsInChildren"),
 	GetComponentInChildren: makeTypeArgumentAsStringMacro("GetComponentInChildren"),
 	GetAirshipComponentInChildren: makeTypeArgumentAsStringMacro("GetAirshipComponentInChildren"),
+	GetAirshipComponentInParent: makeTypeArgumentAsStringMacro("GetAirshipComponentInParent"),
+	GetAirshipComponentsInParent: makeTypeArgumentAsStringMacro("GetAirshipComponentsInParent"),
 };
 const UNITY_STATIC_GAMEOBJECT_METHODS: MacroList<PropertyCallMacro> = {
 	FindObjectOfType: makeTypeArgumentAsStringMacro("FindObjectOfType"),

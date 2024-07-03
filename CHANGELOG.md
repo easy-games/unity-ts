@@ -7,6 +7,9 @@
 - Updated `@roblox-ts/luau-ast` to latest to fix emit issues
 	- Changes listed at https://github.com/roblox-ts/luau-ast/pull/483
 
+## 2024-07-03 (3f51ef)
+- Added `GetAirshipComponentsInParent`, `GetAirshipComponentInParent` and `GetComponentInParent`
+
 # 3.4.x
 - `AirshipBehaviour` properties now supported in the compiler
 
