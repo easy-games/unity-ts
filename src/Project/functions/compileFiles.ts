@@ -4,7 +4,7 @@ import path from "path";
 import { checkFileName } from "Project/functions/checkFileName";
 import { createNodeModulesPathMapping } from "Project/functions/createNodeModulesPathMapping";
 import { jsonReporter } from "Project/functions/json";
-import { transformPaths } from "Project/transformers/builtin/transformPaths";
+import { shouldGenerateLuauPackageDeclarations } from "Project/functions/shouldGenerateLuauPackageDeclarations";
 import { transformTypeReferenceDirectives } from "Project/transformers/builtin/transformTypeReferenceDirectives";
 import { createTransformerList, flattenIntoTransformers } from "Project/transformers/createTransformerList";
 import { createTransformerWatcher } from "Project/transformers/createTransformerWatcher";
@@ -261,7 +261,6 @@ export function compileFiles(
 
 			for (const { sourceFile, source } of fileWriteQueue) {
 				const outPath = pathTranslator.getOutputPath(sourceFile.fileName);
-
 				const hasMetadata = fileMetadataWriteQueue.has(sourceFile);
 				const metadataPathOutPath = outPath + ".json~";
 
@@ -285,9 +284,16 @@ export function compileFiles(
 				emittedFiles.push(outPath);
 				writeCount++;
 
-				if (compilerOptions.declaration) {
+				if (
+					shouldGenerateLuauPackageDeclarations(
+						pathTranslator,
+						compilerOptions,
+						data.projectOptions,
+						sourceFile,
+					)
+				) {
 					proxyProgram.emit(sourceFile, ts.sys.writeFile, undefined, true, {
-						afterDeclarations: [transformTypeReferenceDirectives, transformPaths],
+						afterDeclarations: [transformTypeReferenceDirectives],
 					});
 				}
 

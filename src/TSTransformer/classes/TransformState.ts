@@ -75,7 +75,8 @@ export class TransformState {
 		const node = type.symbol?.valueDeclaration;
 		if (node) {
 			const sourceFile = node.getSourceFile();
-			return systemPath.relative(this.pathTranslator.rootDir, sourceFile.fileName).replace("\\", "/");
+			const path = systemPath.relative(this.pathTranslator.rootDir, sourceFile.fileName);
+			return path.replace(/\\/gi, "/");
 		}
 	}
 

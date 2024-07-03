@@ -18,6 +18,7 @@ export interface ProjectOptions {
 	includePath: string;
 	package: string;
 	runtimePath: string;
+	incremental: boolean;
 	rojo: string | undefined;
 	type: ProjectType | undefined;
 	logTruthyChanges: boolean;
@@ -31,6 +32,7 @@ export interface ProjectOptions {
 	allowCommentDirectives: boolean;
 	nodePackageName: string;
 	copyNodeModules: boolean;
+	luauPackages: Array<string>;
 }
 
 export interface ProjectData {
@@ -122,6 +124,12 @@ export interface AirshipBehaviourJson {
 	readonly properties: Array<AirshipBehaviourFieldExport>;
 }
 
+export enum EnumType {
+	StringEnum,
+	IntEnum,
+	FlagEnum,
+}
+
 export interface AirshipBehaviour {
 	readonly name: string;
 	readonly id: string;
@@ -171,19 +179,11 @@ type AirshipFieldDefaultValue =
 /**
  * Metadata about a public serializable member in the AirshipBehaviour
  */
-export interface AirshipBehaviourFieldExport {
+export interface AirshipBehaviourFieldExport extends AirshipTypeReference {
 	/**
 	 * The name of the property
 	 */
 	readonly name: string;
-	/**
-	 * The type of the property
-	 */
-	readonly type: string;
-
-	readonly ref?: string;
-
-	readonly fileRef?: string;
 
 	readonly nullable?: boolean;
 
@@ -195,29 +195,46 @@ export interface AirshipBehaviourFieldExport {
 	readonly default: AirshipFieldDefaultValue | Array<AirshipFieldDefaultValue>;
 
 	/**
-	 * If type is `object` (i.e. UnityEngine.Object) - will contain the matching type
-	 */
-	readonly objectType: string | undefined;
-	/**
 	 * Item information about multi-item types such as Arrays
 	 * - If `type` is `Array`: Will contain information about the array - `items.type` will be the array item type
 	 */
-	readonly items:
-		| {
-				/**
-				 * The type of items in the collection (i.e. `Array`)
-				 */
-				type: string;
-				/**
-				 * If type is `object` (i.e. UnityEngine.Object) - will contain the matching type
-				 */
-				objectType: string | undefined;
-		  }
-		| undefined;
+	readonly items: AirshipTypeReference | undefined;
 	/**
 	 * Applied attributes (in TS, decorators) of this property
 	 */
 	readonly decorators: ReadonlyArray<AirshipBehaviourFieldDecorator>;
+
+	/**
+	 * A file reference for the given type (for `AirshipBehaviour`)
+	 */
+	readonly fileRef?: string;
+
+	/**
+	 * The Typescript reference id for the field (used for enums)
+	 */
+	readonly ref?: string;
+}
+
+interface AirshipTypeReference {
+	/**
+	 * The type of this reference
+	 * - Primitive type e.g. `string`, `number`, `boolean`
+	 * - Data type e.g. `Vector3`, `Vector2`, `Color` etc.
+	 * - `Array` if it's an array
+	 * - `AirshipBehaviour` (`AirshipComponent`)
+	 * - `object` (`UnityEngine.Object`)
+	 */
+	readonly type: string;
+
+	/**
+	 * If {@link type} is set to
+	 * - `"AirshipBehaviour"` - will contain the `AirshipComponent` name, {@link fileRef} will contain the script location relative to the project
+	 * or
+	 * - `"object"` - will contain the `UnityEngine.Object` type name
+	 *
+	 * otherwise `undefined`
+	 */
+	readonly objectType: string | undefined;
 }
 
 export interface AirshipBehaviourFieldDecoratorParameter {

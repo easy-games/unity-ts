@@ -26,10 +26,14 @@ export function getParsedCommandLine(data: ProjectData) {
 		throw new DiagnosticError(parsedCommandLine.errors);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	if ((globalThis as any).RBXTSC_DEV || inspector.url() !== undefined) {
-		parsedCommandLine.options.incremental = false;
-		parsedCommandLine.options.tsBuildInfoFile = undefined;
+	if (data.projectOptions.incremental !== undefined) {
+		parsedCommandLine.options.incremental = data.projectOptions.incremental;
+	} else {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		if ((globalThis as any).RBXTSC_DEV || inspector.url() !== undefined) {
+			parsedCommandLine.options.incremental = false;
+			parsedCommandLine.options.tsBuildInfoFile = undefined;
+		}
 	}
 
 	validateCompilerOptions(parsedCommandLine.options, data.nodeModulesPath);

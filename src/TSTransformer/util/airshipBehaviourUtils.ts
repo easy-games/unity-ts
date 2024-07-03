@@ -4,6 +4,7 @@ import {
 	AirshipBehaviourCallValue,
 	AirshipBehaviourMethodCallValue,
 	AirshipBehaviourStaticMemberValue,
+	EnumType,
 } from "Shared/types";
 import { TransformState } from "TSTransformer";
 import { isAirshipBehaviourType } from "TSTransformer/util/extendsAirshipBehaviour";
@@ -97,12 +98,6 @@ export function getEnumKey(value: ts.PropertyAccessExpression) {
 	return value.name.text;
 }
 
-export enum EnumType {
-	StringEnum,
-	IntEnum,
-	FlagEnum,
-}
-
 type EnumRecord = Record<string, string | number>;
 export interface EnumMetadata {
 	index: number;
@@ -173,7 +168,8 @@ export function isValidAirshipBehaviourExportType(state: TransformState, node: t
 		return (
 			state.services.airshipSymbolManager.isTypeSerializable(innerArrayType) ||
 			isUnityObjectType(state, innerArrayType) ||
-			isEnumType(innerArrayType)
+			isEnumType(innerArrayType) ||
+			isAirshipBehaviourType(state, innerArrayType)
 		);
 	} else if (isEnumType(nodeType)) {
 		return true;
