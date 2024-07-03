@@ -6,6 +6,7 @@ const TYPES_NOTICE = "\nYou may need to update your @easy-games/compiler-types!"
 
 export const AIRSHIP_SYMBOL_NAMES = {
 	AirshipBehaviour: "AirshipBehaviour",
+	AirshipSingleton: "AirshipSingleton",
 	AirshipDecorator: "AirshipDecorator",
 	AirshipBehaviourFieldDecorator: "AirshipBehaviourFieldDecorator",
 	AirshipBehaviourClassDecorator: "AirshipBehaviourClassDecorator",
@@ -100,5 +101,9 @@ export class AirshipSymbolManager {
 
 	public getAirshipBehaviourSymbolOrThrow() {
 		return this.getSymbolOrThrow(AIRSHIP_SYMBOL_NAMES.AirshipBehaviour);
+	}
+
+	public getAirshipSingletonSymbolOrThrow() {
+		return this.getSymbolOrThrow(AIRSHIP_SYMBOL_NAMES.AirshipSingleton);
 	}
 }
