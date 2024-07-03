@@ -1,6 +1,14 @@
+import luau from "@roblox-ts/luau-ast";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
+import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
+import { skipUpwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
+import { MacroManager } from "./MacroManager";
+
+function getType(typeChecker: ts.TypeChecker, node: ts.Node) {
+	return typeChecker.getTypeAtLocation(skipUpwards(node));
+}
 
 const TYPES_NOTICE = "\nYou may need to update your @easy-games/compiler-types!";
 
@@ -25,6 +33,12 @@ const AIRSHIP_SERIALIZE_TYPES = {
 	Object: "Object",
 } as const;
 
+export const SINGLETON_STATICS: MacroList<PropertyCallMacro> = {
+	Get: (state, node, expression, args) => {
+		return luau.nil();
+	},
+};
+
 /**
  * Manages the macros of the ts.
  */
@@ -33,7 +47,7 @@ export class AirshipSymbolManager {
 	private symbolsToType = new Map<ts.Symbol, ts.Type>();
 	private serializedTypes = new Set<ts.Type>();
 
-	constructor(private typeChecker: ts.TypeChecker) {
+	constructor(private typeChecker: ts.TypeChecker, private macroManager: MacroManager) {
 		for (const symbolName of Object.values(AIRSHIP_SYMBOL_NAMES)) {
 			const symbol = typeChecker.resolveName(symbolName, undefined, ts.SymbolFlags.All, false);
 
@@ -47,6 +61,30 @@ export class AirshipSymbolManager {
 		this.serializedTypes.add(typeChecker.getStringType());
 		this.serializedTypes.add(typeChecker.getNumberType());
 		this.serializedTypes.add(typeChecker.getBooleanType());
+
+		const symbol = this.getAirshipSingletonSymbolOrThrow();
+		const singletonMethodMap = new Map<string, ts.Symbol>();
+		for (const declaration of symbol.declarations ?? []) {
+			if (ts.isClassDeclaration(declaration)) {
+				for (const member of declaration.members) {
+					if (ts.isMethodDeclaration(member) && ts.isIdentifier(member.name)) {
+						const symbol = getType(typeChecker, member).symbol;
+						assert(symbol);
+						singletonMethodMap.set(member.name.text, symbol);
+					}
+				}
+			}
+		}
+
+		for (const [methodName, macro] of Object.entries(SINGLETON_STATICS)) {
+			const methodSymbol = singletonMethodMap.get(methodName);
+			if (!methodSymbol) {
+				throw new ProjectError(
+					`The types for method AirshipSingleton.${methodName} could not be found` + TYPES_NOTICE,
+				);
+			}
+			macroManager.addPropertyCallMacro(methodSymbol, macro);
+		}
 
 		for (const symbolName of Object.values(AIRSHIP_SERIALIZE_TYPES)) {
 			const symbol = typeChecker.resolveName(symbolName, undefined, ts.SymbolFlags.All, false);

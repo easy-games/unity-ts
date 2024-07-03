@@ -8,9 +8,10 @@ export function isRootAirshipBehaviourClass(state: TransformState, node: ts.Clas
 	const extendsNode = getExtendsNode(node);
 	if (extendsNode) {
 		const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipBehaviourSymbolOrThrow();
+		const airshipSingletonSymbol = state.services.airshipSymbolManager.getAirshipSingletonSymbolOrThrow();
 
 		const symbol = getOriginalSymbolOfNode(state.typeChecker, extendsNode.expression);
-		if (symbol === airshipBehaviourSymbol) {
+		if (symbol === airshipBehaviourSymbol || symbol === airshipSingletonSymbol) {
 			return true;
 		}
 	}
