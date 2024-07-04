@@ -1,10 +1,11 @@
 import luau from "@roblox-ts/luau-ast";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
+import { MacroManager } from "TSTransformer/classes/MacroManager";
+import { SINGLETON_FILE_IMPORT } from "TSTransformer/classes/TransformState";
 import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
-import { MacroManager } from "./MacroManager";
 
 function getType(typeChecker: ts.TypeChecker, node: ts.Node) {
 	return typeChecker.getTypeAtLocation(skipUpwards(node));
@@ -34,7 +35,15 @@ const AIRSHIP_SERIALIZE_TYPES = {
 } as const;
 
 export const SINGLETON_STATICS: MacroList<PropertyCallMacro> = {
-	Get: (state, node, expression, args) => {
+	Get: (state, node) => {
+		const importId = state.addFileImport(SINGLETON_FILE_IMPORT, "AirshipSingletons");
+		const Singletons_Resolve = luau.property(importId, "Resolve");
+
+		const functionType = state.typeChecker.getTypeAtLocation(node);
+		if (functionType !== undefined) {
+			return luau.call(Singletons_Resolve, [luau.string(state.typeChecker.typeToString(functionType))]);
+		}
+
 		return luau.nil();
 	},
 };

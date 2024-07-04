@@ -8,10 +8,23 @@ export function isRootAirshipBehaviourClass(state: TransformState, node: ts.Clas
 	const extendsNode = getExtendsNode(node);
 	if (extendsNode) {
 		const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipBehaviourSymbolOrThrow();
+
+		const symbol = getOriginalSymbolOfNode(state.typeChecker, extendsNode.expression);
+		if (symbol === airshipBehaviourSymbol) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+export function isRootAirshipSingletonClass(state: TransformState, node: ts.ClassLikeDeclaration) {
+	const extendsNode = getExtendsNode(node);
+	if (extendsNode) {
 		const airshipSingletonSymbol = state.services.airshipSymbolManager.getAirshipSingletonSymbolOrThrow();
 
 		const symbol = getOriginalSymbolOfNode(state.typeChecker, extendsNode.expression);
-		if (symbol === airshipBehaviourSymbol || symbol === airshipSingletonSymbol) {
+		if (symbol === airshipSingletonSymbol) {
 			return true;
 		}
 	}

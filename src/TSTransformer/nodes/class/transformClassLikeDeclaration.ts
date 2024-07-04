@@ -35,6 +35,7 @@ import {
 	isAirshipBehaviourClass,
 	isAirshipBehaviourType,
 	isRootAirshipBehaviourClass,
+	isRootAirshipSingletonClass,
 } from "TSTransformer/util/extendsAirshipBehaviour";
 import { getFlameworkNodeUid } from "TSTransformer/util/flameworkId";
 import { generateFlameworkMetadataForClass, isFlameworkSingleton } from "TSTransformer/util/flameworkSingleton";
@@ -116,7 +117,10 @@ function createBoilerplate(
 			}),
 		);
 
-		if (extendsNode && !isRootAirshipBehaviourClass(state, node)) {
+		const isNotAirshipSpecialClass =
+			!isRootAirshipBehaviourClass(state, node) && !isRootAirshipSingletonClass(state, node);
+
+		if (extendsNode && isNotAirshipSpecialClass) {
 			const [extendsExp, extendsExpPrereqs] = state.capture(() =>
 				transformExpression(state, extendsNode.expression),
 			);
