@@ -117,8 +117,9 @@ function createBoilerplate(
 			}),
 		);
 
-		const isNotAirshipSpecialClass =
-			!isRootAirshipBehaviourClass(state, node) && !isRootAirshipSingletonClass(state, node);
+		const isAirshipBehaviour = isRootAirshipBehaviourClass(state, node);
+		const isAirshipSingleton = isRootAirshipSingletonClass(state, node);
+		const isNotAirshipSpecialClass = !isAirshipBehaviour && !isAirshipSingleton;
 
 		if (extendsNode && isNotAirshipSpecialClass) {
 			const [extendsExp, extendsExpPrereqs] = state.capture(() =>
