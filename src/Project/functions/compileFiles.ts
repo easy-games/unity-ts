@@ -27,6 +27,13 @@ import {
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { FlameworkSymbolProvider } from "TSTransformer/classes/FlameworkSymbolProvider";
 import { createTransformServices } from "TSTransformer/util/createTransformServices";
+import {
+	isAirshipSingletonClass,
+	isAirshipSingletonClassNoState,
+	isAirshipSingletonType,
+} from "TSTransformer/util/extendsAirshipBehaviour";
+import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
+import { skipUpwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
 function emitResultFailure(messageText: string): ts.EmitResult {
@@ -156,6 +163,23 @@ export function compileFiles(
 		flamework.registerInterestingFiles();
 	}
 
+	// Information step
+	const singletonSymbol = services.airshipSymbolManager.getAirshipSingletonSymbolOrThrow();
+	for (let i = 0; i < sourceFiles.length; i++) {
+		const sourceFile = proxyProgram.getSourceFile(sourceFiles[i].fileName);
+		assert(sourceFile);
+
+		// Do a visit of the top-level nodes of each file to register imports
+		ts.forEachChild(sourceFile, node => {
+			// Handling singletons
+			if (ts.isClassLike(node) && isAirshipSingletonClassNoState(singletonSymbol, typeChecker, node)) {
+				const type = typeChecker.getTypeAtLocation(node);
+				buildState.registerSingletonTypeForFile(sourceFile, type);
+				return true;
+			}
+		});
+	}
+
 	for (let i = 0; i < sourceFiles.length; i++) {
 		const sourceFile = proxyProgram.getSourceFile(sourceFiles[i].fileName);
 		assert(sourceFile);
@@ -180,6 +204,7 @@ export function compileFiles(
 				flamework,
 				sourceFile,
 			);
+			transformState.airshipBuildState.singletonTypes
 
 			const luauAST = transformSourceFile(transformState, sourceFile);
 			if (DiagnosticService.hasErrors()) return;
@@ -271,7 +296,7 @@ export function compileFiles(
 							!hasMetadata ||
 							(fs.existsSync(metadataPathOutPath) &&
 								fileMetadataWriteQueue.get(sourceFile) ===
-									fs.readFileSync(metadataPathOutPath).toString());
+								fs.readFileSync(metadataPathOutPath).toString());
 
 						if (isSourceUnchanged && isMetadataSourceUnchanged) {
 							skipCount++;

@@ -49,7 +49,73 @@ export function isAirshipBehaviourClass(state: TransformState, node: ts.ClassLik
 		}
 
 		// Get the inheritance tree, otherwise
-		const inheritance = getAncestorTypeSymbols(state, type);
+		const inheritance = getAncestorTypeSymbols(type);
+		if (inheritance.length === 0) {
+			return false;
+		}
+
+		// Get the root inheriting symbol (Should match AirshipBehaviour for this to be "extending" AirshipBehaviour)
+		const baseTypeDeclaration = inheritance[inheritance.length - 1];
+		if (baseTypeDeclaration !== undefined) {
+			return baseTypeDeclaration === airshipBehaviourSymbol;
+		}
+	}
+
+	return false;
+}
+
+export function isAirshipSingletonClassNoState(
+	airshipBehaviourSymbol: ts.Symbol,
+	typeChecker: ts.TypeChecker,
+	node: ts.ClassLikeDeclaration,
+) {
+	const extendsNode = getExtendsNode(node);
+	if (extendsNode) {
+		// check if the immediate extends is AirshipBehaviour
+		let type = typeChecker.getTypeAtLocation(node);
+		if (type.isNullableType()) {
+			type = type.getNonNullableType();
+		}
+
+		const symbol = getOriginalSymbolOfNode(typeChecker, extendsNode.expression);
+		if (symbol === airshipBehaviourSymbol) {
+			return true;
+		}
+
+		// Get the inheritance tree, otherwise
+		const inheritance = getAncestorTypeSymbols(type);
+		if (inheritance.length === 0) {
+			return false;
+		}
+
+		// Get the root inheriting symbol (Should match AirshipBehaviour for this to be "extending" AirshipBehaviour)
+		const baseTypeDeclaration = inheritance[inheritance.length - 1];
+		if (baseTypeDeclaration !== undefined) {
+			return baseTypeDeclaration === airshipBehaviourSymbol;
+		}
+	}
+
+	return false;
+}
+
+export function isAirshipSingletonClass(state: TransformState, node: ts.ClassLikeDeclaration) {
+	const extendsNode = getExtendsNode(node);
+	if (extendsNode) {
+		const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipSingletonSymbolOrThrow();
+
+		// check if the immediate extends is AirshipBehaviour
+		let type = state.typeChecker.getTypeAtLocation(node);
+		if (type.isNullableType()) {
+			type = type.getNonNullableType();
+		}
+
+		const symbol = getOriginalSymbolOfNode(state.typeChecker, extendsNode.expression);
+		if (symbol === airshipBehaviourSymbol) {
+			return true;
+		}
+
+		// Get the inheritance tree, otherwise
+		const inheritance = getAncestorTypeSymbols(type);
 		if (inheritance.length === 0) {
 			return false;
 		}
@@ -68,7 +134,40 @@ export function isAirshipBehaviourType(state: TransformState, type: ts.Type) {
 	const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipBehaviourSymbolOrThrow();
 
 	// Get the inheritance tree, otherwise
-	const inheritance = getAncestorTypeSymbols(state, type);
+	const inheritance = getAncestorTypeSymbols(type);
+	if (inheritance.length === 0) {
+		return false;
+	}
+
+	// Get the root inheriting symbol (Should match AirshipBehaviour for this to be "extending" AirshipBehaviour)
+	const baseTypeDeclaration = inheritance[inheritance.length - 1];
+	if (baseTypeDeclaration !== undefined) {
+		return baseTypeDeclaration === airshipBehaviourSymbol;
+	}
+}
+
+export function isAirshipSingletonType(state: TransformState, type: ts.Type) {
+	const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipSingletonSymbolOrThrow();
+
+	// Get the inheritance tree, otherwise
+	const inheritance = getAncestorTypeSymbols(type);
+	if (inheritance.length === 0) {
+		return false;
+	}
+
+	// Get the root inheriting symbol (Should match AirshipBehaviour for this to be "extending" AirshipBehaviour)
+	const baseTypeDeclaration = inheritance[inheritance.length - 1];
+	if (baseTypeDeclaration !== undefined) {
+		return baseTypeDeclaration === airshipBehaviourSymbol;
+	}
+}
+
+export function isAirshipSingletonSymbol(state: TransformState, symbol: ts.Symbol) {
+	const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipSingletonSymbolOrThrow();
+	const type = state.typeChecker.getTypeOfSymbol(symbol);
+
+	// Get the inheritance tree, otherwise
+	const inheritance = getAncestorTypeSymbols(type);
 	if (inheritance.length === 0) {
 		return false;
 	}

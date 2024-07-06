@@ -5,6 +5,11 @@ import { TransformState } from "TSTransformer";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { cleanModuleName } from "TSTransformer/util/cleanModuleName";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
+import {
+	isAirshipBehaviourClass,
+	isAirshipSingletonSymbol,
+	isAirshipSingletonType,
+} from "TSTransformer/util/extendsAirshipBehaviour";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
@@ -36,6 +41,54 @@ function countImportExpUses(state: TransformState, importClause: ts.ImportClause
 	return uses;
 }
 
+function shouldSkipSingletonImport(
+	state: TransformState,
+	importDeclaration: ts.ImportDeclaration,
+	module: ts.SourceFile,
+	symbol: ts.Symbol,
+) {
+	const singletons = state.airshipBuildState.singletonTypes.get(module);
+	if (!singletons) {
+		return false;
+	}
+
+	if (!symbol.valueDeclaration) return false;
+
+	// get the value type of the import
+	const valueType = state.typeChecker.getTypeAtLocation(symbol!.valueDeclaration!);
+
+	if (!valueType) {
+		return false;
+	}
+
+	// Need to ensure we keep the import or strip it... Don't like this TBH
+	if (!singletons.has(valueType)) {
+		return false;
+	}
+
+	// Ensure we're only using only a macro on the singleton
+	let shouldSkip = true;
+	ts.forEachChildRecursively(importDeclaration.getSourceFile(), node => {
+		if (ts.isPropertyAccessExpression(node)) {
+			const left = node.expression;
+
+			const symbolOfNode = state.typeChecker.getSymbolAtLocation(node);
+			const typeOfNode = state.typeChecker.getTypeAtLocation(left);
+
+			if (
+				symbolOfNode &&
+				typeOfNode === state.typeChecker.getTypeOfSymbol(symbol) &&
+				!state.services.macroManager.isPropertyMacro(symbolOfNode!)
+			) {
+				shouldSkip = false;
+			}
+			return "skip";
+		}
+	});
+
+	return shouldSkip;
+}
+
 export function transformImportDeclaration(state: TransformState, node: ts.ImportDeclaration) {
 	// no emit for type only
 	const importClause = node.importClause;
@@ -48,7 +101,6 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 		createImportExpression(state, node.getSourceFile(), node.moduleSpecifier),
 	);
 
-	const sourceFile = node.getSourceFile();
 	if (importClause) {
 		// TODO: How can we determine if this is a .d.ts file and ignore it?
 		if (node.moduleSpecifier.text === "@easy-games/types/include/generated") {
@@ -79,12 +131,14 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 				const moduleFile = getSourceFileFromModuleSpecifier(state, node.moduleSpecifier);
 				const moduleSymbol = moduleFile && state.typeChecker.getSymbolAtLocation(moduleFile);
 				if (moduleSymbol && state.getModuleExports(moduleSymbol).some(v => v.name === "default")) {
-					luau.list.pushList(
-						statements,
-						state.capturePrereqs(() =>
-							transformVariable(state, importClauseName, luau.property(importExp.get(), "default")),
-						),
-					);
+					if (!shouldSkipSingletonImport(state, node, moduleFile, symbol!)) {
+						luau.list.pushList(
+							statements,
+							state.capturePrereqs(() =>
+								transformVariable(state, importClauseName, luau.property(importExp.get(), "default")),
+							),
+						);
+					}
 				} else {
 					luau.list.pushList(
 						statements,

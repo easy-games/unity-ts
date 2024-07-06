@@ -32,7 +32,7 @@ export function getAllTypes(type: ts.Type) {
 	}
 }
 
-export function getAncestorTypeSymbols(state: TransformState, nodeType: ts.Type) {
+export function getAncestorTypeSymbols(nodeType: ts.Type) {
 	// ensure non-nullable (e.g. if `GameObject | undefined` - make `GameObject`)
 	if (nodeType.isNullableType()) {
 		nodeType = nodeType.getNonNullableType();
@@ -44,7 +44,7 @@ export function getAncestorTypeSymbols(state: TransformState, nodeType: ts.Type)
 		for (const baseType of baseTypes) {
 			symbols.push(baseType.symbol);
 
-			for (const parentSymbol of getAncestorTypeSymbols(state, baseType)) {
+			for (const parentSymbol of getAncestorTypeSymbols(baseType)) {
 				symbols.push(parentSymbol);
 			}
 		}
@@ -68,7 +68,7 @@ export function isAirshipDecorator(state: TransformState, decorator: ts.Decorato
 export function isUnityObjectType(state: TransformState, nodeType: ts.Type) {
 	const objectSymbol = state.services.airshipSymbolManager.getSymbolOrThrow("Object");
 
-	const objectInheritanceTree = getAncestorTypeSymbols(state, nodeType);
+	const objectInheritanceTree = getAncestorTypeSymbols(nodeType);
 	return objectInheritanceTree.includes(objectSymbol);
 }
 

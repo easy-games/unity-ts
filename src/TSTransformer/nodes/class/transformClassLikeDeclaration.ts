@@ -178,8 +178,10 @@ function createBoilerplate(
 		);
 	}
 
+	const ctor = getConstructor(node);
+
 	// statements for className.new
-	if (!isAbstract) {
+	if (!isAbstract && !(isAirshipBehaviourClass(state, node) && ctor === undefined)) {
 		const statementsInner = luau.list.make<luau.Statement>();
 
 		//	local self = setmetatable({}, className);
@@ -563,7 +565,7 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 		const inheritedBehaviourIds = new Array<string>();
 
 		// Inheritance
-		const inheritance = getAncestorTypeSymbols(state, classType);
+		const inheritance = getAncestorTypeSymbols(classType);
 		for (const inherited of inheritance) {
 			const valueDeclaration = inherited.valueDeclaration;
 			if (!valueDeclaration) continue;
