@@ -1,11 +1,21 @@
+import luau from "@roblox-ts/luau-ast";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
+import { MacroManager } from "TSTransformer/classes/MacroManager";
+import { SINGLETON_FILE_IMPORT } from "TSTransformer/classes/TransformState";
+import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
+import { skipUpwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
+
+function getType(typeChecker: ts.TypeChecker, node: ts.Node) {
+	return typeChecker.getTypeAtLocation(skipUpwards(node));
+}
 
 const TYPES_NOTICE = "\nYou may need to update your @easy-games/compiler-types!";
 
 export const AIRSHIP_SYMBOL_NAMES = {
 	AirshipBehaviour: "AirshipBehaviour",
+	AirshipSingleton: "AirshipSingleton",
 	AirshipDecorator: "AirshipDecorator",
 	AirshipBehaviourFieldDecorator: "AirshipBehaviourFieldDecorator",
 	AirshipBehaviourClassDecorator: "AirshipBehaviourClassDecorator",
@@ -24,6 +34,20 @@ const AIRSHIP_SERIALIZE_TYPES = {
 	Object: "Object",
 } as const;
 
+export const SINGLETON_STATICS: MacroList<PropertyCallMacro> = {
+	Get: (state, node, expression, args) => {
+		const importId = state.addFileImport(SINGLETON_FILE_IMPORT, "SingletonRegistry");
+		const Singletons_Resolve = luau.property(importId, "Resolve");
+
+		const functionType = state.typeChecker.getTypeAtLocation(node);
+		if (functionType !== undefined) {
+			return luau.call(Singletons_Resolve, [luau.string(state.typeChecker.typeToString(functionType))]);
+		}
+
+		return luau.nil();
+	},
+};
+
 /**
  * Manages the macros of the ts.
  */
@@ -32,7 +56,7 @@ export class AirshipSymbolManager {
 	private symbolsToType = new Map<ts.Symbol, ts.Type>();
 	private serializedTypes = new Set<ts.Type>();
 
-	constructor(private typeChecker: ts.TypeChecker) {
+	constructor(private typeChecker: ts.TypeChecker, private macroManager: MacroManager) {
 		for (const symbolName of Object.values(AIRSHIP_SYMBOL_NAMES)) {
 			const symbol = typeChecker.resolveName(symbolName, undefined, ts.SymbolFlags.All, false);
 
@@ -46,6 +70,30 @@ export class AirshipSymbolManager {
 		this.serializedTypes.add(typeChecker.getStringType());
 		this.serializedTypes.add(typeChecker.getNumberType());
 		this.serializedTypes.add(typeChecker.getBooleanType());
+
+		const symbol = this.getAirshipSingletonSymbolOrThrow();
+		const singletonMethodMap = new Map<string, ts.Symbol>();
+		for (const declaration of symbol.declarations ?? []) {
+			if (ts.isClassDeclaration(declaration)) {
+				for (const member of declaration.members) {
+					if (ts.isMethodDeclaration(member) && ts.isIdentifier(member.name)) {
+						const symbol = getType(typeChecker, member).symbol;
+						assert(symbol);
+						singletonMethodMap.set(member.name.text, symbol);
+					}
+				}
+			}
+		}
+
+		for (const [methodName, macro] of Object.entries(SINGLETON_STATICS)) {
+			const methodSymbol = singletonMethodMap.get(methodName);
+			if (!methodSymbol) {
+				throw new ProjectError(
+					`The types for method AirshipSingleton.${methodName} could not be found` + TYPES_NOTICE,
+				);
+			}
+			macroManager.addPropertyCallMacro(methodSymbol, macro);
+		}
 
 		for (const symbolName of Object.values(AIRSHIP_SERIALIZE_TYPES)) {
 			const symbol = typeChecker.resolveName(symbolName, undefined, ts.SymbolFlags.All, false);
@@ -100,5 +148,9 @@ export class AirshipSymbolManager {
 
 	public getAirshipBehaviourSymbolOrThrow() {
 		return this.getSymbolOrThrow(AIRSHIP_SYMBOL_NAMES.AirshipBehaviour);
+	}
+
+	public getAirshipSingletonSymbolOrThrow() {
+		return this.getSymbolOrThrow(AIRSHIP_SYMBOL_NAMES.AirshipSingleton);
 	}
 }

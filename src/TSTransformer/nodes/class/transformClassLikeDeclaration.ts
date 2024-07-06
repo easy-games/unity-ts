@@ -34,7 +34,9 @@ import {
 import {
 	isAirshipBehaviourClass,
 	isAirshipBehaviourType,
+	isAirshipSingletonClass,
 	isRootAirshipBehaviourClass,
+	isRootAirshipSingletonClass,
 } from "TSTransformer/util/extendsAirshipBehaviour";
 import { getFlameworkNodeUid } from "TSTransformer/util/flameworkId";
 import { generateFlameworkMetadataForClass, isFlameworkSingleton } from "TSTransformer/util/flameworkSingleton";
@@ -116,7 +118,11 @@ function createBoilerplate(
 			}),
 		);
 
-		if (extendsNode && !isRootAirshipBehaviourClass(state, node)) {
+		const isAirshipBehaviour = isRootAirshipBehaviourClass(state, node);
+		const isAirshipSingleton = isRootAirshipSingletonClass(state, node);
+		const isNotAirshipSpecialClass = !isAirshipBehaviour && !isAirshipSingleton;
+
+		if (extendsNode && isNotAirshipSpecialClass) {
 			const [extendsExp, extendsExpPrereqs] = state.capture(() =>
 				transformExpression(state, extendsNode.expression),
 			);
@@ -173,8 +179,10 @@ function createBoilerplate(
 		);
 	}
 
+	const ctor = getConstructor(node);
+
 	// statements for className.new
-	if (!isAbstract) {
+	if (!isAbstract && !(isAirshipBehaviourClass(state, node) && ctor === undefined)) {
 		const statementsInner = luau.list.make<luau.Statement>();
 
 		//	local self = setmetatable({}, className);
@@ -545,12 +553,14 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 		extends: [],
 	};
 
-	const airshipBehaviourSymbol = state.services.airshipSymbolManager.getNamedSymbolOrThrow("AirshipBehaviour");
+	const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipBehaviourSymbolOrThrow();
+	const airshipSingletonSymbol = state.services.airshipSymbolManager.getAirshipSingletonSymbolOrThrow();
 
 	if (isDefault) {
 		const metadata: Writable<AirshipBehaviourJson> = {
 			name: node.name?.text,
 			properties: [],
+			singleton: isAirshipSingletonClass(state, node),
 			decorators: [],
 			hash: "",
 		};
@@ -558,12 +568,12 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 		const inheritedBehaviourIds = new Array<string>();
 
 		// Inheritance
-		const inheritance = getAncestorTypeSymbols(state, classType);
+		const inheritance = getAncestorTypeSymbols(classType);
 		for (const inherited of inheritance) {
 			const valueDeclaration = inherited.valueDeclaration;
 			if (!valueDeclaration) continue;
 			if (!ts.isClassLike(valueDeclaration)) continue;
-			if (inherited === airshipBehaviourSymbol) continue;
+			if (inherited === airshipBehaviourSymbol || inherited === airshipSingletonSymbol) continue;
 
 			pushPropertyMetadataForAirshipBehaviour(state, valueDeclaration, metadata);
 

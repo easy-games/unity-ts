@@ -11,7 +11,9 @@ import { FlameworkSymbolProvider } from "TSTransformer/classes/FlameworkSymbolPr
 import { TransformServices, TryUses } from "TSTransformer/types";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
-import ts, { factory } from "typescript";
+import ts from "typescript";
+
+export const SINGLETON_FILE_IMPORT = "AirshipPackages/@Easy/Core/Shared/Singletons/Singletons";
 
 /**
  * Represents the state of the transformation between TS -> Luau AST.

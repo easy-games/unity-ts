@@ -16,6 +16,7 @@ interface EditorInfo {
 
 export class AirshipBuildState {
 	public readonly buildFile: AirshipBuildFile;
+	public readonly singletonTypes = new Map<ts.SourceFile, Set<ts.Type>>();
 	public readonly classes = new Map<ts.Symbol, FlameworkClassInfo>();
 
 	public constructor(buildFile?: AirshipBuildFile) {
@@ -35,6 +36,16 @@ export class AirshipBuildState {
 	};
 
 	public readonly fileComponentMap: Record<string, Array<string>> = {};
+
+	public registerSingletonTypeForFile(file: ts.SourceFile, type: ts.Type) {
+		let types = this.singletonTypes.get(file);
+		if (!types) {
+			types = new Set();
+			this.singletonTypes.set(file, types);
+		}
+
+		types.add(type);
+	}
 
 	public getEnumById(id: string): EnumRecord | undefined {
 		return this.editorInfo.enum[id];

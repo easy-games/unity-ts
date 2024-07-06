@@ -11,7 +11,7 @@ export function createTransformServices(
 	const macroManager = new MacroManager(typeChecker);
 
 	// const roactSymbolManager = RoactSymbolManager.create(data, program, typeChecker);
-	const airshipSymbolManager = new AirshipSymbolManager(typeChecker);
+	const airshipSymbolManager = new AirshipSymbolManager(typeChecker, macroManager);
 
 	return { macroManager, roactSymbolManager: undefined, airshipSymbolManager };
 }
