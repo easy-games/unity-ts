@@ -204,7 +204,6 @@ export function compileFiles(
 				flamework,
 				sourceFile,
 			);
-			transformState.airshipBuildState.singletonTypes
 
 			const luauAST = transformSourceFile(transformState, sourceFile);
 			if (DiagnosticService.hasErrors()) return;
@@ -216,7 +215,7 @@ export function compileFiles(
 			const airshipBehaviours = transformState.airshipBehaviours;
 
 			// In watch mode we want to ensure entries are updated
-			if (data.watch) {
+			if (data.watch && !data.projectOptions.incremental) {
 				const fileMap = (buildState.fileComponentMap[sourceFile.fileName] ??= []);
 				for (const entry of fileMap) {
 					const matchingBehaviour = airshipBehaviours.find(f => f.name === entry);
@@ -260,6 +259,7 @@ export function compileFiles(
 							component: behaviour.metadata !== undefined,
 							filePath: relativeFilePath,
 							extends: behaviour.extends,
+							singleton: behaviour.metadata?.singleton || false,
 						};
 
 						fileMap.push(behaviour.name);

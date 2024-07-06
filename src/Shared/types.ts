@@ -112,6 +112,11 @@ export interface AirshipBehaviourJson {
 	 */
 	readonly name: string | undefined;
 
+	/**
+	 * Whether or not this is a singleton
+	 */
+	readonly singleton: boolean;
+
 	decorators: Array<AirshipBehaviourClassDecorator>;
 
 	/**
@@ -276,6 +281,7 @@ export interface AirshipBehaviourClassDecorator {
 export interface AirshipBehaviourInfo {
 	readonly filePath: string;
 	readonly component: boolean;
+	readonly singleton: boolean;
 	readonly extends: Array<string>;
 }
 

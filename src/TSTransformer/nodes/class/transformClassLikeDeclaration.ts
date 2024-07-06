@@ -34,6 +34,7 @@ import {
 import {
 	isAirshipBehaviourClass,
 	isAirshipBehaviourType,
+	isAirshipSingletonClass,
 	isRootAirshipBehaviourClass,
 	isRootAirshipSingletonClass,
 } from "TSTransformer/util/extendsAirshipBehaviour";
@@ -552,12 +553,14 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 		extends: [],
 	};
 
-	const airshipBehaviourSymbol = state.services.airshipSymbolManager.getNamedSymbolOrThrow("AirshipBehaviour");
+	const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipBehaviourSymbolOrThrow();
+	const airshipSingletonSymbol = state.services.airshipSymbolManager.getAirshipSingletonSymbolOrThrow();
 
 	if (isDefault) {
 		const metadata: Writable<AirshipBehaviourJson> = {
 			name: node.name?.text,
 			properties: [],
+			singleton: isAirshipSingletonClass(state, node),
 			decorators: [],
 			hash: "",
 		};
@@ -570,7 +573,7 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 			const valueDeclaration = inherited.valueDeclaration;
 			if (!valueDeclaration) continue;
 			if (!ts.isClassLike(valueDeclaration)) continue;
-			if (inherited === airshipBehaviourSymbol) continue;
+			if (inherited === airshipBehaviourSymbol || inherited === airshipSingletonSymbol) continue;
 
 			pushPropertyMetadataForAirshipBehaviour(state, valueDeclaration, metadata);
 
