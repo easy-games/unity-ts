@@ -5,11 +5,6 @@ import { TransformState } from "TSTransformer";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { cleanModuleName } from "TSTransformer/util/cleanModuleName";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
-import {
-	isAirshipBehaviourClass,
-	isAirshipSingletonSymbol,
-	isAirshipSingletonType,
-} from "TSTransformer/util/extendsAirshipBehaviour";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
@@ -69,7 +64,15 @@ function shouldSkipSingletonImport(
 	// Ensure we're only using only a macro on the singleton
 	let shouldSkip = true;
 	ts.forEachChildRecursively(importDeclaration.getSourceFile(), node => {
-		if (ts.isPropertyAccessExpression(node)) {
+		if (ts.isIdentifier(node) && !ts.isImportClause(node.parent)) {
+			const symbolOfNode = state.typeChecker.getSymbolAtLocation(node);
+			const typeOfNode = state.typeChecker.getTypeAtLocation(node);
+
+			if (symbolOfNode && typeOfNode === state.typeChecker.getTypeOfSymbol(symbol)) {
+				shouldSkip = false;
+			}
+			return "skip";
+		} else if (ts.isPropertyAccessExpression(node)) {
 			const left = node.expression;
 
 			const symbolOfNode = state.typeChecker.getSymbolAtLocation(node);
