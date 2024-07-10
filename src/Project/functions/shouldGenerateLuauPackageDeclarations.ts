@@ -17,7 +17,7 @@ export function shouldGenerateLuauPackageDeclarations(
 		}
 
 		const packageScope = relativePath[1] + "/" + relativePath[2];
-		return projectOptions.luauPackages.includes(packageScope);
+		return projectOptions.precompiled.includes(packageScope);
 	}
 
 	return false;

@@ -32,7 +32,7 @@ export interface ProjectOptions {
 	allowCommentDirectives: boolean;
 	nodePackageName: string;
 	copyNodeModules: boolean;
-	luauPackages: Array<string>;
+	precompiled: Array<string>;
 }
 
 export interface ProjectData {

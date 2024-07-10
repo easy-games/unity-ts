@@ -56,7 +56,7 @@ export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	incremental: false,
 	writeOnlyChanged: false,
 	optimizedLoops: true,
-	luauPackages: [],
+	precompiled: [],
 	allowCommentDirectives: false,
 	nodePackageName: "",
 	copyNodeModules: false,
