@@ -178,7 +178,8 @@ function buildTransformIterator(
 	initializer: ts.ForInitializer,
 	statements: luau.List<luau.Statement>,
 ): luau.List<luau.Statement> {
-	const returnedStatements = luau.list.make<luau.Statement>();
+	const iteratorStatements = luau.list.make<luau.Statement>();
+	const initializers = luau.list.make<luau.Statement>();
 
 	// local _transform = <initializer>
 	const id = luau.tempId("transform");
@@ -186,19 +187,22 @@ function buildTransformIterator(
 		left: id,
 		right: transformExpression(state, expression),
 	});
-	luau.list.push(returnedStatements, expr);
+	luau.list.push(iteratorStatements, expr);
 
 	// local _childCount = _transform.childCount
-	const init = transformForInitializer(state, initializer, returnedStatements);
+	const init = transformForInitializer(state, initializer, initializers);
 	const transformCountId = luau.tempId("childCount");
 	const transformCount = luau.property(id, "childCount");
 	luau.list.push(
-		returnedStatements,
+		iteratorStatements,
 		luau.create(luau.SyntaxKind.VariableDeclaration, {
 			left: transformCountId,
 			right: transformCount,
 		}),
 	);
+
+	// Push initializers
+	luau.list.unshiftList(statements, initializers);
 
 	// 		local <id> = _transform:GetChild(_childIndex);
 	const iterId = luau.tempId("childIndex");
@@ -223,8 +227,8 @@ function buildTransformIterator(
 		step: undefined,
 	});
 
-	luau.list.push(returnedStatements, numericFor);
-	return returnedStatements;
+	luau.list.push(iteratorStatements, numericFor);
+	return iteratorStatements;
 }
 
 const buildSetLoop: LoopBuilder = makeForLoopBuilder((state, initializer, exp, ids, initializers) => {
