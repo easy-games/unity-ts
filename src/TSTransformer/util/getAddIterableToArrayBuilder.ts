@@ -3,6 +3,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import {
 	isArrayType,
@@ -14,6 +15,7 @@ import {
 	isMapType,
 	isSetType,
 	isStringType,
+	isTransformType,
 } from "TSTransformer/util/types";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import ts from "typescript";
@@ -345,6 +347,61 @@ const addGenerator: AddIterableToArrayBuilder = (state, expression, arrayId, len
 	return result;
 };
 
+const addTransform: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId, amtElementsSinceUpdate) => {
+	const result = luau.list.make<luau.Statement>();
+
+	const loopId = luau.tempId("childIndex");
+
+	// local _transform = <initializer>
+	const id = luau.tempId("transform");
+	const expr = luau.create(luau.SyntaxKind.VariableDeclaration, {
+		left: id,
+		right: expression,
+	});
+	luau.list.push(result, expr);
+
+	// local _childCount = _transform.childCount
+	const transformCountId = luau.tempId("childCount");
+	const transformCount = luau.property(id, "childCount");
+	luau.list.push(
+		result,
+		luau.create(luau.SyntaxKind.VariableDeclaration, {
+			left: transformCountId,
+			right: transformCount,
+		}),
+	);
+
+	luau.list.push(
+		result,
+		luau.create(luau.SyntaxKind.NumericForStatement, {
+			id: loopId,
+			statements: luau.list.make<luau.Statement>(
+				luau.create(luau.SyntaxKind.VariableDeclaration, {
+					left: luau.id("child"),
+					right: luau.create(luau.SyntaxKind.MethodCallExpression, {
+						expression: id,
+						name: "GetChild",
+						args: luau.list.make(loopId),
+					}),
+				}),
+				luau.create(luau.SyntaxKind.Assignment, {
+					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+						expression: arrayId,
+						index: lengthId,
+					}),
+					operator: "=",
+					right: luau.id("child"),
+				}),
+			),
+			start: luau.number(0),
+			end: luau.binary(transformCountId, "-", luau.number(1)),
+			step: undefined,
+		}),
+	);
+
+	return result;
+};
+
 export function getAddIterableToArrayBuilder(
 	state: TransformState,
 	node: ts.Node,
@@ -364,6 +421,8 @@ export function getAddIterableToArrayBuilder(
 		return addIterableFunction;
 	} else if (isDefinitelyType(type, isGeneratorType(state))) {
 		return addGenerator;
+	} else if (isDefinitelyType(type, isTransformType(state))) {
+		return addTransform;
 	} else if (isDefinitelyType(type, isIterableType(state))) {
 		DiagnosticService.addDiagnostic(errors.noIterableIteration(node));
 		return () => luau.list.make();
