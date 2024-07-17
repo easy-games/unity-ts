@@ -32,6 +32,7 @@ const AIRSHIP_SERIALIZE_TYPES = {
 	LayerMask: "LayerMask",
 	// GameObject: "GameObject",
 	Object: "Object",
+	Transform: "Transform",
 } as const;
 
 export const SINGLETON_STATICS: MacroList<PropertyCallMacro> = {

@@ -141,6 +141,10 @@ export function isMapType(state: TransformState): TypeCheck {
 		type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.WeakMap);
 }
 
+export function isTransformType(state: TransformState): TypeCheck {
+	return type => type.symbol === state.services.airshipSymbolManager.getSymbolOrThrow("Transform");
+}
+
 export function isGeneratorType(state: TransformState): TypeCheck {
 	return type => type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Generator);
 }
