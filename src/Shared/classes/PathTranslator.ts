@@ -102,6 +102,23 @@ export class PathTranslator {
 	 * - `.tsx?` && !`.d.tsx?` -> `.d.ts`
 	 * - `src/*` -> `out/*`
 	 */
+	public getOutputMetadataPath(filePath: string) {
+		const makeRelative = this.makeRelativeFactory();
+		const pathInfo = PathInfo.from(filePath);
+
+		if (pathInfo.extsPeek() === TS_EXT || pathInfo.extsPeek() === TSX_EXT) {
+			pathInfo.exts.pop(); // pop .tsx?
+			pathInfo.exts.push(JSON_META_EXT);
+		}
+
+		return makeRelative(pathInfo);
+	}
+
+	/**
+	 * Maps an input path to an output .d.ts path
+	 * - `.tsx?` && !`.d.tsx?` -> `.d.ts`
+	 * - `src/*` -> `out/*`
+	 */
 	public getOutputDeclarationPath(filePath: string) {
 		const makeRelative = this.makeRelativeFactory();
 		const pathInfo = PathInfo.from(filePath);

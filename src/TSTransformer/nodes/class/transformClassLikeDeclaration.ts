@@ -607,12 +607,25 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 		}
 	}
 
+	const buildState = state.airshipBuildState;
+	const editorInfo = buildState.editorInfo;
+	const uniqueId = buildState.getUniqueIdForClassDeclaration(state, node);
+	if (uniqueId) {
+		const relPath = path.relative(state.pathTranslator.rootDir, node.getSourceFile().fileName).replace(/\\+/g, "/");
+
+		editorInfo.components[uniqueId] = {
+			assetPath: relPath,
+			name: airshipBehaviour.metadata?.name ?? node.name.text,
+		};
+	}
+
 	const id =
+		uniqueId ??
 		path
 			.relative(state.pathTranslator.outDir, state.pathTranslator.getOutputPath(node.getSourceFile().fileName))
 			.replace(".lua", "") +
-		"@" +
-		airshipBehaviour.name;
+			"@" +
+			airshipBehaviour.name;
 
 	airshipBehaviour.id = id;
 

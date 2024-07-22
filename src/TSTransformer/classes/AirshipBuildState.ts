@@ -1,21 +1,28 @@
-import { readFileSync, existsSync } from "fs-extra";
+import { existsSync, readFileSync } from "fs-extra";
 import path from "path";
-import { COMPILER_VERSION, ProjectType } from "Shared/constants";
-import { AirshipBuildFile, FlameworkBuildInfo } from "Shared/types";
+import { PathTranslator } from "Shared/classes/PathTranslator";
+import { AirshipBehaviour, AirshipBehaviourInfo, AirshipBuildFile, FlameworkBuildInfo } from "Shared/types";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { FlameworkClassInfo } from "TSTransformer/flamework";
 import { getEnumMetadata } from "TSTransformer/util/airshipBehaviourUtils";
-import ts, { findPackageJson, getPackageJsonInfo } from "typescript";
+import ts from "typescript";
 
 export type EnumRecord = Record<string, string | number>;
 
 interface EditorInfo {
 	id: string;
+	components: Record<
+		string,
+		{
+			name: string | undefined;
+			assetPath: string;
+		}
+	>;
 	enum: Record<string, EnumRecord>;
 }
 
-export const BUILD_FILE = "TypeScriptEditorMetadata.aseditorinfo";
-export const EDITOR_FILE = "Airship.asbuildinfo";
+export const BUILD_FILE = "Airship.asbuildinfo";
+export const EDITOR_FILE = "TypeScriptEditorMetadata.aseditorinfo";
 
 export class AirshipBuildState {
 	public buildFile: AirshipBuildFile;
@@ -33,12 +40,60 @@ export class AirshipBuildState {
 		};
 	}
 
+	public readonly fileComponentMap: Record<string, Array<string>> = {};
+
 	public editorInfo: EditorInfo = {
 		id: "typescript",
+		components: {},
 		enum: {},
 	};
 
-	public readonly fileComponentMap: Record<string, Array<string>> = {};
+	public cleanup(pathTranslator: PathTranslator) {
+		for (const [, component] of Object.entries(this.editorInfo.components)) {
+			const fullPath = path.join(pathTranslator.rootDir, component.assetPath);
+
+			if (existsSync(fullPath)) continue;
+			if (!component.name) continue;
+
+			delete this.buildFile.behaviours[component.name];
+			delete this.buildFile.extends[component.name];
+		}
+	}
+
+	public linkBehaviourToFile(component: AirshipBehaviour, sourceFile: ts.SourceFile) {
+		const fileMap = (this.fileComponentMap[sourceFile.fileName] ??= []);
+		fileMap.push(component.name);
+	}
+
+	public registerBehaviour(behaviour: AirshipBehaviour, relativeFilePath: string) {
+		this.buildFile.behaviours[behaviour.name] = {
+			component: behaviour.metadata !== undefined,
+			filePath: relativeFilePath,
+			extends: behaviour.extends,
+			singleton: behaviour.metadata?.singleton || false,
+		};
+	}
+
+	public registerBehaviourInheritance(behaviour: AirshipBehaviour) {
+		for (const ext of behaviour.extends) {
+			const extensions = (this.buildFile.extends[ext] ??= []);
+
+			if (!extensions.includes(behaviour.name)) {
+				extensions.push(behaviour.name);
+			}
+		}
+	}
+
+	public unlinkBehavioursAtFilePath(filePath: string) {
+		const components = this.fileComponentMap[filePath];
+		for (const componentId of components) {
+			for (const [, extensions] of Object.entries(this.buildFile.extends)) {
+				if (!extensions.includes(componentId)) continue;
+				extensions.splice(extensions.indexOf(componentId), 1);
+			}
+			delete this.buildFile.behaviours[componentId];
+		}
+	}
 
 	public registerSingletonTypeForFile(file: ts.SourceFile, type: ts.Type) {
 		let types = this.singletonTypes.get(file.fileName);
@@ -107,6 +162,13 @@ export class AirshipBuildState {
 	}
 
 	public getUniqueIdForEnumDeclaration(state: TransformState, declaration: ts.EnumDeclaration) {
+		const type = state.typeChecker.getTypeAtLocation(declaration);
+		if (type) {
+			return this.getUniqueIdForType(state, type, declaration.getSourceFile());
+		}
+	}
+
+	public getUniqueIdForClassDeclaration(state: TransformState, declaration: ts.ClassLikeDeclaration) {
 		const type = state.typeChecker.getTypeAtLocation(declaration);
 		if (type) {
 			return this.getUniqueIdForType(state, type, declaration.getSourceFile());

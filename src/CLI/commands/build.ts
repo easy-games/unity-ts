@@ -124,7 +124,15 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 			} else {
 				const program = createProjectProgram(data);
 				const pathTranslator = createPathTranslator(program, projectOptions);
-				cleanup(pathTranslator, projectOptions);
+
+				const buildState = new AirshipBuildState();
+
+				if (projectOptions.incremental) {
+					buildState.loadBuildFile(BUILD_FILE);
+					buildState.loadEditorInfo(EDITOR_FILE);
+				}
+
+				cleanup(pathTranslator);
 
 				if (projectOptions.copyNodeModules) {
 					await copyNodeModules(data);
@@ -139,13 +147,6 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 
 				if (projectOptions.json) {
 					jsonReporter("startingCompile", { initial: true, count: sourceFiles.length });
-				}
-
-				const buildState = new AirshipBuildState();
-
-				if (projectOptions.incremental) {
-					buildState.loadBuildFile(BUILD_FILE);
-					buildState.loadEditorInfo(EDITOR_FILE);
 				}
 
 				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, buildState, sourceFiles);

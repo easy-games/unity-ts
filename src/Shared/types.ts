@@ -309,8 +309,6 @@ export interface FlameworkBuildInfo {
 }
 
 export interface AirshipBuildFile {
-	readonly fileNames?: string[];
-
 	readonly behaviours: Record<string, AirshipBehaviourInfo>; // TODO: Value
 	readonly extends: Record<string, Array<string>>;
 	readonly flamework: FlameworkBuildInfo;

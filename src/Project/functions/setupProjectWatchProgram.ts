@@ -115,7 +115,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 
 		refreshProgram();
 		assert(program && pathTranslator);
-		cleanup(pathTranslator, data.projectOptions);
+		cleanup(pathTranslator);
 		if (data.projectOptions.copyNodeModules) {
 			copyNodeModules(data)
 				.then(() => {})
@@ -185,18 +185,6 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		for (const fsPath of removals) {
 			fileNamesSet.delete(fsPath);
 			filesToClean.add(fsPath);
-
-			// remove entries
-			const componentMap = watchBuildState.fileComponentMap[fsPath];
-			if (componentMap) {
-				for (const componentId of componentMap) {
-					for (const [, extensions] of Object.entries(buildFile.extends)) {
-						if (!extensions.includes(componentId)) continue;
-						extensions.splice(extensions.indexOf(componentId), 1);
-					}
-					delete watchBuildState.buildFile.behaviours[componentId];
-				}
-			}
 		}
 
 		refreshProgram();
@@ -221,9 +209,13 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 
 		for (const fsPath of filesToClean) {
 			tryRemoveOutput(pathTranslator, pathTranslator.getOutputPath(fsPath));
+			tryRemoveOutput(pathTranslator, pathTranslator.getOutputMetadataPath(fsPath));
+
 			if (options.declaration) {
 				tryRemoveOutput(pathTranslator, pathTranslator.getOutputDeclarationPath(fsPath));
 			}
+
+			watchBuildState.unlinkBehavioursAtFilePath(fsPath);
 		}
 		for (const fsPath of filesToCopy) {
 			copyItem(data, pathTranslator, fsPath);
