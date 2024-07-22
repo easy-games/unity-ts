@@ -613,7 +613,7 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 	if (uniqueId) {
 		const relPath = path.relative(state.pathTranslator.rootDir, node.getSourceFile().fileName).replace(/\\+/g, "/");
 
-		editorInfo.components[uniqueId] = {
+		(editorInfo.components ??= {})[uniqueId] = {
 			assetPath: relPath,
 			name: airshipBehaviour.metadata?.name ?? node.name.text,
 		};

@@ -49,6 +49,7 @@ export class AirshipBuildState {
 	};
 
 	public cleanup(pathTranslator: PathTranslator) {
+		if (this.editorInfo.components === undefined) return;
 		for (const [, component] of Object.entries(this.editorInfo.components)) {
 			const fullPath = path.join(pathTranslator.rootDir, component.assetPath);
 
