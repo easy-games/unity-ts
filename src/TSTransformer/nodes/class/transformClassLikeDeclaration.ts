@@ -423,6 +423,9 @@ export function getClassDecorators(state: TransformState, classNode: ts.ClassLik
 			if (aliasSymbol === airshipFieldSymbol) {
 				items.push({
 					name: expression.expression.getText(),
+					typeParameters: expression.typeArguments?.map(typeNode => {
+						return state.typeChecker.typeToString(state.typeChecker.getTypeFromTypeNode(typeNode));
+					}),
 					parameters: expression.arguments.map((argument, i): AirshipBehaviourFieldDecoratorParameter => {
 						if (ts.isStringLiteral(argument)) {
 							return { type: "string", value: argument.text };
@@ -604,12 +607,25 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 		}
 	}
 
+	const buildState = state.airshipBuildState;
+	const editorInfo = buildState.editorInfo;
+	const uniqueId = buildState.getUniqueIdForClassDeclaration(state, node);
+	if (uniqueId) {
+		const relPath = path.relative(state.pathTranslator.rootDir, node.getSourceFile().fileName).replace(/\\+/g, "/");
+
+		(editorInfo.components ??= {})[uniqueId] = {
+			assetPath: relPath,
+			name: airshipBehaviour.metadata?.name ?? node.name.text,
+		};
+	}
+
 	const id =
+		uniqueId ??
 		path
 			.relative(state.pathTranslator.outDir, state.pathTranslator.getOutputPath(node.getSourceFile().fileName))
 			.replace(".lua", "") +
-		"@" +
-		airshipBehaviour.name;
+			"@" +
+			airshipBehaviour.name;
 
 	airshipBehaviour.id = id;
 

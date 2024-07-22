@@ -1,11 +1,7 @@
-import { existsSync, writeFileSync } from "fs";
 import fs from "fs-extra";
 import path from "path";
 import { tryRemoveOutput } from "Project/functions/tryRemoveOutput";
-import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
-import { ProjectType } from "Shared/constants";
-import { ProjectOptions } from "Shared/types";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
 
 function cleanupDirRecursively(pathTranslator: PathTranslator, dir: string) {
@@ -23,44 +19,15 @@ function cleanupDirRecursively(pathTranslator: PathTranslator, dir: string) {
 	}
 }
 
-export function cleanup(pathTranslator: PathTranslator, projectOptions: ProjectOptions) {
+export function cleanup(pathTranslator: PathTranslator) {
 	benchmarkIfVerbose(`cleanup orphaned files`, () => {
 		const outDir = pathTranslator.outDir;
 
-		let dirsToCleanup: Array<string>;
-
-		const isLegacyProject = outDir.includes("Assets/Bundles");
-		if (isLegacyProject) {
-			// Handle legacy compiler stuff
-			dirsToCleanup = [
-				path.join(outDir, "Client", "Resources", "TS"),
-				path.join(outDir, "Server", "Resources", "TS"),
-				path.join(outDir, "Shared", "Resources", "TS"),
-			];
-		} else {
-			dirsToCleanup = [path.join(outDir)];
-		}
-
+		const dirsToCleanup = [path.join(outDir)];
 		for (const dir of dirsToCleanup) {
 			if (fs.pathExistsSync(dir)) {
 				cleanupDirRecursively(pathTranslator, dir);
 			}
 		}
-
-		addPackageIndexFiles(pathTranslator, projectOptions);
 	});
-}
-function addPackageIndexFiles(pathTranslator: PathTranslator, projectOptions: ProjectOptions): void {
-	let typesDir: string;
-	return;
-
-	const files = fs.readdirSync(typesDir, { withFileTypes: true });
-	for (const file of files) {
-		if (!file.isDirectory()) continue;
-
-		const indexPath = path.join(typesDir, file.name, "index.d.ts");
-		if (!existsSync(indexPath)) {
-			writeFileSync(indexPath, "");
-		}
-	}
 }

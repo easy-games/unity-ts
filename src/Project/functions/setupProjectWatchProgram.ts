@@ -24,7 +24,7 @@ import { assert } from "Shared/util/assert";
 import { getRootDirs } from "Shared/util/getRootDirs";
 import { isCompilableFile } from "Shared/util/isCompilableFile";
 import { walkDirectorySync } from "Shared/util/walkDirectorySync";
-import { AirshipBuildState } from "TSTransformer";
+import { AirshipBuildState, BUILD_FILE, EDITOR_FILE } from "TSTransformer";
 import ts from "typescript";
 
 const IGNORE_LIST = [/^.*\.(?!ts$|tsx$|d\.ts$|lua$)[^.]+$/gi, "**/node_modules/**"];
@@ -108,9 +108,14 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	}
 
 	function runInitialCompile() {
+		if (data.projectOptions.incremental) {
+			watchBuildState.loadBuildFile(BUILD_FILE);
+			watchBuildState.loadEditorInfo(EDITOR_FILE);
+		}
+
 		refreshProgram();
 		assert(program && pathTranslator);
-		cleanup(pathTranslator, data.projectOptions);
+		cleanup(pathTranslator);
 		if (data.projectOptions.copyNodeModules) {
 			copyNodeModules(data)
 				.then(() => {})
@@ -180,18 +185,6 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		for (const fsPath of removals) {
 			fileNamesSet.delete(fsPath);
 			filesToClean.add(fsPath);
-
-			// remove entries
-			const componentMap = watchBuildState.fileComponentMap[fsPath];
-			if (componentMap) {
-				for (const componentId of componentMap) {
-					for (const [, extensions] of Object.entries(buildFile.extends)) {
-						if (!extensions.includes(componentId)) continue;
-						extensions.splice(extensions.indexOf(componentId), 1);
-					}
-					delete watchBuildState.buildFile.behaviours[componentId];
-				}
-			}
 		}
 
 		refreshProgram();
@@ -216,9 +209,13 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 
 		for (const fsPath of filesToClean) {
 			tryRemoveOutput(pathTranslator, pathTranslator.getOutputPath(fsPath));
+			tryRemoveOutput(pathTranslator, pathTranslator.getOutputMetadataPath(fsPath));
+
 			if (options.declaration) {
 				tryRemoveOutput(pathTranslator, pathTranslator.getOutputDeclarationPath(fsPath));
 			}
+
+			watchBuildState.unlinkBehavioursAtFilePath(fsPath);
 		}
 		for (const fsPath of filesToCopy) {
 			copyItem(data, pathTranslator, fsPath);

@@ -17,9 +17,10 @@ import { warnings } from "Shared/diagnostics";
 import { AirshipBuildFile, ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
-import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 import {
-	AirshipBuildState as BuildState,
+	AirshipBuildState,
+	BUILD_FILE,
+	EDITOR_FILE,
 	MultiTransformState,
 	transformSourceFile,
 	TransformState,
@@ -27,21 +28,8 @@ import {
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { FlameworkSymbolProvider } from "TSTransformer/classes/FlameworkSymbolProvider";
 import { createTransformServices } from "TSTransformer/util/createTransformServices";
-import {
-	isAirshipSingletonClass,
-	isAirshipSingletonClassNoState,
-	isAirshipSingletonType,
-} from "TSTransformer/util/extendsAirshipBehaviour";
-import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
-import { skipUpwards } from "TSTransformer/util/traversal";
+import { isAirshipSingletonClassNoState } from "TSTransformer/util/extendsAirshipBehaviour";
 import ts from "typescript";
-
-function emitResultFailure(messageText: string): ts.EmitResult {
-	return {
-		emitSkipped: false,
-		diagnostics: [createTextDiagnostic(messageText)],
-	};
-}
 
 function getReverseSymlinkMap(program: ts.Program) {
 	const result = new Map<string, string>();
@@ -67,19 +55,24 @@ export function compileFiles(
 	program: ts.Program,
 	data: ProjectData,
 	pathTranslator: PathTranslator,
-	buildState: BuildState,
+	buildState: AirshipBuildState,
 	sourceFiles: Array<ts.SourceFile>,
 ): ts.EmitResult {
 	const asJson = data.projectOptions.json;
 	const compilerOptions = program.getCompilerOptions();
+
+	const watch = compilerOptions.watch ?? false;
+	const incremental = compilerOptions.incremental ?? false;
+
+	if (incremental) {
+		buildState.cleanup(pathTranslator);
+	}
 
 	const pkgJson: { name: string } = JSON.parse(
 		fs
 			.readFileSync(path.join(program.getCurrentDirectory(), data.projectOptions.package, "package.json"))
 			.toString(),
 	);
-
-	buildState.editorInfo.id = pkgJson.name;
 
 	const multiTransformState = new MultiTransformState();
 
@@ -156,6 +149,8 @@ export function compileFiles(
 	const services = createTransformServices(proxyProgram, typeChecker, data);
 
 	const buildFile: AirshipBuildFile = buildState.buildFile;
+	const editorFile = buildState.editorInfo;
+	buildState.editorInfo.id = pkgJson.name;
 
 	let flamework: FlameworkSymbolProvider | undefined;
 	if (useFlameworkInternal) {
@@ -215,7 +210,7 @@ export function compileFiles(
 			const airshipBehaviours = transformState.airshipBehaviours;
 
 			// In watch mode we want to ensure entries are updated
-			if (data.watch && !data.projectOptions.incremental) {
+			if (watch && !incremental) {
 				const fileMap = (buildState.fileComponentMap[sourceFile.fileName] ??= []);
 				for (const entry of fileMap) {
 					const matchingBehaviour = airshipBehaviours.find(f => f.name === entry);
@@ -232,13 +227,11 @@ export function compileFiles(
 			}
 
 			if (airshipBehaviours.length > 0) {
-				const fileMap = (buildState.fileComponentMap[sourceFile.fileName] ??= []);
-
 				for (const behaviour of airshipBehaviours) {
 					const airshipBehaviourMetadata = behaviour.metadata;
 
 					if (airshipBehaviourMetadata) {
-						assert(!fileMetadataWriteQueue.has(sourceFile), "Should never happen dawg");
+						assert(!fileMetadataWriteQueue.has(sourceFile));
 						fileMetadataWriteQueue.set(sourceFile, JSON.stringify(airshipBehaviourMetadata, null, "\t"));
 					}
 
@@ -246,24 +239,10 @@ export function compileFiles(
 						pathTranslator.outDir,
 						pathTranslator.getOutputPath(sourceFile.fileName),
 					);
-					if (behaviour.name) {
-						for (const ext of behaviour.extends) {
-							const extensions = (buildFile.extends[ext] ??= []);
 
-							if (!extensions.includes(behaviour.name)) {
-								extensions.push(behaviour.name);
-							}
-						}
-
-						buildFile.behaviours[behaviour.name] = {
-							component: behaviour.metadata !== undefined,
-							filePath: relativeFilePath,
-							extends: behaviour.extends,
-							singleton: behaviour.metadata?.singleton || false,
-						};
-
-						fileMap.push(behaviour.name);
-					}
+					buildState.registerBehaviourInheritance(behaviour);
+					buildState.registerBehaviour(behaviour, relativeFilePath);
+					buildState.linkBehaviourToFile(behaviour, sourceFile);
 				}
 			}
 
@@ -296,7 +275,7 @@ export function compileFiles(
 							!hasMetadata ||
 							(fs.existsSync(metadataPathOutPath) &&
 								fileMetadataWriteQueue.get(sourceFile) ===
-								fs.readFileSync(metadataPathOutPath).toString());
+									fs.readFileSync(metadataPathOutPath).toString());
 
 						if (isSourceUnchanged && isMetadataSourceUnchanged) {
 							skipCount++;
@@ -345,23 +324,23 @@ export function compileFiles(
 		});
 	}
 
-	let typescriptDir = path.dirname(data.tsConfigPath);
+	const typescriptDir = path.dirname(data.tsConfigPath);
 	let editorMetadataPath: string;
 	{
-		editorMetadataPath = path.join(typescriptDir, "TypeScriptEditorMetadata.aseditorinfo");
+		editorMetadataPath = path.join(typescriptDir, EDITOR_FILE);
 
 		const oldBuildFileSource = fs.existsSync(editorMetadataPath)
 			? fs.readFileSync(editorMetadataPath).toString()
 			: "";
 
-		const newBuildFileSource = JSON.stringify(buildState.editorInfo, null, "\t");
+		const newBuildFileSource = JSON.stringify(editorFile, null, "\t");
 
 		if (oldBuildFileSource !== newBuildFileSource) {
 			fs.outputFileSync(editorMetadataPath, newBuildFileSource);
 		}
 	}
 
-	const buildFilePath = path.join(typescriptDir, "Airship.asbuildinfo");
+	const buildFilePath = path.join(typescriptDir, BUILD_FILE);
 	{
 		const oldBuildFileSource = fs.existsSync(buildFilePath) ? fs.readFileSync(buildFilePath).toString() : "";
 		const newBuildFileSource = JSON.stringify(buildFile, null, "\t");

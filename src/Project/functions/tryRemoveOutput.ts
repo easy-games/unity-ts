@@ -33,11 +33,12 @@ function isOutputFileOrphaned(pathTranslator: PathTranslator, filePath: string) 
 }
 
 export function tryRemoveOutput(pathTranslator: PathTranslator, outPath: string) {
-	if (outPath.includes("Scenes/")) {
-		return;
-	}
+	if (outPath.includes("Scenes/")) return false;
 
 	if (isOutputFileOrphaned(pathTranslator, outPath)) {
 		fs.removeSync(outPath);
+		return true;
 	}
+
+	return false;
 }

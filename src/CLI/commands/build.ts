@@ -18,7 +18,7 @@ import { ProjectError } from "Shared/errors/ProjectError";
 import { ProjectOptions, TypeScriptConfiguration } from "Shared/types";
 import { getRootDirs } from "Shared/util/getRootDirs";
 import { hasErrors } from "Shared/util/hasErrors";
-import { AirshipBuildState } from "TSTransformer";
+import { AirshipBuildState, BUILD_FILE, EDITOR_FILE } from "TSTransformer";
 import ts, { TSConfig } from "typescript";
 import yargs from "yargs";
 
@@ -63,8 +63,9 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 		},
 		incremental: {
 			alias: "i",
-			boolean: false,
+			boolean: true,
 			describe: "Build with incremental mode",
+			default: undefined,
 		},
 		writeOnlyChanged: {
 			alias: "writeOnlyChanged",
@@ -123,7 +124,15 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 			} else {
 				const program = createProjectProgram(data);
 				const pathTranslator = createPathTranslator(program, projectOptions);
-				cleanup(pathTranslator, projectOptions);
+
+				const buildState = new AirshipBuildState();
+
+				if (projectOptions.incremental) {
+					buildState.loadBuildFile(BUILD_FILE);
+					buildState.loadEditorInfo(EDITOR_FILE);
+				}
+
+				cleanup(pathTranslator);
 
 				if (projectOptions.copyNodeModules) {
 					await copyNodeModules(data);
@@ -140,13 +149,7 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 					jsonReporter("startingCompile", { initial: true, count: sourceFiles.length });
 				}
 
-				const emitResult = compileFiles(
-					program.getProgram(),
-					data,
-					pathTranslator,
-					new AirshipBuildState(),
-					sourceFiles,
-				);
+				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, buildState, sourceFiles);
 
 				for (const diagnostic of emitResult.diagnostics) {
 					diagnosticReporter(diagnostic);

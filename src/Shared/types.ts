@@ -18,7 +18,7 @@ export interface ProjectOptions {
 	includePath: string;
 	package: string;
 	runtimePath: string;
-	incremental: boolean;
+	incremental: boolean | undefined;
 	rojo: string | undefined;
 	type: ProjectType | undefined;
 	logTruthyChanges: boolean;
@@ -32,7 +32,7 @@ export interface ProjectOptions {
 	allowCommentDirectives: boolean;
 	nodePackageName: string;
 	copyNodeModules: boolean;
-	luauPackages: Array<string>;
+	precompiled: Array<string>;
 }
 
 export interface ProjectData {
@@ -269,6 +269,8 @@ export interface AirshipBehaviourClassDecorator {
 	 * The name of the attribute
 	 */
 	readonly name: string;
+
+	readonly typeParameters: ReadonlyArray<string> | undefined;
 	/**
 	 * The parameters of the attribute
 	 *
