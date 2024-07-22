@@ -24,7 +24,7 @@ import { assert } from "Shared/util/assert";
 import { getRootDirs } from "Shared/util/getRootDirs";
 import { isCompilableFile } from "Shared/util/isCompilableFile";
 import { walkDirectorySync } from "Shared/util/walkDirectorySync";
-import { AirshipBuildState } from "TSTransformer";
+import { AirshipBuildState, BUILD_FILE, EDITOR_FILE } from "TSTransformer";
 import ts from "typescript";
 
 const IGNORE_LIST = [/^.*\.(?!ts$|tsx$|d\.ts$|lua$)[^.]+$/gi, "**/node_modules/**"];
@@ -108,6 +108,11 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	}
 
 	function runInitialCompile() {
+		if (data.projectOptions.incremental) {
+			watchBuildState.loadBuildFile(BUILD_FILE);
+			watchBuildState.loadEditorInfo(EDITOR_FILE);
+		}
+
 		refreshProgram();
 		assert(program && pathTranslator);
 		cleanup(pathTranslator, data.projectOptions);

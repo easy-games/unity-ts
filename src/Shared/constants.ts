@@ -53,7 +53,7 @@ export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	verbose: false,
 	noInclude: false,
 	logTruthyChanges: false,
-	incremental: false,
+	incremental: undefined,
 	writeOnlyChanged: false,
 	optimizedLoops: true,
 	precompiled: [],

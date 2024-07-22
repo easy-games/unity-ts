@@ -127,7 +127,7 @@ export class AirshipSymbolManager {
 
 	public getSymbolOrThrow(name: string) {
 		const symbol = this.symbols.get(name);
-		assert(symbol);
+		assert(symbol, `Invalid symbol name '${name}'`);
 		return symbol;
 	}
 

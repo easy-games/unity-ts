@@ -1,4 +1,4 @@
-import { readFileSync } from "fs";
+import { readFileSync, existsSync } from "fs-extra";
 import path from "path";
 import { COMPILER_VERSION, ProjectType } from "Shared/constants";
 import { AirshipBuildFile, FlameworkBuildInfo } from "Shared/types";
@@ -14,8 +14,11 @@ interface EditorInfo {
 	enum: Record<string, EnumRecord>;
 }
 
+export const BUILD_FILE = "TypeScriptEditorMetadata.aseditorinfo";
+export const EDITOR_FILE = "Airship.asbuildinfo";
+
 export class AirshipBuildState {
-	public readonly buildFile: AirshipBuildFile;
+	public buildFile: AirshipBuildFile;
 	public readonly singletonTypes = new Map<string, Set<number>>();
 	public readonly classes = new Map<ts.Symbol, FlameworkClassInfo>();
 
@@ -30,7 +33,7 @@ export class AirshipBuildState {
 		};
 	}
 
-	public readonly editorInfo: EditorInfo = {
+	public editorInfo: EditorInfo = {
 		id: "typescript",
 		enum: {},
 	};
@@ -45,6 +48,24 @@ export class AirshipBuildState {
 		}
 
 		types.add(type.id);
+	}
+
+	public loadBuildFile(filePath: string) {
+		if (existsSync(filePath)) {
+			const source = readFileSync(filePath).toString();
+			const buildFile = JSON.parse(source) as AirshipBuildFile;
+			this.buildFile = buildFile;
+			return buildFile;
+		}
+	}
+
+	public loadEditorInfo(filePath: string) {
+		if (existsSync(filePath)) {
+			const source = readFileSync(filePath).toString();
+			const editorInfo = JSON.parse(source) as EditorInfo;
+			this.editorInfo = editorInfo;
+			return editorInfo;
+		}
 	}
 
 	public getEnumById(id: string): EnumRecord | undefined {

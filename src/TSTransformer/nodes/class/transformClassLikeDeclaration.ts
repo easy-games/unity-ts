@@ -423,6 +423,9 @@ export function getClassDecorators(state: TransformState, classNode: ts.ClassLik
 			if (aliasSymbol === airshipFieldSymbol) {
 				items.push({
 					name: expression.expression.getText(),
+					typeParameters: expression.typeArguments?.map(typeNode => {
+						return state.typeChecker.typeToString(state.typeChecker.getTypeFromTypeNode(typeNode));
+					}),
 					parameters: expression.arguments.map((argument, i): AirshipBehaviourFieldDecoratorParameter => {
 						if (ts.isStringLiteral(argument)) {
 							return { type: "string", value: argument.text };

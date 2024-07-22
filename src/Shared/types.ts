@@ -18,7 +18,7 @@ export interface ProjectOptions {
 	includePath: string;
 	package: string;
 	runtimePath: string;
-	incremental: boolean;
+	incremental: boolean | undefined;
 	rojo: string | undefined;
 	type: ProjectType | undefined;
 	logTruthyChanges: boolean;
@@ -269,6 +269,8 @@ export interface AirshipBehaviourClassDecorator {
 	 * The name of the attribute
 	 */
 	readonly name: string;
+
+	readonly typeParameters: ReadonlyArray<string> | undefined;
 	/**
 	 * The parameters of the attribute
 	 *
@@ -307,6 +309,8 @@ export interface FlameworkBuildInfo {
 }
 
 export interface AirshipBuildFile {
+	readonly fileNames?: string[];
+
 	readonly behaviours: Record<string, AirshipBehaviourInfo>; // TODO: Value
 	readonly extends: Record<string, Array<string>>;
 	readonly flamework: FlameworkBuildInfo;

@@ -19,7 +19,9 @@ import { assert } from "Shared/util/assert";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 import {
+	BUILD_FILE,
 	AirshipBuildState as BuildState,
+	EDITOR_FILE,
 	MultiTransformState,
 	transformSourceFile,
 	TransformState,
@@ -78,8 +80,6 @@ export function compileFiles(
 			.readFileSync(path.join(program.getCurrentDirectory(), data.projectOptions.package, "package.json"))
 			.toString(),
 	);
-
-	buildState.editorInfo.id = pkgJson.name;
 
 	const multiTransformState = new MultiTransformState();
 
@@ -156,6 +156,8 @@ export function compileFiles(
 	const services = createTransformServices(proxyProgram, typeChecker, data);
 
 	const buildFile: AirshipBuildFile = buildState.buildFile;
+	const editorFile = buildState.editorInfo;
+	buildState.editorInfo.id = pkgJson.name;
 
 	let flamework: FlameworkSymbolProvider | undefined;
 	if (useFlameworkInternal) {
@@ -296,7 +298,7 @@ export function compileFiles(
 							!hasMetadata ||
 							(fs.existsSync(metadataPathOutPath) &&
 								fileMetadataWriteQueue.get(sourceFile) ===
-								fs.readFileSync(metadataPathOutPath).toString());
+									fs.readFileSync(metadataPathOutPath).toString());
 
 						if (isSourceUnchanged && isMetadataSourceUnchanged) {
 							skipCount++;
@@ -348,20 +350,20 @@ export function compileFiles(
 	let typescriptDir = path.dirname(data.tsConfigPath);
 	let editorMetadataPath: string;
 	{
-		editorMetadataPath = path.join(typescriptDir, "TypeScriptEditorMetadata.aseditorinfo");
+		editorMetadataPath = path.join(typescriptDir, EDITOR_FILE);
 
 		const oldBuildFileSource = fs.existsSync(editorMetadataPath)
 			? fs.readFileSync(editorMetadataPath).toString()
 			: "";
 
-		const newBuildFileSource = JSON.stringify(buildState.editorInfo, null, "\t");
+		const newBuildFileSource = JSON.stringify(editorFile, null, "\t");
 
 		if (oldBuildFileSource !== newBuildFileSource) {
 			fs.outputFileSync(editorMetadataPath, newBuildFileSource);
 		}
 	}
 
-	const buildFilePath = path.join(typescriptDir, "Airship.asbuildinfo");
+	const buildFilePath = path.join(typescriptDir, BUILD_FILE);
 	{
 		const oldBuildFileSource = fs.existsSync(buildFilePath) ? fs.readFileSync(buildFilePath).toString() : "";
 		const newBuildFileSource = JSON.stringify(buildFile, null, "\t");
