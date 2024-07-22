@@ -16,6 +16,15 @@ function needsInverseEntry(state: TransformState, member: ts.EnumMember) {
 }
 
 export function transformEnumDeclaration(state: TransformState, node: ts.EnumDeclaration) {
+	// Ensure the enum references are updated in watch mode
+	if (state.data.watch || state.compilerOptions.incremental) {
+		const enumId = state.airshipBuildState.getUniqueIdForEnumDeclaration(state, node);
+		const enumBuildData = enumId ? state.airshipBuildState.getEnumById(enumId) : undefined;
+		if (enumBuildData) {
+			state.airshipBuildState.updateEnumDeclaration(state, node);
+		}
+	}
+
 	if (
 		!!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.Const) &&
 		state.compilerOptions.preserveConstEnums !== true
@@ -42,15 +51,6 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 	}
 
 	validateIdentifier(state, node.name);
-
-	// Ensure the enum references are updated in watch mode
-	if (state.data.watch) {
-		const enumId = state.airshipBuildState.getUniqueIdForEnumDeclaration(state, node);
-		const enumBuildData = enumId ? state.airshipBuildState.getEnumById(enumId) : undefined;
-		if (enumBuildData) {
-			state.airshipBuildState.updateEnumDeclaration(state, node);
-		}
-	}
 
 	const left = transformIdentifierDefined(state, node.name);
 	const isHoisted = symbol !== undefined && state.isHoisted.get(symbol) === true;
