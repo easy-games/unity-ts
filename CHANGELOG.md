@@ -10,6 +10,9 @@
 ## 2024-07-03 (3f51ef)
 - Added `GetAirshipComponentsInParent`, `GetAirshipComponentInParent` and `GetComponentInParent`
 
+## 2024-07-17 (d9dda7e)
+- Added `for-of` iterator for `Transform`
+
 # 3.4.x
 - `AirshipBehaviour` properties now supported in the compiler
 

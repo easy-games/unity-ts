@@ -1,4 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
+import { IndexableExpression } from "@roblox-ts/luau-ast/out/LuauAST/bundle";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
@@ -26,6 +27,7 @@ import {
 	isMapType,
 	isSetType,
 	isStringType,
+	isTransformType,
 } from "TSTransformer/util/types";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
@@ -132,6 +134,102 @@ const buildArrayLoop: LoopBuilder = makeForLoopBuilder((state, initializer, exp,
 	luau.list.push(ids, transformForInitializer(state, initializer, initializers));
 	return exp;
 });
+
+// const buildTransformLoop: LoopBuilder = (state, statements, init, exp) => {
+// 	// const expression = exp;
+// 	luau.list.unshift(
+// 		statements,
+// 		luau.create(luau.SyntaxKind.CallStatement, {
+// 			expression: luau.call(luau.id("test")),
+// 		}),
+// 	);
+
+// 	const transformCount = luau.tempId("childCount");
+
+// 	// local _childCount = transform.childCount
+// 	state.prereq(
+// 		luau.create(luau.SyntaxKind.VariableDeclaration, {
+// 			left: transformCount,
+// 			right: luau.property(exp as luau.IndexableExpression, "childCount"),
+// 		}),
+// 	);
+
+// 	// for _childIndex = 1, _childCount do
+// 	const iterId = luau.tempId("childIndex");
+
+// 	luau.list.unshift(statements, luau.create(luau.SyntaxKind.VariableDeclaration, {
+// 		left:
+// 	}))
+
+// 	return luau.list.make(
+// 		luau.create(luau.SyntaxKind.NumericForStatement, {
+// 			id: iterId,
+// 			statements,
+// 			start: luau.number(1),
+// 			end: transformCount,
+// 			step: undefined,
+// 		}),
+// 	);
+// };
+
+function buildTransformIterator(
+	state: TransformState,
+	expression: ts.Expression,
+	initializer: ts.ForInitializer,
+	statements: luau.List<luau.Statement>,
+): luau.List<luau.Statement> {
+	const iteratorStatements = luau.list.make<luau.Statement>();
+	const initializers = luau.list.make<luau.Statement>();
+
+	// local _transform = <initializer>
+	const id = luau.tempId("transform");
+	const expr = luau.create(luau.SyntaxKind.VariableDeclaration, {
+		left: id,
+		right: transformExpression(state, expression),
+	});
+	luau.list.push(iteratorStatements, expr);
+
+	// local _childCount = _transform.childCount
+	const init = transformForInitializer(state, initializer, initializers);
+	const transformCountId = luau.tempId("childCount");
+	const transformCount = luau.property(id, "childCount");
+	luau.list.push(
+		iteratorStatements,
+		luau.create(luau.SyntaxKind.VariableDeclaration, {
+			left: transformCountId,
+			right: transformCount,
+		}),
+	);
+
+	// Push initializers
+	luau.list.unshiftList(statements, initializers);
+
+	// 		local <id> = _transform:GetChild(_childIndex);
+	const iterId = luau.tempId("childIndex");
+	luau.list.unshift(
+		statements,
+		luau.create(luau.SyntaxKind.VariableDeclaration, {
+			left: init,
+			right: luau.create(luau.SyntaxKind.MethodCallExpression, {
+				expression: id,
+				name: "GetChild",
+				args: luau.list.make(iterId),
+			}),
+		}),
+	);
+
+	// for _childIndex = 1, _childCount do
+	const numericFor = luau.create(luau.SyntaxKind.NumericForStatement, {
+		id: iterId,
+		statements,
+		start: luau.number(0),
+		end: luau.binary(transformCountId, "-", luau.number(1)),
+		step: undefined,
+	});
+
+	luau.list.push(iteratorStatements, numericFor);
+	return iteratorStatements;
+}
 
 const buildSetLoop: LoopBuilder = makeForLoopBuilder((state, initializer, exp, ids, initializers) => {
 	luau.list.push(ids, transformForInitializer(state, initializer, initializers));
@@ -493,8 +591,13 @@ export function transformForOfStatement(state: TransformState, node: ts.ForOfSta
 	const expType = state.getType(node.expression);
 	const statements = transformStatementList(state, getStatements(node.statement));
 
-	const loopBuilder = getLoopBuilder(state, node.expression, expType);
-	luau.list.pushList(result, loopBuilder(state, statements, node.initializer, exp));
+	if (isDefinitelyType(expType, isTransformType(state))) {
+		const results = buildTransformIterator(state, node.expression, node.initializer, statements);
+		luau.list.pushList(result, results);
+	} else {
+		const loopBuilder = getLoopBuilder(state, node.expression, expType);
+		luau.list.pushList(result, loopBuilder(state, statements, node.initializer, exp));
+	}
 
 	return result;
 }
