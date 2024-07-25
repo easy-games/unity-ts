@@ -9,6 +9,6 @@ export function validateIdentifier(state: TransformState, node: ts.Identifier) {
 	if (!luau.isValidIdentifier(node.text)) {
 		DiagnosticService.addDiagnostic(errors.noInvalidIdentifier(node));
 	} else if (isReservedIdentifier(node.text)) {
-		DiagnosticService.addDiagnostic(errors.noReservedIdentifier(node));
+		DiagnosticService.addDiagnostic(errors.noInvalidReservedIdentifier(node, node.text));
 	}
 }

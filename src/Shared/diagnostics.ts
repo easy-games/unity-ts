@@ -108,10 +108,12 @@ export function getDiagnosticId(diagnostic: ts.Diagnostic): number {
 export const errors = {
 	// reserved identifiers
 	noInvalidIdentifier: error(
-		"Invalid Luau identifier!",
-		"Luau identifiers must start with a letter and only contain letters, numbers, and underscores.",
-		"Reserved Luau keywords cannot be used as identifiers.",
+		"Invalid identifier!",
+		"identifiers must start with a letter and only contain letters, numbers, and underscores.",
 	),
+	noInvalidReservedIdentifier: errorWithContext((keyword: string) => {
+		return [`${keyword} is a reserved keyword and cannot be used as an identifier.`];
+	}),
 	noReservedIdentifier: error("Cannot use identifier reserved for compiler internal usage."),
 	noReservedClassFields: error("Cannot use class field reserved for compiler internal usage."),
 	noClassMetamethods: error("Metamethods cannot be used in class definitions!"),

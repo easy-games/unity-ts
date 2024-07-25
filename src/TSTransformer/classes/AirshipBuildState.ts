@@ -87,6 +87,8 @@ export class AirshipBuildState {
 
 	public unlinkBehavioursAtFilePath(filePath: string) {
 		const components = this.fileComponentMap[filePath];
+		if (components === undefined) return;
+
 		for (const componentId of components) {
 			for (const [, extensions] of Object.entries(this.buildFile.extends)) {
 				if (!extensions.includes(componentId)) continue;
