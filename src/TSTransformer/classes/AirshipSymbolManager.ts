@@ -33,6 +33,7 @@ const AIRSHIP_SERIALIZE_TYPES = {
 	// GameObject: "GameObject",
 	Object: "Object",
 	Transform: "Transform",
+	AnimationCurve: "AnimationCurve",
 } as const;
 
 export const SINGLETON_STATICS: MacroList<PropertyCallMacro> = {
