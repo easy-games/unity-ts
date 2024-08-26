@@ -8,11 +8,12 @@ import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
 import { isEmptyStringType, isNaNType, isNumberLiteralType, isPossiblyType } from "TSTransformer/util/types";
 import ts from "typescript";
 
-export function willCreateTruthinessChecks(type: ts.Type) {
+export function willCreateTruthinessChecks(state: TransformState, type: ts.Type) {
 	return (
 		isPossiblyType(type, isNumberLiteralType(0)) ||
 		isPossiblyType(type, isNaNType) ||
-		isPossiblyType(type, isEmptyStringType)
+		isPossiblyType(type, isEmptyStringType) ||
+		isUnityObjectType(state, type)
 	);
 }
 

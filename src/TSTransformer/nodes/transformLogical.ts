@@ -2,6 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { isUnityObjectType } from "TSTransformer/util/airshipBehaviourUtils";
 import { createTruthinessChecks, willCreateTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
 import { getKindName } from "TSTransformer/util/getKindName";
@@ -45,7 +46,7 @@ function getLogicalChain(
 		const [expression, statements] = state.capture(() => transformExpression(state, node));
 		let inline = false;
 		if (enableInlining) {
-			const willWrap = index < array.length - 1 && willCreateTruthinessChecks(type);
+			const willWrap = index < array.length - 1 && willCreateTruthinessChecks(state, type);
 			inline = luau.list.isEmpty(statements) && !willWrap;
 		}
 		return { node, type, expression, statements, inline };

@@ -13,6 +13,9 @@
 ## 2024-07-17 (d9dda7e)
 - Added `for-of` iterator for `Transform`
 
+## 2024-08-27
+- Fix logical checks for `Object` in cases like `if (this.networkIdentity && this.networkIdentity.netId > 0)`
+
 # 3.4.x
 - `AirshipBehaviour` properties now supported in the compiler
 
