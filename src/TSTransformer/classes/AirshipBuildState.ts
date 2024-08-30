@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "fs-extra";
 import path from "path";
+import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { AirshipBehaviour, AirshipBehaviourInfo, AirshipBuildFile, FlameworkBuildInfo } from "Shared/types";
 import { TransformState } from "TSTransformer/classes/TransformState";
@@ -108,21 +109,41 @@ export class AirshipBuildState {
 		types.add(type.id);
 	}
 
+	private isBuildFile(data: unknown): data is AirshipBuildFile {
+		if (data === null) return false;
+		if (typeof data !== "object") return false;
+		return "extends" in data && "behaviours" in data && "flamework" in data;
+	}
+
 	public loadBuildFile(filePath: string) {
 		if (existsSync(filePath)) {
 			const source = readFileSync(filePath).toString();
-			const buildFile = JSON.parse(source) as AirshipBuildFile;
-			this.buildFile = buildFile;
-			return buildFile;
+			const buildFile = JSON.parse(source) as unknown;
+			if (this.isBuildFile(buildFile)) {
+				this.buildFile = buildFile;
+				return buildFile;
+			} else {
+				LogService.warn(`Failed to build file at path ${filePath}`);
+			}
 		}
+	}
+
+	private isEditorInfo(data: unknown): data is EditorInfo {
+		if (data === null) return false;
+		if (typeof data !== "object") return false;
+		return "id" in data && "components" in data && "enum" in data;
 	}
 
 	public loadEditorInfo(filePath: string) {
 		if (existsSync(filePath)) {
 			const source = readFileSync(filePath).toString();
-			const editorInfo = JSON.parse(source) as EditorInfo;
-			this.editorInfo = editorInfo;
-			return editorInfo;
+			const editorInfo = JSON.parse(source) as unknown;
+			if (this.isEditorInfo(editorInfo)) {
+				this.editorInfo = editorInfo;
+				return editorInfo;
+			} else {
+				LogService.warn(`Failed to load editor info at path ${filePath}`);
+			}
 		}
 	}
 
