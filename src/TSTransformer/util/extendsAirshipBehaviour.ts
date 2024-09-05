@@ -1,4 +1,4 @@
-import { TransformState } from "TSTransformer";
+import { AirshipClassSymbolNames, TransformState } from "TSTransformer";
 import { getAncestorTypeSymbols } from "TSTransformer/util/airshipBehaviourUtils";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
@@ -18,6 +18,30 @@ export function isRootAirshipBehaviourClass(state: TransformState, node: ts.Clas
 	return false;
 }
 
+export function isAnyRootAirshipClass(
+	state: TransformState,
+	node: ts.ClassLikeDeclaration,
+	// symbolName: AirshipClassSymbolNames,
+) {
+	const extendsNode = getExtendsNode(node);
+	if (extendsNode) {
+		const airshipRootClassSymbols = state.services.airshipSymbolManager.getAirshipSymbols(
+			"AirshipBehaviour",
+			"AirshipSingleton",
+			"AirshipScriptableRenderPass",
+		);
+
+		const symbol = getOriginalSymbolOfNode(state.typeChecker, extendsNode.expression);
+		for (const otherSymbol of airshipRootClassSymbols) {
+			if (otherSymbol === symbol) {
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 export function isRootAirshipSingletonClass(state: TransformState, node: ts.ClassLikeDeclaration) {
 	const extendsNode = getExtendsNode(node);
 	if (extendsNode) {
@@ -26,6 +50,42 @@ export function isRootAirshipSingletonClass(state: TransformState, node: ts.Clas
 		const symbol = getOriginalSymbolOfNode(state.typeChecker, extendsNode.expression);
 		if (symbol === airshipSingletonSymbol) {
 			return true;
+		}
+	}
+
+	return false;
+}
+
+export function isAirshipClass(
+	state: TransformState,
+	node: ts.ClassLikeDeclaration,
+	symbolName: AirshipClassSymbolNames,
+) {
+	const extendsNode = getExtendsNode(node);
+	if (extendsNode) {
+		const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipSymbolOrThrow(symbolName);
+
+		// check if the immediate extends is AirshipBehaviour
+		let type = state.typeChecker.getTypeAtLocation(node);
+		if (type.isNullableType()) {
+			type = type.getNonNullableType();
+		}
+
+		const symbol = getOriginalSymbolOfNode(state.typeChecker, extendsNode.expression);
+		if (symbol === airshipBehaviourSymbol) {
+			return true;
+		}
+
+		// Get the inheritance tree, otherwise
+		const inheritance = getAncestorTypeSymbols(type);
+		if (inheritance.length === 0) {
+			return false;
+		}
+
+		// Get the root inheriting symbol (Should match AirshipBehaviour for this to be "extending" AirshipBehaviour)
+		const baseTypeDeclaration = inheritance[inheritance.length - 1];
+		if (baseTypeDeclaration !== undefined) {
+			return baseTypeDeclaration === airshipBehaviourSymbol;
 		}
 	}
 

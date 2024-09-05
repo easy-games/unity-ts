@@ -7,7 +7,7 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
-import { isRootAirshipBehaviourClass, isRootAirshipSingletonClass } from "TSTransformer/util/extendsAirshipBehaviour";
+import { isAnyRootAirshipClass, isRootAirshipBehaviourClass, isRootAirshipSingletonClass } from "TSTransformer/util/extendsAirshipBehaviour";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getStatements } from "TSTransformer/util/getStatements";
 import ts from "typescript";
@@ -68,7 +68,8 @@ export function transformClassConstructor(
 
 	const isAirshipSingleton = isRootAirshipSingletonClass(state, node);
 	const isAirshipBehaviour = isRootAirshipBehaviourClass(state, node);
-	let removeFirstSuper = isAirshipBehaviour || isAirshipSingleton;
+	const isRootAirshipClass = isAnyRootAirshipClass(state, node);
+	let removeFirstSuper = isAirshipBehaviour || isAirshipSingleton || isRootAirshipClass;
 
 	let parameters = luau.list.make<luau.AnyIdentifier>();
 	let hasDotDotDot = false;

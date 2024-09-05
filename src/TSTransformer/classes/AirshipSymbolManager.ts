@@ -17,6 +17,7 @@ export const AIRSHIP_SYMBOL_NAMES = {
 	AirshipBehaviour: "AirshipBehaviour",
 	AirshipSingleton: "AirshipSingleton",
 	AirshipDecorator: "AirshipDecorator",
+	AirshipScriptableRenderPass: "AirshipScriptableRenderPass",
 	AirshipBehaviourFieldDecorator: "AirshipBehaviourFieldDecorator",
 	AirshipBehaviourClassDecorator: "AirshipBehaviourClassDecorator",
 } as const;
@@ -152,7 +153,21 @@ export class AirshipSymbolManager {
 		return this.getSymbolOrThrow(AIRSHIP_SYMBOL_NAMES.AirshipBehaviour);
 	}
 
+	public getAirshipSymbolOrThrow(symbolName: AirshipSymbolNames) {
+		return this.getSymbolOrThrow(symbolName);
+	}
+
+	public getAirshipSymbols(...symbolNames: ReadonlyArray<AirshipSymbolNames>): ReadonlyArray<ts.Symbol> {
+		return symbolNames.map(name => this.getAirshipSymbolOrThrow(name));
+	}
+
 	public getAirshipSingletonSymbolOrThrow() {
 		return this.getSymbolOrThrow(AIRSHIP_SYMBOL_NAMES.AirshipSingleton);
 	}
 }
+
+export type AirshipSymbolNames = keyof typeof AIRSHIP_SYMBOL_NAMES;
+export type AirshipClassSymbolNames = Extract<
+	AirshipSymbolNames,
+	"AirshipBehaviour" | "AirshipSingleton" | "AirshipScriptableRenderPass"
+>;
