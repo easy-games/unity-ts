@@ -545,6 +545,23 @@ function pushPropertyMetadataForAirshipBehaviour(
 		const name = classElement.name.text;
 		const property = createAirshipProperty(state, name, elementType, classElement, decorators);
 
+		const tags = ts.getJSDocTags(classElement);
+		for (const tag of tags) {
+			if (tag.tagName.text === "summary") {
+				if (typeof tag.comment === "string") {
+					property.decorators.push({
+						name: "Tooltip",
+						parameters: [
+							{
+								type: "string",
+								value: tag.comment,
+							},
+						],
+					});
+				}
+			} else if (tag.comment) {}
+		}
+
 		metadata.properties.push(property);
 	}
 }

@@ -214,7 +214,7 @@ export interface AirshipBehaviourFieldExport extends AirshipTypeReference {
 	/**
 	 * Applied attributes (in TS, decorators) of this property
 	 */
-	readonly decorators: ReadonlyArray<AirshipBehaviourFieldDecorator>;
+	readonly decorators: Array<AirshipBehaviourFieldDecorator>;
 
 	/**
 	 * A file reference for the given type (for `AirshipBehaviour`)

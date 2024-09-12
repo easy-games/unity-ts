@@ -52,7 +52,7 @@ export class TransformState {
 		public readonly typeChecker: ts.TypeChecker,
 		public readonly projectType: ProjectType,
 		public readonly flamework: FlameworkSymbolProvider | undefined,
-		private readonly sourceFile: ts.SourceFile,
+		public readonly sourceFile: ts.SourceFile,
 	) {
 		this.sourceFileText = sourceFile.getFullText();
 		this.resolver = typeChecker.getEmitResolver(sourceFile);
