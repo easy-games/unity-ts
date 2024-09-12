@@ -56,7 +56,7 @@ export function getAncestorTypeSymbols(nodeType: ts.Type) {
 
 export function isAirshipDecorator(state: TransformState, decorator: ts.Decorator) {
 	const expression = decorator.expression;
-	if (!ts.isCallExpression(expression)) return false;
+	if (!ts.isCallExpression(expression) && !ts.isIdentifier(expression)) return false;
 
 	const aliasSymbol = state.typeChecker.getTypeAtLocation(expression).aliasSymbol;
 	if (!aliasSymbol) return false;
