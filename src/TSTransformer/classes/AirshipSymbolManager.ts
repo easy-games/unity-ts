@@ -153,11 +153,11 @@ export class AirshipSymbolManager {
 		return this.getSymbolOrThrow(AIRSHIP_SYMBOL_NAMES.AirshipBehaviour);
 	}
 
-	public getAirshipSymbolOrThrow(symbolName: AirshipSymbolNames) {
+	public getAirshipSymbolOrThrow(symbolName: AirshipCompilerType) {
 		return this.getSymbolOrThrow(symbolName);
 	}
 
-	public getAirshipSymbols(...symbolNames: ReadonlyArray<AirshipSymbolNames>): ReadonlyArray<ts.Symbol> {
+	public getAirshipSymbols(symbolNames: ReadonlyArray<AirshipCompilerType>): ReadonlyArray<ts.Symbol> {
 		return symbolNames.map(name => this.getAirshipSymbolOrThrow(name));
 	}
 
@@ -166,8 +166,8 @@ export class AirshipSymbolManager {
 	}
 }
 
-export type AirshipSymbolNames = keyof typeof AIRSHIP_SYMBOL_NAMES;
-export type AirshipClassSymbolNames = Extract<
-	AirshipSymbolNames,
+export type AirshipCompilerType = keyof typeof AIRSHIP_SYMBOL_NAMES;
+export type AirshipSpecialClassName = Extract<
+	AirshipCompilerType,
 	"AirshipBehaviour" | "AirshipSingleton" | "AirshipScriptableRenderPass"
 >;

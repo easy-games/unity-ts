@@ -1,4 +1,4 @@
-import { AirshipClassSymbolNames, TransformState } from "TSTransformer";
+import { AirshipSpecialClassName, TransformState } from "TSTransformer";
 import { getAncestorTypeSymbols } from "TSTransformer/util/airshipBehaviourUtils";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
@@ -25,11 +25,11 @@ export function isAnyRootAirshipClass(
 ) {
 	const extendsNode = getExtendsNode(node);
 	if (extendsNode) {
-		const airshipRootClassSymbols = state.services.airshipSymbolManager.getAirshipSymbols(
+		const airshipRootClassSymbols = state.services.airshipSymbolManager.getAirshipSymbols([
 			"AirshipBehaviour",
 			"AirshipSingleton",
 			"AirshipScriptableRenderPass",
-		);
+		]);
 
 		const symbol = getOriginalSymbolOfNode(state.typeChecker, extendsNode.expression);
 		for (const otherSymbol of airshipRootClassSymbols) {
@@ -59,7 +59,7 @@ export function isRootAirshipSingletonClass(state: TransformState, node: ts.Clas
 export function isAirshipClass(
 	state: TransformState,
 	node: ts.ClassLikeDeclaration,
-	symbolName: AirshipClassSymbolNames,
+	symbolName: AirshipSpecialClassName,
 ) {
 	const extendsNode = getExtendsNode(node);
 	if (extendsNode) {

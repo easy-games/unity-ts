@@ -69,7 +69,7 @@ export function transformClassConstructor(
 	const isAirshipSingleton = isRootAirshipSingletonClass(state, node);
 	const isAirshipBehaviour = isRootAirshipBehaviourClass(state, node);
 	const isRootAirshipClass = isAnyRootAirshipClass(state, node);
-	let removeFirstSuper = isAirshipBehaviour || isAirshipSingleton || isRootAirshipClass;
+	let removeFirstSuper = isRootAirshipClass;
 
 	let parameters = luau.list.make<luau.AnyIdentifier>();
 	let hasDotDotDot = false;

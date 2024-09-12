@@ -103,6 +103,8 @@ export interface SourceFileWithTextRange {
 	range: ts.ReadonlyTextRange;
 }
 
+type ScriptType = "Game" | "RenderPass";
+
 /**
  * The main JSON structure of the `AirshipBehaviour`
  */
@@ -116,6 +118,11 @@ export interface AirshipBehaviourJson {
 	 * Whether or not this is a singleton
 	 */
 	readonly singleton: boolean;
+
+	/**
+	 * The type of the script
+	 */
+	readonly type: ScriptType;
 
 	decorators: Array<AirshipBehaviourClassDecorator>;
 
@@ -229,7 +236,7 @@ interface AirshipTypeReference {
 	 * - `AirshipBehaviour` (`AirshipComponent`)
 	 * - `object` (`UnityEngine.Object`)
 	 */
-	readonly type: string;
+	type: string;
 
 	/**
 	 * If {@link type} is set to

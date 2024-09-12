@@ -38,6 +38,7 @@ import {
 	isRootAirshipBehaviourClass,
 	isAnyRootAirshipClass,
 	isRootAirshipSingletonClass,
+	isAirshipClass,
 } from "TSTransformer/util/extendsAirshipBehaviour";
 import { getFlameworkNodeUid } from "TSTransformer/util/flameworkId";
 import { generateFlameworkMetadataForClass, isFlameworkSingleton } from "TSTransformer/util/flameworkSingleton";
@@ -462,34 +463,45 @@ function getPropertyDecorators(
 
 		for (const decorator of decorators) {
 			const expression = decorator.expression;
-			if (!ts.isCallExpression(expression)) continue;
+			if (ts.isCallExpression(expression)) {
+				const aliasSymbol = state.typeChecker.getTypeAtLocation(expression).aliasSymbol;
+				if (!aliasSymbol) continue;
 
-			const aliasSymbol = state.typeChecker.getTypeAtLocation(expression).aliasSymbol;
-			if (!aliasSymbol) continue;
+				const airshipFieldSymbol = state.services.airshipSymbolManager.getSymbolOrThrow("AirshipDecorator");
 
-			const airshipFieldSymbol = state.services.airshipSymbolManager.getSymbolOrThrow("AirshipDecorator");
+				if (aliasSymbol === airshipFieldSymbol) {
+					items.push({
+						name: expression.expression.getText(),
+						parameters: expression.arguments.map((argument, i): AirshipBehaviourFieldDecoratorParameter => {
+							if (ts.isStringLiteral(argument)) {
+								return { type: "string", value: argument.text };
+							} else if (ts.isNumericLiteral(argument)) {
+								return { type: "number", value: parseFloat(argument.text) };
+							} else if (ts.isBooleanLiteral(argument)) {
+								return {
+									type: "boolean",
+									value: argument.kind === ts.SyntaxKind.TrueKeyword ? true : false,
+								};
+							} else {
+								DiagnosticService.addDiagnostic(
+									errors.decoratorParamsLiteralsOnly(expression.arguments[i]),
+								);
+								return { type: "invalid", value: undefined };
+							}
+						}),
+					});
+				}
+			} else if (ts.isIdentifier(expression)) {
+				const aliasSymbol = state.typeChecker.getTypeAtLocation(expression).aliasSymbol;
+				if (!aliasSymbol) continue;
 
-			if (aliasSymbol === airshipFieldSymbol) {
-				items.push({
-					name: expression.expression.getText(),
-					parameters: expression.arguments.map((argument, i): AirshipBehaviourFieldDecoratorParameter => {
-						if (ts.isStringLiteral(argument)) {
-							return { type: "string", value: argument.text };
-						} else if (ts.isNumericLiteral(argument)) {
-							return { type: "number", value: parseFloat(argument.text) };
-						} else if (ts.isBooleanLiteral(argument)) {
-							return {
-								type: "boolean",
-								value: argument.kind === ts.SyntaxKind.TrueKeyword ? true : false,
-							};
-						} else {
-							DiagnosticService.addDiagnostic(
-								errors.decoratorParamsLiteralsOnly(expression.arguments[i]),
-							);
-							return { type: "invalid", value: undefined };
-						}
-					}),
-				});
+				const airshipFieldSymbol = state.services.airshipSymbolManager.getSymbolOrThrow("AirshipDecorator");
+
+				if (aliasSymbol === airshipFieldSymbol) {
+					items.push({ name: expression.text, parameters: [] });
+				}
+			} else {
+				continue;
 			}
 		}
 
@@ -557,6 +569,8 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 
 	const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipBehaviourSymbolOrThrow();
 	const airshipSingletonSymbol = state.services.airshipSymbolManager.getAirshipSingletonSymbolOrThrow();
+	const airshipRenderPassSymbol =
+		state.services.airshipSymbolManager.getAirshipSymbolOrThrow("AirshipScriptableRenderPass");
 
 	if (isDefault) {
 		const metadata: Writable<AirshipBehaviourJson> = {
@@ -564,6 +578,7 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 			properties: [],
 			singleton: isAirshipSingletonClass(state, node),
 			decorators: [],
+			type: isAirshipClass(state, node, "AirshipScriptableRenderPass") ? "RenderPass" : "Game",
 			hash: "",
 		};
 
@@ -575,7 +590,13 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 			const valueDeclaration = inherited.valueDeclaration;
 			if (!valueDeclaration) continue;
 			if (!ts.isClassLike(valueDeclaration)) continue;
-			if (inherited === airshipBehaviourSymbol || inherited === airshipSingletonSymbol) continue;
+			if (
+				inherited === airshipBehaviourSymbol ||
+				inherited === airshipSingletonSymbol ||
+				inherited === airshipRenderPassSymbol
+			) {
+				continue;
+			}
 
 			pushPropertyMetadataForAirshipBehaviour(state, valueDeclaration, metadata);
 
@@ -592,6 +613,12 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 		}
 
 		pushPropertyMetadataForAirshipBehaviour(state, node, metadata);
+		for (const property of metadata.properties) {
+			if (property.decorators.find(f => f.name === "int")) {
+				property.type = "integer";
+			}
+		}
+
 		metadata.decorators = getClassDecorators(state, node);
 
 		const sha1 = crypto.createHash("sha1");
@@ -685,7 +712,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		DiagnosticService.addDiagnostic(errors.noMacroExtends(node));
 	}
 
-	if (isAirshipBehaviourClass(state, node)) {
+	if (isAirshipBehaviourClass(state, node) || isAirshipClass(state, node, "AirshipScriptableRenderPass")) {
 		// const isDefault = (node.modifierFlagsCache & ModifierFlags.Default) !== 0;
 		const isExport = (node.modifierFlagsCache & ModifierFlags.Export) !== 0;
 		if (isExport) {
