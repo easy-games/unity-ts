@@ -82,7 +82,7 @@ export function transformClassConstructor(
 		luau.list.pushList(statements, paramStatements);
 		parameters = constructorParams;
 		hasDotDotDot = constructorHasDotDotDot;
-	} else if (getExtendsNode(node) && !isAirshipBehaviour && !isAirshipSingleton) {
+	} else if (getExtendsNode(node) && !isRootAirshipClass) {
 		// if extends + no constructor:
 		// - add ... to params
 		// - add super.constructor(self, ...)
