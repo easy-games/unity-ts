@@ -52,7 +52,7 @@ export function getExtendsClasses(typeChecker: ts.TypeChecker, node: ts.ClassLik
 	return superClasses;
 }
 
-export function getSymbolsOfClasses(typeChecker: ts.TypeChecker, nodes: ReadonlyArray<ts.ClassDeclaration>) {
+export function getTypesOfClasses(typeChecker: ts.TypeChecker, nodes: ReadonlyArray<ts.ClassDeclaration>) {
 	const symbols = new Array<ts.Type>();
 
 	for (const node of nodes) {

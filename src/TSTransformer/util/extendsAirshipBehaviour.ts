@@ -2,7 +2,7 @@ import { TransformState } from "TSTransformer";
 import {
 	getAncestorTypeSymbols,
 	getExtendsClasses,
-	getSymbolsOfClasses,
+	getTypesOfClasses,
 } from "TSTransformer/util/airshipBehaviourUtils";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
@@ -53,7 +53,7 @@ export function isAirshipBehaviourClass(state: TransformState, node: ts.ClassLik
 			return true;
 		}
 
-		const extendsClasses = getSymbolsOfClasses(state.typeChecker, getExtendsClasses(state.typeChecker, node));
+		const extendsClasses = getTypesOfClasses(state.typeChecker, getExtendsClasses(state.typeChecker, node));
 		if (extendsClasses.length === 0) return false;
 
 		const baseClass = extendsClasses[extendsClasses.length - 1];
