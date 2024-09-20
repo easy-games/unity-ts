@@ -32,22 +32,56 @@ export function getAllTypes(type: ts.Type) {
 	}
 }
 
-export function getAncestorTypeSymbols(nodeType: ts.Type) {
+export function getExtendsClasses(typeChecker: ts.TypeChecker, node: ts.ClassLikeDeclaration) {
+	const superClasses = new Array<ts.ClassDeclaration>();
+	const superClass = node.heritageClauses?.find(x => x.token === ts.SyntaxKind.ExtendsKeyword)?.types?.[0];
+	if (superClass) {
+		const aliasSymbol = typeChecker.getSymbolAtLocation(superClass.expression);
+		if (aliasSymbol) {
+			const symbol = ts.skipAlias(aliasSymbol, typeChecker);
+
+			const classDeclaration = symbol?.declarations?.find((x): x is ts.ClassLikeDeclaration =>
+				ts.isClassDeclaration(x),
+			);
+			if (classDeclaration) {
+				superClasses.push(classDeclaration as never);
+				superClasses.push(...getExtendsClasses(typeChecker, classDeclaration));
+			}
+		}
+	}
+	return superClasses;
+}
+
+export function getSymbolsOfClasses(typeChecker: ts.TypeChecker, nodes: ReadonlyArray<ts.ClassDeclaration>) {
+	const symbols = new Array<ts.Type>();
+
+	for (const node of nodes) {
+		const symbol = typeChecker.getTypeAtLocation(node);
+		if (!symbol) continue;
+		symbols.push(symbol);
+	}
+
+	return symbols;
+}
+
+export function getAncestorTypeSymbols(nodeType: ts.Type, typeChecker: ts.TypeChecker) {
 	// ensure non-nullable (e.g. if `GameObject | undefined` - make `GameObject`)
 	if (nodeType.isNullableType()) {
 		nodeType = nodeType.getNonNullableType();
 	}
 
 	const baseTypes = nodeType.getBaseTypes();
+
 	if (baseTypes) {
 		const symbols = new Array<ts.Symbol>();
 		for (const baseType of baseTypes) {
 			symbols.push(baseType.symbol);
 
-			for (const parentSymbol of getAncestorTypeSymbols(baseType)) {
+			for (const parentSymbol of getAncestorTypeSymbols(baseType, typeChecker)) {
 				symbols.push(parentSymbol);
 			}
 		}
+
 		return symbols;
 	} else {
 		return [];
@@ -68,7 +102,7 @@ export function isAirshipDecorator(state: TransformState, decorator: ts.Decorato
 export function isUnityObjectType(state: TransformState, nodeType: ts.Type) {
 	const objectSymbol = state.services.airshipSymbolManager.getSymbolOrThrow("Object");
 
-	const objectInheritanceTree = getAncestorTypeSymbols(nodeType);
+	const objectInheritanceTree = getAncestorTypeSymbols(nodeType, state.typeChecker);
 	return objectInheritanceTree.includes(objectSymbol);
 }
 
