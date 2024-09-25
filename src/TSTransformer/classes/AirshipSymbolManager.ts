@@ -3,7 +3,8 @@ import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
 import { MacroManager } from "TSTransformer/classes/MacroManager";
 import { SINGLETON_FILE_IMPORT } from "TSTransformer/classes/TransformState";
-import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
+import { PROPERTY_GETTERS, PROPERTY_SETTERS } from "TSTransformer/macros/propertyMacros";
+import { MacroList, PropertyCallMacro, PropertyGetMacro, PropertySetMacro } from "TSTransformer/macros/types";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
@@ -73,9 +74,9 @@ export class AirshipSymbolManager {
 		this.serializedTypes.add(typeChecker.getNumberType());
 		this.serializedTypes.add(typeChecker.getBooleanType());
 
-		const symbol = this.getAirshipSingletonSymbolOrThrow();
+		const singletonSymbol = this.getAirshipSingletonSymbolOrThrow();
 		const singletonMethodMap = new Map<string, ts.Symbol>();
-		for (const declaration of symbol.declarations ?? []) {
+		for (const declaration of singletonSymbol.declarations ?? []) {
 			if (ts.isClassDeclaration(declaration)) {
 				for (const member of declaration.members) {
 					if (ts.isMethodDeclaration(member) && ts.isIdentifier(member.name)) {
@@ -85,6 +86,35 @@ export class AirshipSymbolManager {
 					}
 				}
 			}
+		}
+
+		const behaviourSymbol = this.getAirshipBehaviourSymbolOrThrow();
+		const behaviourPropertyMap = new Map<string, ts.Symbol>();
+		for (const declaration of behaviourSymbol.declarations ?? []) {
+			if (ts.isClassDeclaration(declaration)) {
+				for (const member of declaration.members) {
+					if (ts.isAccessor(member) && ts.isIdentifier(member.name)) {
+						const symbol = typeChecker.getSymbolAtLocation(member.name);
+						assert(symbol, "No symbol for accessor");
+						console.log("add", typeChecker.symbolToString(symbol), symbol.id)
+						behaviourPropertyMap.set(member.name.text, symbol);
+					}
+				}
+			}
+		}
+
+		// for (const [propertyName, macro] of Object.entries(AIRSHIP_PROPERTY_GET)) {
+		// }
+
+		for (const [propertyName, macro] of Object.entries(PROPERTY_SETTERS.AirshipBehaviour)) {
+			const methodSymbol = behaviourPropertyMap.get(propertyName);
+			if (!methodSymbol) {
+				throw new ProjectError(
+					`The types for method AirshipBehaviour.${propertyName} could not be found` + TYPES_NOTICE,
+				);
+			}
+
+			macroManager.addPropertySetMacro(methodSymbol, macro);
 		}
 
 		for (const [methodName, macro] of Object.entries(SINGLETON_STATICS)) {
