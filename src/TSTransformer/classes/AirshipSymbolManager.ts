@@ -96,7 +96,6 @@ export class AirshipSymbolManager {
 					if (ts.isAccessor(member) && ts.isIdentifier(member.name)) {
 						const symbol = typeChecker.getSymbolAtLocation(member.name);
 						assert(symbol, "No symbol for accessor");
-						console.log("add", typeChecker.symbolToString(symbol), symbol.id)
 						behaviourPropertyMap.set(member.name.text, symbol);
 					}
 				}

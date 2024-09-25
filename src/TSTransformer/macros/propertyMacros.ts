@@ -11,7 +11,6 @@ export const PROPERTY_SETTERS = {
 	AirshipBehaviour: {
 		enabled: (state, node, value) => {
 			return luau.list.make<luau.Statement>(
-				luau.comment("▼ set 'enabled' ▼"),
 				luau.create(luau.SyntaxKind.CallStatement, {
 					expression: luau.create(luau.SyntaxKind.MethodCallExpression, {
 						name: "set_enabled",
@@ -19,7 +18,6 @@ export const PROPERTY_SETTERS = {
 						args: luau.list.make(value),
 					}),
 				}),
-				luau.comment("▲ set 'enabled' ▲"),
 			);
 		},
 	},
