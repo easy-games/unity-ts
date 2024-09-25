@@ -50,6 +50,26 @@ export function transformExpressionStatementInner(
 				operator === undefined,
 				operator === undefined,
 			);
+
+			// Setter
+			if (ts.isPropertyAccessExpression(expression.left)) {
+				const symbol = state.typeChecker.getSymbolAtLocation(expression.left);
+				if (symbol && (symbol.flags & ts.SymbolFlags.SetAccessor) !== 0 && symbol.declarations) {
+					const setterDeclaration = symbol.declarations.find(f => ts.isSetAccessor(f));
+					const setterSymbol = setterDeclaration
+						? state.typeChecker.getSymbolAtLocation(setterDeclaration.name)
+						: undefined;
+
+					const setter = setterSymbol
+						? state.services.macroManager.getPropertyMacro(setterSymbol)?.set
+						: undefined;
+
+					if (setter) {
+						return setter(state, expression.left, value);
+					}
+				}
+			}
+
 			if (operator !== undefined) {
 				return luau.list.make(
 					luau.create(luau.SyntaxKind.Assignment, {
