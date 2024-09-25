@@ -10,6 +10,8 @@ import {
 	ConstructorMacro,
 	IdentifierMacro,
 	PropertyCallMacro,
+	PropertyGetMacro,
+	PropertySetMacro,
 } from "TSTransformer/macros/types";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
@@ -101,6 +103,11 @@ export function isNamedDeclaration(node?: ts.Node): node is ts.NamedDeclaration 
 	return node !== undefined && ts.isNamedDeclaration(node);
 }
 
+interface PropertyMacro {
+	get: PropertyGetMacro | undefined;
+	set: PropertySetMacro | undefined;
+}
+
 /**
  * Manages the macros of the ts.
  */
@@ -112,6 +119,7 @@ export class MacroManager {
 	private propertyCallMacros = new Map<ts.Symbol, PropertyCallMacro>();
 	private decoratorMacros = new Map<ts.Symbol, CallDecoratorMacro>();
 	private macroOnlySymbols = new Set<ts.Symbol>();
+	private propertyMacros = new Map<ts.Symbol, PropertyMacro>();
 
 	constructor(private readonly typeChecker: ts.TypeChecker) {
 		for (const [name, macro] of Object.entries(IDENTIFIER_MACROS)) {
@@ -198,6 +206,32 @@ export class MacroManager {
 		}
 	}
 
+	public addPropertyGetMacro(symbol: ts.Symbol, macro: PropertyGetMacro) {
+		let macros = this.propertyMacros.get(symbol);
+		if (!macros) {
+			macros = {
+				get: macro,
+				set: undefined,
+			};
+			this.propertyMacros.set(symbol, macros);
+		} else {
+			macros.get = macro;
+		}
+	}
+
+	public addPropertySetMacro(symbol: ts.Symbol, macro: PropertySetMacro) {
+		let macros = this.propertyMacros.get(symbol);
+		if (!macros) {
+			macros = {
+				set: macro,
+				get: undefined,
+			};
+			this.propertyMacros.set(symbol, macros);
+		} else {
+			macros.set = macro;
+		}
+	}
+
 	public addDecoratorMacro(symbol: ts.Symbol, macro: CallDecoratorMacro, ignoreImport = false) {
 		this.decoratorMacros.set(symbol, macro);
 		if (ignoreImport) {
@@ -213,6 +247,10 @@ export class MacroManager {
 
 	public isMacroOnlyClass(symbol: ts.Symbol) {
 		return this.symbols.get(symbol.name) === symbol && MACRO_ONLY_CLASSES.has(symbol.name);
+	}
+
+	public getPropertyMacro(symbol: ts.Symbol) {
+		return this.propertyMacros.get(symbol);
 	}
 
 	public getDecoratorMacro(symbol: ts.Symbol) {

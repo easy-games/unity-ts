@@ -27,3 +27,10 @@ export type PropertyCallMacro = (
 	expression: luau.Expression,
 	args: Array<luau.Expression>,
 ) => luau.Expression;
+
+export type PropertySetMacro = (
+	state: TransformState,
+	node: ts.PropertyAccessExpression,
+	value: luau.Expression,
+) => luau.List<luau.Statement>;
+export type PropertyGetMacro = (state: TransformState, node: ts.PropertyAccessExpression) => luau.Expression;
