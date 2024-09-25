@@ -45,4 +45,20 @@ export const CALL_MACROS: MacroList<CallMacro> = {
 		DiagnosticService.addDiagnostic(errors.noTupleMacroOutsideReturn(node));
 		return luau.none();
 	},
+
+	Instantiate: (state, node, expression, args) => {
+		return luau.create(luau.SyntaxKind.MethodCallExpression, {
+			name: "Instantiate",
+			expression: luau.id("Object"),
+			args: luau.list.make(...args),
+		});
+	},
+
+	Destroy: (state, node, expression, args) => {
+		return luau.create(luau.SyntaxKind.MethodCallExpression, {
+			name: "Destroy",
+			expression: luau.id("Object"),
+			args: luau.list.make(...args),
+		});
+	},
 };
