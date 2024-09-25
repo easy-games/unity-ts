@@ -156,6 +156,7 @@ export const errors = {
 	noSuperProperty: error("super properties are not supported!"),
 	noNonNumberStringRelationOperator: error("Relation operators can only be used on number or string types!"),
 	noInstanceMethodCollisions: error("Static methods cannot use the same name as instance methods!"),
+	noReservedAirshipIdentifier: error("Cannot use identifier reserved for AirshipBehaviour usage."),
 	noStaticMethodCollisions: error("Instance methods cannot use the same name as static methods!"),
 	noUnaryPlus: error("Unary `+` is not supported!", suggestion("Use `tonumber(x)` instead.")),
 	noNonNumberUnaryMinus: error("Unary `-` is only supported for number types!"),

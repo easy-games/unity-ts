@@ -1,8 +1,14 @@
 import luau from "@roblox-ts/luau-ast";
 import { MacroList, PropertyGetMacro, PropertySetMacro } from "TSTransformer/macros/types";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { transformPropertyAccessExpression } from "TSTransformer/nodes/expressions/transformPropertyAccessExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+
+export const AirshipBehaviourReservedId = {
+	set_enabled: luau.id("set_enabled"),
+	gameObject: luau.id("gameObject"),
+	transform: luau.id("transform"),
+	enabled: luau.id("enabled"),
+} satisfies { [name: string]: luau.Identifier };
 
 export const PROPERTY_GETTERS = {
 	AirshipBehaviour: {},
@@ -13,7 +19,7 @@ export const PROPERTY_SETTERS = {
 			return luau.list.make<luau.Statement>(
 				luau.create(luau.SyntaxKind.CallStatement, {
 					expression: luau.create(luau.SyntaxKind.MethodCallExpression, {
-						name: "set_enabled",
+						name: AirshipBehaviourReservedId.set_enabled.name,
 						expression: convertToIndexableExpression(transformExpression(state, node.expression)),
 						args: luau.list.make(value),
 					}),
@@ -22,3 +28,7 @@ export const PROPERTY_SETTERS = {
 		},
 	},
 } satisfies { [className: string]: MacroList<PropertySetMacro> };
+
+export function isAirshipBehaviourReserved(name: string) {
+	return name in AirshipBehaviourReservedId;
+}

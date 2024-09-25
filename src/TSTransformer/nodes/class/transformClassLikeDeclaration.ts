@@ -14,6 +14,7 @@ import {
 import { assert } from "Shared/util/assert";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { isAirshipBehaviourReserved } from "TSTransformer/macros/propertyMacros";
 import { transformClassConstructor } from "TSTransformer/nodes/class/transformClassConstructor";
 import { transformDecorators } from "TSTransformer/nodes/class/transformDecorators";
 import { transformPropertyDeclaration } from "TSTransformer/nodes/class/transformPropertyDeclaration";
@@ -686,7 +687,9 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		DiagnosticService.addDiagnostic(errors.noMacroExtends(node));
 	}
 
-	if (isAirshipBehaviourClass(state, node)) {
+	const isBehaviourClass = isAirshipBehaviourClass(state, node);
+
+	if (isBehaviourClass) {
 		// const isDefault = (node.modifierFlagsCache & ModifierFlags.Default) !== 0;
 		const isExport = (node.modifierFlagsCache & ModifierFlags.Export) !== 0;
 		if (isExport) {
@@ -742,6 +745,10 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		if (ts.isIdentifier(method.name) || ts.isStringLiteral(method.name)) {
 			if (luau.isMetamethod(method.name.text)) {
 				DiagnosticService.addDiagnostic(errors.noClassMetamethods(method.name));
+			}
+
+			if (isBehaviourClass && isAirshipBehaviourReserved(method.name.text)) {
+				DiagnosticService.addDiagnostic(errors.noReservedAirshipIdentifier(method.name));
 			}
 
 			if (!!ts.getSelectedSyntacticModifierFlags(method, ts.ModifierFlags.Static)) {

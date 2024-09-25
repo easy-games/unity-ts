@@ -2,6 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
 import { SINGLETON_FILE_IMPORT, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { isAirshipBehaviourReserved } from "TSTransformer/macros/propertyMacros";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
@@ -138,6 +139,14 @@ export function transformClassConstructor(
 			const initializer = member.initializer;
 			if (!initializer) {
 				continue;
+			}
+
+			if (
+				ts.isIdentifier(member.name) &&
+				(isAirshipSingleton || isAirshipBehaviour) &&
+				isAirshipBehaviourReserved(member.name.text)
+			) {
+				DiagnosticService.addDiagnostic(errors.noReservedAirshipIdentifier(member.name));
 			}
 
 			const [index, indexPrereqs] = state.capture(() => transformPropertyName(state, name));

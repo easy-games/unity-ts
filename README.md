@@ -1,4 +1,4 @@
-<!-- <div align="center"><img width=25% src="https://i.imgur.com/jWUnr6V.png"></div> -->
+<div align="center"><img width="128px" src="https://i.imgur.com/FVzCvw3.png"></div>
 <h1 align="center">Airship Typescript Compiler</h1>
 <div align="center">The TypeScript Compiler for Airship</div>
 
