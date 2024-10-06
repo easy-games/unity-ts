@@ -305,6 +305,9 @@ export function compileFiles(
 					const source = fileMetadataWriteQueue.get(sourceFile);
 					fs.outputFileSync(metadataPathOutPath, source);
 					metadataCount++;
+				} else if (fs.existsSync(metadataPathOutPath)) {
+					// Remove metadata path if no longer applicable
+					fs.removeSync(metadataPathOutPath);
 				}
 			}
 
