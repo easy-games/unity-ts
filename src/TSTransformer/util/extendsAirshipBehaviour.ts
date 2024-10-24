@@ -1,9 +1,7 @@
+import { warnings } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
-import {
-	getAncestorTypeSymbols,
-	getExtendsClasses,
-	getTypesOfClasses,
-} from "TSTransformer/util/airshipBehaviourUtils";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { getAncestorTypeSymbols, getExtendsClasses, getTypesOfClasses } from "TSTransformer/util/airshipBehaviourUtils";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import ts from "typescript";
@@ -123,6 +121,28 @@ export function isAirshipSingletonClass(state: TransformState, node: ts.ClassLik
 		const baseTypeDeclaration = inheritance[inheritance.length - 1];
 		if (baseTypeDeclaration !== undefined) {
 			return baseTypeDeclaration === airshipBehaviourSymbol;
+		}
+	}
+
+	return false;
+}
+
+export function isAirshipBehaviourProperty(state: TransformState, node: ts.PropertyDeclaration) {
+	const nodeType = state.getType(node);
+	if (isAirshipBehaviourType(state, nodeType)) {
+		return true;
+	}
+
+	const symbol = nodeType.symbol;
+	if (symbol?.valueDeclaration && ts.isClassLike(symbol.valueDeclaration)) {
+		const isBehaviourClass = isAirshipBehaviourClass(state, symbol.valueDeclaration);
+		if (!isBehaviourClass) return false;
+
+		// Disallow generic properties
+		const nodeTypeRef = node.type;
+		if (nodeTypeRef && ts.isTypeReferenceNode(nodeTypeRef) && nodeTypeRef.typeArguments) {
+			DiagnosticService.addDiagnostic(warnings.genericBehaviourRefernece(node));
+			return false;
 		}
 	}
 

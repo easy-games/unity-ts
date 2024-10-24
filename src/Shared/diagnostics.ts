@@ -324,6 +324,15 @@ export const warnings = {
 			"please remove this from the file as it will not be maintained in future.",
 	} satisfies ts.Diagnostic,
 
+	genericBehaviourRefernece: warningWithContext(() => {
+		return [
+			"Generic AirshipBehaviours cannot be exposed to the inspector",
+			suggestion(
+				"to turn off this warning, put @NonSerialized() in front of this property or create a behaviour that inherits this class with the generic types you expect",
+			),
+		];
+	}),
+
 	flameworkDependencyRaceCondition: warning(
 		"The Dependency macro should not be used outside of a function as this may introduce race conditions.",
 	),

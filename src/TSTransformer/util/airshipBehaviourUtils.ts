@@ -7,7 +7,7 @@ import {
 	EnumType,
 } from "Shared/types";
 import { TransformState } from "TSTransformer";
-import { isAirshipBehaviourType } from "TSTransformer/util/extendsAirshipBehaviour";
+import { isAirshipBehaviourProperty, isAirshipBehaviourType } from "TSTransformer/util/extendsAirshipBehaviour";
 import ts from "typescript";
 
 export function isPublicWritablePropertyDeclaration(node: ts.PropertyDeclaration) {
@@ -49,6 +49,7 @@ export function getExtendsClasses(typeChecker: ts.TypeChecker, node: ts.ClassLik
 			}
 		}
 	}
+
 	return superClasses;
 }
 
@@ -194,7 +195,7 @@ export function getEnumMetadata(enumType: ts.Type, isFlagEnum = false): Readonly
 	return undefined;
 }
 
-export function isValidAirshipBehaviourExportType(state: TransformState, node: ts.Node) {
+export function isValidAirshipBehaviourExportType(state: TransformState, node: ts.PropertyDeclaration) {
 	const nodeType = state.getType(node);
 
 	if (state.typeChecker.isArrayType(nodeType)) {
@@ -211,7 +212,7 @@ export function isValidAirshipBehaviourExportType(state: TransformState, node: t
 		return (
 			state.services.airshipSymbolManager.isTypeSerializable(nodeType) ||
 			isUnityObjectType(state, nodeType) ||
-			isAirshipBehaviourType(state, nodeType)
+			isAirshipBehaviourProperty(state, node)
 		);
 	}
 }
