@@ -136,17 +136,19 @@ export function isAirshipBehaviourProperty(state: TransformState, node: ts.Prope
 	const symbol = nodeType.symbol;
 	if (symbol?.valueDeclaration && ts.isClassLike(symbol.valueDeclaration)) {
 		const isBehaviourClass = isAirshipBehaviourClass(state, symbol.valueDeclaration);
-		if (!isBehaviourClass) return false;
-
-		// Disallow generic properties
-		const nodeTypeRef = node.type;
-		if (nodeTypeRef && ts.isTypeReferenceNode(nodeTypeRef) && nodeTypeRef.typeArguments) {
-			DiagnosticService.addDiagnostic(warnings.genericBehaviourRefernece(node));
-			return false;
+		if (isBehaviourClass) {
+			// Disallow generic properties
+			const nodeTypeRef = node.type;
+			if (nodeTypeRef && ts.isTypeReferenceNode(nodeTypeRef) && nodeTypeRef.typeArguments) {
+				DiagnosticService.addDiagnostic(warnings.genericBehaviourRefernece(node));
+				return false;
+			}
 		}
+
+		return true;
 	}
 
-	return true;
+	return false;
 }
 
 export function isAirshipBehaviourType(state: TransformState, type: ts.Type) {
