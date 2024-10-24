@@ -146,7 +146,7 @@ export function isAirshipBehaviourProperty(state: TransformState, node: ts.Prope
 		}
 	}
 
-	return false;
+	return true;
 }
 
 export function isAirshipBehaviourType(state: TransformState, type: ts.Type) {
