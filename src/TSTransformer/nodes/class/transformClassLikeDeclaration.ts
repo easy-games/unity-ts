@@ -34,6 +34,7 @@ import {
 } from "TSTransformer/util/airshipBehaviourUtils";
 import {
 	isAirshipBehaviourClass,
+	isAirshipBehaviourProperty,
 	isAirshipBehaviourType,
 	isAirshipSingletonClass,
 	isRootAirshipBehaviourClass,
@@ -353,7 +354,7 @@ function createAirshipProperty(
 				objectType: isObject ? typeString : undefined,
 			};
 		}
-	} else if (isAirshipBehaviourType(state, type)) {
+	} else if (isAirshipBehaviourProperty(state, node)) {
 		prop.type = "AirshipBehaviour";
 
 		type = typeChecker.getNonNullableType(type);
