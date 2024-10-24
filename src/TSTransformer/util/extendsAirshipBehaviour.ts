@@ -145,7 +145,7 @@ export function isAirshipBehaviourProperty(state: TransformState, node: ts.Prope
 			}
 		}
 
-		return true;
+		return isBehaviourClass;
 	}
 
 	return false;
