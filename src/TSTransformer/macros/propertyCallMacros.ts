@@ -909,11 +909,11 @@ const MAP_METHODS: MacroList<PropertyCallMacro> = {
 };
 
 const DICTIONARY_METHODS: MacroList<PropertyCallMacro> = {
-	// Get: (state, node, expression, args) =>
-	// 	luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-	// 		expression: convertToIndexableExpression(expression),
-	// 		index: args[0],
-	// 	}),
+	Get: (state, node, expression, args) =>
+		luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+			expression: convertToIndexableExpression(expression),
+			index: args[0],
+		}),
 };
 
 // const KEY_COLLECTION_METHODS: MacroList<PropertyCallMacro> = {
