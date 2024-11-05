@@ -169,7 +169,7 @@ export function compileFiles(
 			// Handling singletons
 			if (ts.isClassLike(node) && isAirshipSingletonClassNoState(singletonSymbol, typeChecker, node)) {
 				const type = typeChecker.getTypeAtLocation(node);
-				buildState.registerSingletonTypeForFile(sourceFile, type);
+				buildState.registerSingletonTypeForFile(pathTranslator, typeChecker, sourceFile, type);
 				return true;
 			}
 		});

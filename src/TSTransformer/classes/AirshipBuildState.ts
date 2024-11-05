@@ -27,7 +27,7 @@ export const EDITOR_FILE = "TypeScriptEditorMetadata.aseditorinfo";
 
 export class AirshipBuildState {
 	public buildFile: AirshipBuildFile;
-	public readonly singletonTypes = new Map<string, Set<number>>();
+	public readonly singletonTypes = new Map<string, Set<string>>();
 	public readonly classes = new Map<ts.Symbol, FlameworkClassInfo>();
 
 	public constructor(buildFile?: AirshipBuildFile) {
@@ -99,14 +99,19 @@ export class AirshipBuildState {
 		}
 	}
 
-	public registerSingletonTypeForFile(file: ts.SourceFile, type: ts.Type) {
+	public registerSingletonTypeForFile(
+		pathTranslator: PathTranslator,
+		typeChecker: ts.TypeChecker,
+		file: ts.SourceFile,
+		type: ts.Type,
+	) {
 		let types = this.singletonTypes.get(file.fileName);
 		if (!types) {
 			types = new Set();
 			this.singletonTypes.set(file.fileName, types);
 		}
 
-		types.add(type.id);
+		types.add(this.getUniqueIdForTypeNoState(pathTranslator, typeChecker, type, file));
 	}
 
 	private isBuildFile(data: unknown): data is AirshipBuildFile {
@@ -161,16 +166,17 @@ export class AirshipBuildState {
 		this.idLookup.set(internalId, id);
 	}
 
-	private typeIdCache = new Map<string, string>();
-	public getUniqueIdForType(transformState: TransformState, type: ts.Type, sourceFile: ts.SourceFile) {
-		const fullTypePath = sourceFile.fileName + "@" + transformState.typeChecker.typeToString(type);
+	public getUniqueIdForTypeNoState(
+		pathTranslator: PathTranslator,
+		typeChecker: ts.TypeChecker,
+		type: ts.Type,
+		sourceFile: ts.SourceFile,
+	) {
+		const fullTypePath = sourceFile.fileName + "@" + typeChecker.typeToString(type);
 
 		if (this.typeIdCache.has(fullTypePath)) {
 			return this.typeIdCache.get(fullTypePath)!;
 		}
-
-		const pathTranslator = transformState.pathTranslator;
-		const typeChecker = transformState.typeChecker;
 
 		const parsePath = path.parse(
 			path
@@ -183,6 +189,16 @@ export class AirshipBuildState {
 
 		this.typeIdCache.set(fullTypePath, value);
 		return value;
+	}
+
+	private typeIdCache = new Map<string, string>();
+	public getUniqueIdForType(transformState: TransformState, type: ts.Type, sourceFile: ts.SourceFile) {
+		return this.getUniqueIdForTypeNoState(
+			transformState.pathTranslator,
+			transformState.typeChecker,
+			type,
+			sourceFile,
+		);
 	}
 
 	public getUniqueIdForEnumDeclaration(state: TransformState, declaration: ts.EnumDeclaration) {

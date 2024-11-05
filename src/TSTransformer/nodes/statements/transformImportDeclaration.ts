@@ -42,8 +42,8 @@ function shouldSkipSingletonImport(
 	module: ts.SourceFile,
 	symbol: ts.Symbol,
 ) {
-	const singletons = state.airshipBuildState.singletonTypes.get(module.fileName);
-	if (!singletons) {
+	const linkedModuleSingletonIds = state.airshipBuildState.singletonTypes.get(module.fileName);
+	if (!linkedModuleSingletonIds) {
 		return false;
 	}
 
@@ -56,8 +56,10 @@ function shouldSkipSingletonImport(
 		return false;
 	}
 
+	const typeUniqueId = state.airshipBuildState.getUniqueIdForType(state, valueType, module);
+
 	// Need to ensure we keep the import or strip it... Don't like this TBH
-	if (!singletons.has(valueType.id)) {
+	if (!linkedModuleSingletonIds.has(typeUniqueId)) {
 		return false;
 	}
 
