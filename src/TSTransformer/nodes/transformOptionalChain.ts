@@ -334,7 +334,18 @@ function transformOptionalChainInner(
 				}
 			}
 
-			const isUnityObject = isUnityObjectType(state, state.typeChecker.getTypeAtLocation(item.node.expression));
+			let isUnityObject = false;
+
+			if (ts.isCallExpression(item.node) && ts.isPropertyAccessExpression(item.node.expression)) {
+				// handles x?.y() where x is UnityObject
+				const callInnerExpressionType = state.typeChecker.getTypeAtLocation(item.node.expression.expression);
+				isUnityObject = isUnityObjectType(state, callInnerExpressionType);
+			} else if (ts.isPropertyAccessExpression(item.node)) {
+				// handles x?.y where x is UnityObject
+				const leftHandExpressionType = state.typeChecker.getTypeAtLocation(item.node.expression);
+				isUnityObject = isUnityObjectType(state, leftHandExpressionType);
+			}
+
 			if (isUnityObject) {
 				state.prereq(createUnityObjectNilCheck(tempId, ifStatements));
 			} else {
