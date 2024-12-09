@@ -65,6 +65,7 @@ jobs:
           token: ${{ steps.generate-token.outputs.token }}
 
       - name: Commit New Utsc
+        if: inputs.environment == 'platform-production'
         run: |
           COMMIT_HASH=$(git rev-parse HEAD)
           COMMIT_MESSAGE=$(git log -1 --pretty=%B $COMMIT_HASH)
