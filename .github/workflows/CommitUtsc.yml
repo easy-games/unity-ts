@@ -57,6 +57,7 @@ jobs:
           npm run bundle
 
       - name: Checkout Airship Repo
+        if: inputs.environment == 'platform-production'
         uses: actions/checkout@v3
         with:
           repository: easy-games/airship
@@ -65,6 +66,7 @@ jobs:
           token: ${{ steps.generate-token.outputs.token }}
 
       - name: Commit New Utsc
+        if: inputs.environment == 'platform-production'
         run: |
           COMMIT_HASH=$(git rev-parse HEAD)
           COMMIT_MESSAGE=$(git log -1 --pretty=%B $COMMIT_HASH)
