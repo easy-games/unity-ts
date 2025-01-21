@@ -153,6 +153,7 @@ export function isAirshipBehaviourProperty(state: TransformState, node: ts.Prope
 
 export function isAirshipBehaviourType(state: TransformState, type: ts.Type) {
 	const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipBehaviourSymbolOrThrow();
+	if (airshipBehaviourSymbol === type.symbol) return true;
 
 	// Get the inheritance tree, otherwise
 	const inheritance = getAncestorTypeSymbols(type, state.typeChecker);
