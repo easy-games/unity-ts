@@ -181,6 +181,22 @@ type AirshipFieldDefaultValue =
 	| AirshipBehaviourMethodCallValue
 	| undefined;
 
+export interface AirshipDocTag {
+	name: string;
+	value: unknown;
+}
+
+export interface AirshipDocComment {
+	comment: string;
+	comments?: Array<AirshipDocComment>;
+	tags?: Array<AirshipDocTag>;
+}
+
+export interface AirshipFieldDocs {
+	comments?: Array<AirshipDocComment>;
+	tags?: Array<AirshipDocTag>;
+}
+
 /**
  * Metadata about a public serializable member in the AirshipBehaviour
  */
@@ -191,6 +207,8 @@ export interface AirshipBehaviourFieldExport extends AirshipTypeReference {
 	readonly name: string;
 
 	readonly nullable?: boolean;
+
+	readonly docs?: AirshipFieldDocs;
 
 	/**
 	 * The comment description on this property

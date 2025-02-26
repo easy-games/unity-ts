@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import crypto from "crypto";
+import mark, { Node as MarkdownNode } from "markdown-ast";
 import path from "path";
 import { errors } from "Shared/diagnostics";
 import {
@@ -9,6 +10,9 @@ import {
 	AirshipBehaviourFieldDecoratorParameter,
 	AirshipBehaviourFieldExport,
 	AirshipBehaviourJson,
+	AirshipDocComment,
+	AirshipDocTag,
+	AirshipFieldDocs,
 	EnumType,
 } from "Shared/types";
 import { assert } from "Shared/util/assert";
@@ -47,7 +51,7 @@ import { getKindName } from "TSTransformer/util/getKindName";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
-import ts, { ModifierFlags } from "typescript";
+import ts, { JSDoc, JSDocTag, ModifierFlags } from "typescript";
 
 const MAGIC_TO_STRING_METHOD = "toString";
 
@@ -286,6 +290,174 @@ function writeEnumInfo(
 	};
 }
 
+function formatAsUnityString(nodes: Array<MarkdownNode>): string {
+	const str = new Array<string>();
+
+	for (let i = 0; i < nodes.length; i++) {
+		const node = nodes[i];
+
+		switch (node.type) {
+			case "text":
+			case "break":
+				str.push(node.text);
+				break;
+			case "list": {
+				const innerContent = new Array<string>();
+				innerContent.push("• ");
+				for (const listItem of node.block) {
+					innerContent.push(formatAsUnityString([listItem]));
+				}
+				str.push(innerContent.join("") + (nodes[i + 1]?.type === "list" ? "\n" : ""));
+				break;
+			}
+			case "bold": {
+				const innerContent = new Array<string>();
+				innerContent.push("<b>");
+
+				for (const item of node.block) {
+					innerContent.push(formatAsUnityString([item]));
+				}
+
+				innerContent.push("</b>");
+				str.push(innerContent.join(""));
+				break;
+			}
+			case "italic": {
+				const innerContent = new Array<string>();
+				innerContent.push("<b>");
+
+				for (const item of node.block) {
+					innerContent.push(formatAsUnityString([item]));
+				}
+
+				innerContent.push("</b>");
+				str.push(innerContent.join(""));
+				break;
+			}
+			case "quote": {
+				const innerContent = new Array<string>();
+
+				for (const item of node.block) {
+					innerContent.push("» " + formatAsUnityString([item]));
+				}
+				str.push(innerContent.join("\n"));
+				break;
+			}
+			case "title": {
+				const sizes = [undefined, 25, 23, 20, 18, 16, 14] as const;
+				const size = sizes[node.rank];
+
+				const innerContent = new Array<string>();
+				innerContent.push("<b><size=" + size + ">");
+
+				for (const item of node.block) {
+					innerContent.push(formatAsUnityString([item]));
+				}
+
+				innerContent.push("</size></b>");
+				str.push(innerContent.join(""));
+
+				break;
+			}
+			case "codeSpan": {
+				str.push(node.code);
+				break;
+			}
+		}
+	}
+
+	return str.join("").trim();
+}
+
+function toUnityString(value: string): string {
+	const markdown = mark(value);
+	const result = formatAsUnityString(markdown);
+	return result;
+}
+
+function createDocTag(docTag: JSDocTag): AirshipDocTag {
+	const tag = {} as AirshipDocTag;
+
+	tag.name = docTag.tagName.text;
+
+	if (typeof docTag.comment === "string") {
+		tag.value = docTag.comment;
+	}
+
+	return tag;
+}
+
+function createDocComment(doc: JSDoc): AirshipDocComment {
+	const comment = {} as AirshipDocComment;
+
+	if (typeof doc.comment === "string") {
+		const value = toUnityString(doc.comment);
+
+		comment.comment = value;
+	} else if (doc.comment) {
+		for (const subComment of doc.comment) {
+			if (ts.isJSDoc(subComment)) {
+				const comments = (comment.comments ??= []);
+				comments.push(createDocComment(subComment));
+			} else if (ts.isJSDocTag(subComment)) {
+				const tags = (comment.tags ??= []);
+				tags.push(createDocTag(subComment));
+			} else if (ts.isJSDocLink(subComment) && subComment.name) {
+				const comments = (comment.comments ??= []);
+
+				if (ts.isJSDocMemberName(subComment.name)) {
+					const test = subComment.name.right.text;
+					comments.push({
+						comment: `test is ${test}`,
+					});
+				} else if (ts.isEntityName(subComment.name)) {
+					if (ts.isQualifiedName(subComment.name)) {
+						comments.push({
+							comment: subComment.name.right.text,
+						});
+					} else if (ts.isIdentifier(subComment.name)) {
+						comments.push({
+							comment: `<a href='#'>${subComment.name.text}</a>`,
+						});
+					}
+				}
+			} else if (subComment.kind === ts.SyntaxKind.JSDocText) {
+				const comments = (comment.comments ??= []);
+				comments.push({
+					comment: toUnityString(subComment.text),
+				});
+			} else {
+				console.warn("invalid kind", ts.SyntaxKind[subComment.kind]);
+			}
+		}
+	}
+
+	if (doc.tags) {
+		const tags = (comment.tags ??= []);
+
+		for (const tag of doc.tags) {
+			tags.push(createDocTag(tag));
+		}
+	}
+
+	return comment;
+}
+
+function createAirshipDocs(docs: ReadonlyArray<JSDocTag | JSDoc>): AirshipFieldDocs {
+	const fielddocs = {} as AirshipFieldDocs;
+
+	const doc = docs[0];
+	if (ts.isJSDoc(doc)) {
+		const comment = createDocComment(doc);
+		(fielddocs.comments ??= []).push(comment);
+	} else if (ts.isJSDocTag(doc)) {
+		const comment = createDocTag(doc);
+		(fielddocs.tags ??= []).push(comment);
+	}
+
+	return fielddocs;
+}
+
 function createAirshipProperty(
 	state: TransformState,
 	name: string,
@@ -302,6 +474,11 @@ function createAirshipProperty(
 	const prop = {
 		name,
 	} as Writable<AirshipBehaviourFieldExport>;
+
+	const docs = ts.getJSDocCommentsAndTags(node);
+	if (docs.length > 0 && !decorators.find(f => f.name === "Tooltip")) {
+		prop.docs = createAirshipDocs(docs);
+	}
 
 	if (isObject) {
 		const nonNullableTypeString = typeChecker.typeToString(type.getNonNullableType());
