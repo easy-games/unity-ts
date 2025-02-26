@@ -324,13 +324,13 @@ function formatAsUnityString(nodes: Array<MarkdownNode>): string {
 			}
 			case "italic": {
 				const innerContent = new Array<string>();
-				innerContent.push("<b>");
+				innerContent.push("<i>");
 
 				for (const item of node.block) {
 					innerContent.push(formatAsUnityString([item]));
 				}
 
-				innerContent.push("</b>");
+				innerContent.push("</i>");
 				str.push(innerContent.join(""));
 				break;
 			}
