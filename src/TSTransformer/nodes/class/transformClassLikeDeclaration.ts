@@ -751,7 +751,7 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 
 		// Inheritance
 		const inheritance = getAncestorTypeSymbols(classType, state.typeChecker);
-		for (const inherited of inheritance) {
+		for (const inherited of inheritance.reverse()) {
 			const valueDeclaration = inherited.valueDeclaration;
 			if (!valueDeclaration) continue;
 			if (!ts.isClassLike(valueDeclaration)) continue;
