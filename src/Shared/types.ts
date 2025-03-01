@@ -27,6 +27,7 @@ export interface ProjectOptions {
 	verbose: boolean;
 	watch: boolean;
 	json: boolean;
+	publish: boolean;
 	writeOnlyChanged: boolean;
 	optimizedLoops: boolean;
 	allowCommentDirectives: boolean;
@@ -38,6 +39,7 @@ export interface ProjectOptions {
 export interface ProjectData {
 	includePath: string;
 	isPackage: boolean;
+	isPublishing: boolean;
 	logTruthyChanges: boolean;
 	nodeModulesPath: string;
 	noInclude: boolean;

@@ -41,6 +41,7 @@ export function createProjectData(
 		tsConfigPath,
 		includePath,
 		isPackage,
+		isPublishing: projectOptions.publish,
 		logTruthyChanges,
 		noInclude,
 		nodeModulesPath,

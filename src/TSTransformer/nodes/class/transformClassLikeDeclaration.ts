@@ -506,7 +506,7 @@ function createAirshipProperty(
 	} as Writable<AirshipBehaviourFieldExport>;
 
 	const docs = ts.getJSDocCommentsAndTags(node);
-	if (docs.length > 0 && !decorators.find(f => f.name === "Tooltip")) {
+	if (docs.length > 0 && !state.data.isPublishing && !decorators.find(f => f.name === "Tooltip")) {
 		prop.jsdoc = createAirshipDocs(state, docs);
 	}
 
@@ -609,7 +609,7 @@ function createAirshipProperty(
 		}
 	}
 
-	if (decorators.length > 0) prop.decorators = decorators;
+	if (decorators.length > 0 && !state.data.isPublishing) prop.decorators = decorators;
 	return prop;
 }
 
@@ -802,7 +802,7 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 		pushPropertyMetadataForAirshipBehaviour(state, node, metadata);
 
 		const classDecorators = getClassDecorators(state, node);
-		if (classDecorators.length > 0) metadata.decorators = classDecorators;
+		if (classDecorators.length > 0 && !state.data.isPublishing) metadata.decorators = classDecorators;
 
 		const sha1 = crypto.createHash("sha1");
 		const hash = sha1.update(JSON.stringify(metadata)).digest("hex");
