@@ -51,7 +51,7 @@ import { getKindName } from "TSTransformer/util/getKindName";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
-import ts, { JSDoc, JSDocTag, ModifierFlags } from "typescript";
+import ts, { JSDoc, JSDocComment, JSDocTag, ModifierFlags } from "typescript";
 
 const MAGIC_TO_STRING_METHOD = "toString";
 
@@ -363,6 +363,18 @@ function formatAsUnityString(nodes: Array<MarkdownNode>): string {
 				str.push(node.code);
 				break;
 			}
+			case "link": {
+				const innerContent = new Array<string>();
+				innerContent.push(`<a href='${node.url}'>`);
+
+				for (const item of node.block) {
+					innerContent.push(formatAsUnityString([item]));
+				}
+
+				innerContent.push("</a>");
+				str.push(innerContent.join(""));
+				break;
+			}
 		}
 	}
 
@@ -375,84 +387,102 @@ function toUnityString(value: string): string {
 	return result;
 }
 
-function createDocTag(docTag: JSDocTag): AirshipDocTag {
-	const tag = {} as AirshipDocTag;
+// eslint-disable-next-line require-yield
+function* getAirshipDocComments(
+	state: TransformState,
+	docs: ReadonlyArray<JSDocTag | JSDoc | JSDocComment>,
+): Generator<string, void, void> {
+	for (const doc of docs) {
+		if (ts.isJSDoc(doc)) {
+			if (typeof doc.comment === "string" && doc.comment !== "") {
+				yield toUnityString(doc.comment);
+			} else if (doc.comment) {
+				// Get as sub comments
+				yield* getAirshipDocComments(state, doc.comment);
+			}
+		} else if (ts.isJSDocTag(doc)) {
+			continue; // Ignore tags
+		} else if (ts.isJSDocLink(doc)) {
+			if (doc.name && ts.isIdentifier(doc.name)) {
+				const symbol = state.typeChecker.getSymbolAtLocation(doc.name)!;
+				if (symbol) {
+					const declarations = symbol.declarations;
 
-	tag.name = docTag.tagName.text;
+					if (declarations !== undefined) {
+						const [declaration] = declarations;
 
-	if (typeof docTag.comment === "string") {
-		tag.value = docTag.comment;
-	}
+						// if (ts.isImportClause(declaration)) {
+						// 	const parent = declaration.parent;
+						// 	if (ts.isImportDeclaration(parent)) {
+						// 		const modSpec = parent.moduleSpecifier;
+						// 		if (ts.isStringLiteral(modSpec)) {
+						// 			const sourceFile = state.program.getSourceFile(modSpec.text);
+						// 			const symbol = state.typeChecker.getSymbolAtLocation(modSpec);
+						// 			console.log("import sym bis", symbol)
 
-	return tag;
-}
+						// 			if (!sourceFile) {
+						// 				console.warn("no source file", modSpec.text); //
+						// 				continue;
+						// 			}
 
-function createDocComment(doc: JSDoc): AirshipDocComment {
-	const comment = {} as AirshipDocComment;
-
-	if (typeof doc.comment === "string") {
-		const value = toUnityString(doc.comment);
-
-		comment.comment = value;
-	} else if (doc.comment) {
-		for (const subComment of doc.comment) {
-			if (ts.isJSDoc(subComment)) {
-				const comments = (comment.comments ??= []);
-				comments.push(createDocComment(subComment));
-			} else if (ts.isJSDocTag(subComment)) {
-				const tags = (comment.tags ??= []);
-				tags.push(createDocTag(subComment));
-			} else if (ts.isJSDocLink(subComment) && subComment.name) {
-				const comments = (comment.comments ??= []);
-
-				if (ts.isJSDocMemberName(subComment.name)) {
-					const test = subComment.name.right.text;
-					comments.push({
-						comment: `test is ${test}`,
-					});
-				} else if (ts.isEntityName(subComment.name)) {
-					if (ts.isQualifiedName(subComment.name)) {
-						comments.push({
-							comment: subComment.name.right.text,
-						});
-					} else if (ts.isIdentifier(subComment.name)) {
-						comments.push({
-							comment: `<a href='#'>${subComment.name.text}</a>`,
-						});
+						// 			const pos = sourceFile.getLineAndCharacterOfPosition(declaration.getStart()!);
+						// 			yield `<a href='#' kind='${ts.SyntaxKind[declaration.kind]}' file='${
+						// 				sourceFile.fileName
+						// 			}' line='${pos.line + 1}'>${doc.text || doc.name.text}</a>`;
+						// 		} else {
+						// 			console.warn("is not string literal");
+						// 		}
+						// 	} else {
+						// 		console.warn("is not import decl");
+						// 	}
+						// } else {
+						const sourceFile = declaration.getSourceFile();
+						const pos = sourceFile.getLineAndCharacterOfPosition(declaration.getStart()!);
+						yield `<a href='#' file='${sourceFile.fileName}' line='${pos.line + 1}'>${
+							doc.text || doc.name.text
+						}</a>`;
+						// }
 					}
 				}
-			} else if (subComment.kind === ts.SyntaxKind.JSDocText) {
-				const comments = (comment.comments ??= []);
-				comments.push({
-					comment: toUnityString(subComment.text),
-				});
-			} else {
-				console.warn("invalid kind", ts.SyntaxKind[subComment.kind]);
 			}
+		} else {
+			if (doc.text !== "") yield toUnityString(doc.text);
 		}
 	}
-
-	if (doc.tags) {
-		const tags = (comment.tags ??= []);
-
-		for (const tag of doc.tags) {
-			tags.push(createDocTag(tag));
-		}
-	}
-
-	return comment;
 }
 
-function createAirshipDocs(docs: ReadonlyArray<JSDocTag | JSDoc>): AirshipFieldDocs {
+function* getAirshipDocTags(
+	state: TransformState,
+	docs: ReadonlyArray<JSDocTag | JSDoc | JSDocComment>,
+): Generator<AirshipDocTag, void, void> {
+	for (const doc of docs) {
+		if (ts.isJSDocTag(doc)) {
+			if (typeof doc.comment === "string") {
+				yield {
+					name: doc.tagName.text,
+					text: doc.comment,
+				} as AirshipDocTag;
+			} else if (doc.comment) {
+				yield* getAirshipDocTags(state, doc.comment);
+			} else {
+				yield { name: doc.tagName.text, text: undefined };
+			}
+		} else if (ts.isJSDoc(doc)) {
+			if (doc.tags) yield* getAirshipDocTags(state, doc.tags);
+		}
+	}
+}
+
+function createAirshipDocs(state: TransformState, docs: ReadonlyArray<JSDocTag | JSDoc>): AirshipFieldDocs | undefined {
 	const fielddocs = {} as AirshipFieldDocs;
 
-	const doc = docs[0];
-	if (ts.isJSDoc(doc)) {
-		const comment = createDocComment(doc);
-		(fielddocs.comments ??= []).push(comment);
-	} else if (ts.isJSDocTag(doc)) {
-		const comment = createDocTag(doc);
-		(fielddocs.tags ??= []).push(comment);
+	for (const comment of getAirshipDocComments(state, docs)) {
+		if (comment !== "") (fielddocs.text ??= []).push(comment);
+	}
+
+	for (const tag of getAirshipDocTags(state, docs)) {
+		if (tag.name === "notooltip") return undefined;
+		(fielddocs.tags ??= []).push(tag);
 	}
 
 	return fielddocs;
@@ -477,7 +507,7 @@ function createAirshipProperty(
 
 	const docs = ts.getJSDocCommentsAndTags(node);
 	if (docs.length > 0 && !decorators.find(f => f.name === "Tooltip")) {
-		prop.docs = createAirshipDocs(docs);
+		prop.jsdoc = createAirshipDocs(state, docs);
 	}
 
 	if (isObject) {
@@ -540,7 +570,6 @@ function createAirshipProperty(
 		prop.fileRef = state.getOutputPathFromType(type);
 	} else if (isEnum) {
 		if (type.isNullableType()) prop.nullable = true;
-		prop.nullable = type.isNullableType();
 		prop.type = "enum";
 
 		const symbol = node.initializer ? typeChecker.getSymbolAtLocation(node.initializer) : type.symbol;
@@ -563,7 +592,6 @@ function createAirshipProperty(
 		}
 	} else {
 		if (type.isNullableType()) prop.nullable = true;
-		prop.nullable = type.isNullableType();
 		prop.type = typeString;
 	}
 
@@ -581,7 +609,7 @@ function createAirshipProperty(
 		}
 	}
 
-	prop.decorators = decorators;
+	if (decorators.length > 0) prop.decorators = decorators;
 	return prop;
 }
 
@@ -743,8 +771,8 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 			name: node.name?.text,
 			properties: [],
 			singleton: isAirshipSingletonClass(state, node),
-			decorators: [],
 			hash: "",
+			decorators: undefined,
 		};
 
 		const inheritedBehaviourIds = new Array<string>();
@@ -772,7 +800,9 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 		}
 
 		pushPropertyMetadataForAirshipBehaviour(state, node, metadata);
-		metadata.decorators = getClassDecorators(state, node);
+
+		const classDecorators = getClassDecorators(state, node);
+		if (classDecorators.length > 0) metadata.decorators = classDecorators;
 
 		const sha1 = crypto.createHash("sha1");
 		const hash = sha1.update(JSON.stringify(metadata)).digest("hex");
