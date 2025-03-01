@@ -48,6 +48,11 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 			boolean: true,
 			default: false,
 		},
+		publish: {
+			hidden: true,
+			boolean: true,
+			default: false,
+		},
 		package: {
 			string: true,
 			describe: "The location of package.json",

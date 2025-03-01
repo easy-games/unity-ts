@@ -46,6 +46,7 @@ export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	rojo: undefined,
 	type: undefined,
 	watch: false,
+	publish: false,
 	package: ".",
 	runtimePath: "AirshipPackages/@Easy/Core/Shared/Runtime",
 	usePolling: false,

@@ -27,6 +27,7 @@ export interface ProjectOptions {
 	verbose: boolean;
 	watch: boolean;
 	json: boolean;
+	publish: boolean;
 	writeOnlyChanged: boolean;
 	optimizedLoops: boolean;
 	allowCommentDirectives: boolean;
@@ -38,6 +39,7 @@ export interface ProjectOptions {
 export interface ProjectData {
 	includePath: string;
 	isPackage: boolean;
+	isPublishing: boolean;
 	logTruthyChanges: boolean;
 	nodeModulesPath: string;
 	noInclude: boolean;
@@ -117,7 +119,7 @@ export interface AirshipBehaviourJson {
 	 */
 	readonly singleton: boolean;
 
-	decorators: Array<AirshipBehaviourClassDecorator>;
+	decorators: Array<AirshipBehaviourClassDecorator> | undefined;
 
 	/**
 	 * The hash of this AirshipBehaviour
@@ -183,7 +185,7 @@ type AirshipFieldDefaultValue =
 
 export interface AirshipDocTag {
 	name: string;
-	value: unknown;
+	text: string | undefined;
 }
 
 export interface AirshipDocComment {
@@ -192,8 +194,10 @@ export interface AirshipDocComment {
 	tags?: Array<AirshipDocTag>;
 }
 
+export type AirshipCommentData = AirshipDocComment | AirshipDocTag;
+
 export interface AirshipFieldDocs {
-	comments?: Array<AirshipDocComment>;
+	text?: Array<string>;
 	tags?: Array<AirshipDocTag>;
 }
 
@@ -208,7 +212,7 @@ export interface AirshipBehaviourFieldExport extends AirshipTypeReference {
 
 	readonly nullable?: boolean;
 
-	readonly docs?: AirshipFieldDocs;
+	readonly jsdoc?: AirshipFieldDocs;
 
 	/**
 	 * The comment description on this property
