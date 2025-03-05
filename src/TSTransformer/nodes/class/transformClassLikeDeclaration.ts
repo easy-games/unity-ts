@@ -48,6 +48,7 @@ import { getFlameworkNodeUid } from "TSTransformer/util/flameworkId";
 import { generateFlameworkMetadataForClass, isFlameworkSingleton } from "TSTransformer/util/flameworkSingleton";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getKindName } from "TSTransformer/util/getKindName";
+import { getLiteralFromNode } from "TSTransformer/util/getLiteral";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
@@ -634,19 +635,15 @@ export function getClassDecorators(state: TransformState, classNode: ts.ClassLik
 						return state.typeChecker.typeToString(state.typeChecker.getTypeFromTypeNode(typeNode));
 					}),
 					parameters: expression.arguments.map((argument, i): AirshipBehaviourFieldDecoratorParameter => {
-						if (ts.isStringLiteral(argument)) {
-							return { type: "string", value: argument.text };
-						} else if (ts.isNumericLiteral(argument)) {
-							return { type: "number", value: parseFloat(argument.text) };
-						} else if (ts.isBooleanLiteral(argument)) {
-							return {
-								type: "boolean",
-								value: argument.kind === ts.SyntaxKind.TrueKeyword ? true : false,
-							};
+						const value = getLiteralFromNode(state, argument);
+
+						if (value) {
+							return value;
 						} else {
 							DiagnosticService.addDiagnostic(
 								errors.decoratorParamsLiteralsOnly(expression.arguments[i]),
 							);
+
 							return { type: "invalid", value: undefined };
 						}
 					}),
@@ -681,15 +678,9 @@ function getPropertyDecorators(
 				items.push({
 					name: expression.expression.getText(),
 					parameters: expression.arguments.map((argument, i): AirshipBehaviourFieldDecoratorParameter => {
-						if (ts.isStringLiteral(argument)) {
-							return { type: "string", value: argument.text };
-						} else if (ts.isNumericLiteral(argument)) {
-							return { type: "number", value: parseFloat(argument.text) };
-						} else if (ts.isBooleanLiteral(argument)) {
-							return {
-								type: "boolean",
-								value: argument.kind === ts.SyntaxKind.TrueKeyword ? true : false,
-							};
+						const value = getLiteralFromNode(state, argument);
+						if (value) {
+							return value;
 						} else {
 							DiagnosticService.addDiagnostic(
 								errors.decoratorParamsLiteralsOnly(expression.arguments[i]),

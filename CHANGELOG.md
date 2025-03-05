@@ -7,6 +7,23 @@
 - Updated `@roblox-ts/luau-ast` to latest to fix emit issues
 	- Changes listed at https://github.com/roblox-ts/luau-ast/pull/483
 
+## 2025-03-05
+- Negative literals (e.g. `@Range(-100, -10)`) should now be acceptable in behaviour macro decorators
+
+## 2025-03-01
+- `--publish` added to strip edit-time metadata on game publish
+
+## 2025-02-26
+- Added JSDoc generation support
+
+## 2024-10-24
+- Added support for inheriting generic components, e.g. `ExampleComponent extends GenericComponent<T>` where `GenericComponent` extends `AirshipBehaviour`
+
+## 2024-09-25
+- Added `Instantiate` and `Destroy` macros
+- Added `AirshipBehaviour.enabled` setter macro
+- Force `gameObject` global to reference `this.gameObject` inside of `AirshipBehaviour`
+
 ## 2024-07-03 (3f51ef)
 - Added `GetAirshipComponentsInParent`, `GetAirshipComponentInParent` and `GetComponentInParent`
 
