@@ -3,6 +3,7 @@ import { DiagnosticFactory, errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { transformExpressionWithTypeArguments } from "TSTransformer/nodes/expressions//transformExpressionWithTypeArguments";
 import { transformArrayLiteralExpression } from "TSTransformer/nodes/expressions/transformArrayLiteralExpression";
 import { transformAsExpression } from "TSTransformer/nodes/expressions/transformAsExpression";
 import { transformAwaitExpression } from "TSTransformer/nodes/expressions/transformAwaitExpression";
@@ -102,6 +103,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.TypeAssertionExpression, transformTypeAssertion],
 	[ts.SyntaxKind.VoidExpression, transformVoidExpression],
 	[ts.SyntaxKind.YieldExpression, transformYieldExpression],
+	[ts.SyntaxKind.ExpressionWithTypeArguments, transformExpressionWithTypeArguments],
 ]);
 
 export function transformExpression(state: TransformState, node: ts.Expression): luau.Expression {
