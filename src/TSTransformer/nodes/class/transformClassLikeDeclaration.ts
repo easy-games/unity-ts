@@ -24,6 +24,7 @@ import { transformDecorators } from "TSTransformer/nodes/class/transformDecorato
 import { transformPropertyDeclaration } from "TSTransformer/nodes/class/transformPropertyDeclaration";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
+import { transformBlock } from "TSTransformer/nodes/statements/transformBlock";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import {
 	EnumMetadata,
@@ -913,7 +914,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	}
 
 	const methods = new Array<ts.MethodDeclaration>();
-	const staticProperties = new Array<ts.PropertyDeclaration>();
+	const staticProperties = new Array<ts.PropertyDeclaration | ts.ClassStaticBlockDeclaration>();
 	for (const member of node.members) {
 		validateMethodAssignment(state, member);
 		if (
@@ -929,6 +930,8 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 			if (!ts.hasStaticModifier(member)) {
 				continue;
 			}
+			staticProperties.push(member);
+		} else if (ts.isClassStaticBlockDeclaration(member)) {
 			staticProperties.push(member);
 		} else if (ts.isAccessor(member)) {
 			DiagnosticService.addDiagnostic(errors.noGetterSetter(member));
@@ -989,8 +992,16 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		);
 	}
 
-	for (const property of staticProperties) {
-		luau.list.pushList(statementsInner, transformPropertyDeclaration(state, property, internalName));
+	for (const declaration of staticProperties) {
+		if (ts.isClassStaticBlockDeclaration(declaration)) {
+			luau.list.pushList(statementsInner, transformBlock(state, declaration.body));
+		} else {
+			const [statements, prereqs] = state.capture(() =>
+				transformPropertyDeclaration(state, declaration, internalName),
+			);
+			luau.list.pushList(statementsInner, prereqs);
+			luau.list.pushList(statementsInner, statements);
+		}
 	}
 
 	// if using internal name, assign to return var
