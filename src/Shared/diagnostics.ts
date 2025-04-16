@@ -2,7 +2,7 @@ import kleur from "kleur";
 import { SourceFileWithTextRange } from "Shared/types";
 import { createDiagnosticWithLocation } from "Shared/util/createDiagnosticWithLocation";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
-import ts from "typescript";
+import ts, { Type, TypeChecker } from "typescript";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type DiagnosticFactory<T extends Array<any> = []> = {
@@ -144,6 +144,16 @@ export const errors = {
 	noEnumMerging: error("Enum merging is not supported!"),
 	noNamespaceMerging: error("Namespace merging is not supported!"),
 	noSpreadDestructuring: error("Operator `...` is not supported for destructuring!"),
+	unsupportedSpreadDestructing: errorWithContext((checker: TypeChecker, type: Type) => {
+		return [`Operator \`...\` is not supported for type '${checker.typeToString(type)}'`];
+	}),
+	noSpreadOnUnityObjects: errorWithContext((typeName: string) => {
+		return [`Operator \`...\` is not supported on C# type ${typeName}!`];
+	}),
+	noSpreadOnDataTypes: errorWithContext((checker: TypeChecker, type: Type) => {
+		return [`Operator \`...\` is not supported for data type '${checker.typeToString(type)}'`];
+	}),
+	noNestedSpreadsInAssignmentPatterns: error("Nesting spreads in assignment patterns is not supported!"),
 	noFunctionExpressionName: error("Function expression names are not supported!"),
 	noPrecedingSpreadElement: error("Spread element must come last in a list of arguments!"),
 	noLuaTupleDestructureAssignmentExpression: error(

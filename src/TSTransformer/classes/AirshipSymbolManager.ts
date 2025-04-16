@@ -22,6 +22,8 @@ export const AIRSHIP_SYMBOL_NAMES = {
 	AirshipBehaviourClassDecorator: "AirshipBehaviourClassDecorator",
 } as const;
 
+export const UNITY_DATA_TYPES = ["Vector3", "Vector2", "Vector4", "Quaternion", "Matrix4x4", "Color", "Rect"];
+
 const AIRSHIP_SERIALIZE_TYPES = {
 	Vector3: "Vector3",
 	Vector2: "Vector2",
@@ -57,6 +59,7 @@ export const SINGLETON_STATICS: MacroList<PropertyCallMacro> = {
 export class AirshipSymbolManager {
 	private symbols = new Map<string, ts.Symbol>();
 	private symbolsToType = new Map<ts.Symbol, ts.Type>();
+	private dataTypes = new Set<ts.Type>();
 	private serializedTypes = new Set<ts.Type>();
 
 	constructor(private typeChecker: ts.TypeChecker, private macroManager: MacroManager) {
@@ -126,6 +129,22 @@ export class AirshipSymbolManager {
 			macroManager.addPropertyCallMacro(methodSymbol, macro);
 		}
 
+		for (const symbolName of Object.values(UNITY_DATA_TYPES)) {
+			const symbol = typeChecker.resolveName(symbolName, undefined, ts.SymbolFlags.All, false);
+
+			if (symbol) {
+				// Since some of our symbols have multiple 'declarations' - fetch the interface declaration
+				const interfaceDeclaration = symbol.declarations?.find(
+					f => f.kind === ts.SyntaxKind.InterfaceDeclaration,
+				);
+
+				if (interfaceDeclaration) {
+					const interfaceType = typeChecker.getTypeAtLocation(interfaceDeclaration);
+					this.dataTypes.add(interfaceType);
+				}
+			}
+		}
+
 		for (const symbolName of Object.values(AIRSHIP_SERIALIZE_TYPES)) {
 			const symbol = typeChecker.resolveName(symbolName, undefined, ts.SymbolFlags.All, false);
 
@@ -161,8 +180,17 @@ export class AirshipSymbolManager {
 		return symbol;
 	}
 
+	public findSymbol(name: string) {
+		const symbol = this.symbols.get(name);
+		return symbol;
+	}
+
 	public getTypeFromSymbol(constructorSymbol: ts.Symbol) {
 		return this.symbolsToType.get(constructorSymbol);
+	}
+
+	public isDataType(type: ts.Type) {
+		return this.dataTypes.has(type);
 	}
 
 	public isTypeSerializable(type: ts.Type): boolean {

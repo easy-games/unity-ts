@@ -1,3 +1,9 @@
+# 3.6.x
+- [`static` blocks](https://www.typescriptlang.org/docs/handbook/2/classes.html#static-blocks-in-classes) are now supported, instead of crashing the compiler.
+- Support for Array, Set, Map, Generator and Object destructuring!
+	- E.g. `const [a, b, ...c] = array`, `const {a, b, ...rest} = obj;`
+	- Note: This is not supported for C# objects, unity data types or any unity Object derived types!
+
 # 3.5.x
 - Simple loops are now optimized by default
 	- This will optimize loops like `for (let i = 1; i <= 10; i++) {}` into `for i = 1, 10 do end`

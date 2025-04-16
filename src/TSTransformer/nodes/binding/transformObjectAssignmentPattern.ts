@@ -6,6 +6,7 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformArrayAssignmentPattern } from "TSTransformer/nodes/binding/transformArrayAssignmentPattern";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
+import { getDestructorForObjectType } from "TSTransformer/util/binding/getDestructorForObjectType";
 import { objectAccessor } from "TSTransformer/util/binding/objectAccessor";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { skipDownwards } from "TSTransformer/util/traversal";
@@ -16,6 +17,7 @@ export function transformObjectAssignmentPattern(
 	assignmentPattern: ts.ObjectLiteralExpression,
 	parentId: luau.AnyIdentifier,
 ) {
+	const preSpreadNames = new Array<luau.Expression>();
 	for (const property of assignmentPattern.properties) {
 		if (ts.isShorthandPropertyAssignment(property)) {
 			const name = property.name;
@@ -38,8 +40,37 @@ export function transformObjectAssignmentPattern(
 				state.prereq(transformInitializer(state, id, property.objectAssignmentInitializer));
 			}
 		} else if (ts.isSpreadAssignment(property)) {
-			DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(property));
-			return;
+			const value = getDestructorForObjectType(state, parentId, preSpreadNames);
+			const expression = property.expression;
+
+			if (ts.isObjectLiteralExpression(property.expression)) {
+				DiagnosticService.addDiagnostic(errors.noNestedSpreadsInAssignmentPatterns(property));
+				continue;
+			}
+
+			if (
+				ts.isIdentifier(expression) ||
+				ts.isElementAccessExpression(expression) ||
+				ts.isPropertyAccessExpression(expression)
+			) {
+				const id = transformWritableExpression(state, expression, true);
+				state.prereq(
+					luau.create(luau.SyntaxKind.Assignment, {
+						left: id,
+						operator: "=",
+						right: value,
+					}),
+				);
+			} else if (ts.isObjectLiteralExpression(expression)) {
+				transformObjectAssignmentPattern(state, expression, value);
+			} else if (ts.isArrayLiteralExpression(expression)) {
+				transformArrayAssignmentPattern(state, expression, value);
+			} else {
+				assert(
+					false,
+					"transformObjectAssignmentPattern unexpected expression type: " + getKindName(expression.kind),
+				);
+			}
 		} else if (ts.isPropertyAssignment(property)) {
 			const name = property.name;
 			let init = property.initializer;
@@ -55,6 +86,8 @@ export function transformObjectAssignmentPattern(
 				state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern),
 				name,
 			);
+			preSpreadNames.push(value);
+
 			if (ts.isIdentifier(init) || ts.isElementAccessExpression(init) || ts.isPropertyAccessExpression(init)) {
 				const id = transformWritableExpression(state, init, initializer !== undefined);
 				state.prereq(

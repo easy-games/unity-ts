@@ -245,8 +245,6 @@ function transformInLineArrayBindingPattern(
 	for (const element of pattern.elements) {
 		if (ts.isOmittedExpression(element)) {
 			luau.list.push(ids, luau.tempId());
-		} else if (ts.isSpreadElement(element)) {
-			DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
 		} else {
 			const id = transformBindingName(state, element.name, initializers);
 			if (element.initializer) {
@@ -269,8 +267,6 @@ function transformInLineArrayAssignmentPattern(
 			for (let element of assignmentPattern.elements) {
 				if (ts.isOmittedExpression(element)) {
 					luau.list.push(ids, luau.tempId());
-				} else if (ts.isSpreadElement(element)) {
-					DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
 				} else {
 					let initializer: ts.Expression | undefined;
 					if (ts.isBinaryExpression(element)) {

@@ -107,6 +107,30 @@ export function isUnityObjectType(state: TransformState, nodeType: ts.Type) {
 	return objectInheritanceTree.includes(objectSymbol);
 }
 
+export function isColorDataType(state: TransformState, nodeType: ts.Type) {
+	const objectSymbol = state.services.airshipSymbolManager.getSymbolOrThrow("Color");
+	return nodeType === state.typeChecker.getTypeOfSymbol(objectSymbol);
+}
+
+export function isDataType(state: TransformState, nodeType: ts.Type) {
+	return state.services.airshipSymbolManager.isDataType(nodeType);
+}
+
+export function isCSharpType(state: TransformState, nodeType: ts.Type) {
+	const symbolName = state.typeChecker.typeToString(nodeType);
+
+	// resolves any ambient types
+	const symbol = state.typeChecker.resolveName(symbolName, undefined, ts.SymbolFlags.All, false);
+	if (!symbol) return false;
+
+	const declarations = symbol.declarations;
+	if (declarations) {
+		return true;
+	}
+
+	return false;
+}
+
 export function createIsDestroyedLuauMethodCall(expression: luau.IndexableExpression): luau.MethodCallExpression {
 	return luau.create(luau.SyntaxKind.MethodCallExpression, {
 		name: "IsDestroyed",

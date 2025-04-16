@@ -8,7 +8,9 @@ import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/trans
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
+import { isCSharpType, isDataType, isUnityObjectType } from "TSTransformer/util/airshipBehaviourUtils";
 import { arrayBindingPatternContainsHoists } from "TSTransformer/util/arrayBindingPatternContainsHoists";
+import { arrayLikeExpressionContainsSpread } from "TSTransformer/util/arrayBindingPatternContainsSpread";
 import { checkVariableHoist } from "TSTransformer/util/checkVariableHoist";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { isLuaTupleType } from "TSTransformer/util/types";
@@ -66,10 +68,10 @@ function transformOptimizedArrayBindingPattern(
 				if (ts.isOmittedExpression(element)) {
 					luau.list.push(ids, luau.tempId());
 				} else {
-					if (element.dotDotDotToken) {
-						DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
-						return;
-					}
+					// if (element.dotDotDotToken) {
+					// 	DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
+					// 	return;
+					// }
 					if (ts.isIdentifier(element.name)) {
 						validateIdentifier(state, element.name);
 						const id = transformIdentifierDefined(state, element.name);
@@ -135,14 +137,16 @@ export function transformVariableDeclaration(
 			if (
 				luau.isCall(value) &&
 				isLuaTupleType(state)(state.getType(node.initializer)) &&
-				!arrayBindingPatternContainsHoists(state, name)
+				!arrayBindingPatternContainsHoists(state, name) &&
+				!arrayLikeExpressionContainsSpread(name)
 			) {
 				luau.list.pushList(statements, transformOptimizedArrayBindingPattern(state, name, value));
 			} else if (
 				luau.isArray(value) &&
 				!luau.list.isEmpty(value.members) &&
 				// we can't localize multiple variables at the same time if any of them are hoisted
-				!arrayBindingPatternContainsHoists(state, name)
+				!arrayBindingPatternContainsHoists(state, name) &&
+				!arrayLikeExpressionContainsSpread(name)
 			) {
 				luau.list.pushList(statements, transformOptimizedArrayBindingPattern(state, name, value.members));
 			} else {
@@ -154,6 +158,33 @@ export function transformVariableDeclaration(
 				);
 			}
 		} else {
+			const hasSpreadElement = name.elements.find(f => f.dotDotDotToken !== undefined);
+
+			if (hasSpreadElement) {
+				const type = state.typeChecker.getTypeAtLocation(node.initializer);
+
+				if (isUnityObjectType(state, type)) {
+					DiagnosticService.addDiagnostic(
+						errors.noSpreadOnUnityObjects(hasSpreadElement, state.typeChecker.typeToString(type)),
+					);
+					return statements;
+				}
+
+				if (isDataType(state, type)) {
+					DiagnosticService.addDiagnostic(
+						errors.noSpreadOnDataTypes(hasSpreadElement, state.typeChecker, type),
+					);
+					return statements;
+				}
+
+				if (isCSharpType(state, type)) {
+					DiagnosticService.addDiagnostic(
+						errors.noSpreadOnUnityObjects(hasSpreadElement, state.typeChecker.typeToString(type)),
+					);
+					return statements;
+				}
+			}
+
 			luau.list.pushList(
 				statements,
 				state.capturePrereqs(() =>
