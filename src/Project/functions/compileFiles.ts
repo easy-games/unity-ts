@@ -2,6 +2,7 @@ import { renderAST } from "@roblox-ts/luau-ast";
 import fs from "fs-extra";
 import path from "path";
 import { checkFileName } from "Project/functions/checkFileName";
+import { getCompilerServer } from "Project/functions/createCompilerServer";
 import { createNodeModulesPathMapping } from "Project/functions/createNodeModulesPathMapping";
 import { jsonReporter } from "Project/functions/json";
 import { shouldGenerateLuauPackageDeclarations } from "Project/functions/shouldGenerateLuauPackageDeclarations";
@@ -67,6 +68,8 @@ export function compileFiles(
 	if (incremental) {
 		buildState.cleanup(pathTranslator);
 	}
+
+	const compilerServer = getCompilerServer();
 
 	const pkgJson: { name: string } = JSON.parse(
 		fs
@@ -250,6 +253,8 @@ export function compileFiles(
 				jsonReporter("compiledFile", {
 					fileName: sourceFile.fileName,
 				});
+			} else if (compilerServer) {
+				compilerServer.pushCompiledFile(sourceFile);
 			}
 		});
 	}

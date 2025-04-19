@@ -27,6 +27,7 @@ export interface ProjectOptions {
 	verbose: boolean;
 	watch: boolean;
 	json: boolean;
+	server: boolean;
 	publish: boolean;
 	writeOnlyChanged: boolean;
 	optimizedLoops: boolean;

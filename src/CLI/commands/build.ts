@@ -5,6 +5,7 @@ import { cleanup } from "Project/functions/cleanup";
 import { compileFiles } from "Project/functions/compileFiles";
 import { copyFiles } from "Project/functions/copyFiles";
 import { copyNodeModules } from "Project/functions/copyInclude";
+import { createCompilerServer } from "Project/functions/createCompilerServer";
 import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProjectData } from "Project/functions/createProjectData";
 import { createProjectProgram } from "Project/functions/createProjectProgram";
@@ -20,6 +21,7 @@ import { getRootDirs } from "Shared/util/getRootDirs";
 import { hasErrors } from "Shared/util/hasErrors";
 import { AirshipBuildState, BUILD_FILE, EDITOR_FILE } from "TSTransformer";
 import ts, { TSConfig } from "typescript";
+import { WebSocketServer } from "ws";
 import yargs from "yargs";
 
 interface BuildFlags {
@@ -47,6 +49,12 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 			hidden: true,
 			boolean: true,
 			default: false,
+		},
+		server: {
+			hidden: true,
+			boolean: true,
+			default: false,
+			alias: "ws",
 		},
 		publish: {
 			hidden: true,
@@ -99,6 +107,15 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 			}
 
 			const packageJson = getPackageJson(packageJsonDir);
+
+			if (projectOptions.server && projectOptions.json) {
+				throw new ProjectError(`Cannot use JSON events as well as the webserver!`);
+			}
+
+			// Server forces watch
+			if (projectOptions.server) {
+				projectOptions.watch = true;
+			}
 
 			LogService.verbose = projectOptions.verbose === true && projectOptions.json === false;
 

@@ -4,6 +4,7 @@ import chokidar from "chokidar";
 import fs from "fs-extra";
 import path from "path";
 import { ProjectData } from "Project";
+import { AirshipTypescriptCompilerServer, createCompilerServer } from "Project/functions//createCompilerServer";
 import { buildTypes } from "Project/functions/buildTypes";
 import { checkFileName } from "Project/functions/checkFileName";
 import { cleanup } from "Project/functions/cleanup";
@@ -55,6 +56,11 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 
 	const watchBuildState = new AirshipBuildState();
 
+	let server: AirshipTypescriptCompilerServer | undefined;
+	if (data.projectOptions.server) {
+		server = createCompilerServer();
+	}
+
 	const watchReporter = ts.createWatchStatusReporter(ts.sys, true);
 	const diagnosticReporter = useJsonEvents
 		? createJsonDiagnosticReporter(data)
@@ -93,7 +99,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 			} else {
 				jsonReporter("finishedCompile", {});
 			}
-		} else {
+		} else if (!server) {
 			reportText(`Found ${amtErrors} error${amtErrors === 1 ? "" : "s"}. Watching for file changes.`);
 		}
 	}
@@ -131,7 +137,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 				initial: true,
 				count: sourceFiles.length,
 			});
-		} else {
+		} else if (!server) {
 			reportText("Starting compilation in watch mode...");
 		}
 
@@ -197,7 +203,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 				initial: false,
 				count: sourceFiles.length,
 			});
-		} else {
+		} else if (!server) {
 			reportText("File change detected. Starting incremental compilation...");
 		}
 
@@ -344,7 +350,9 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		.on("unlink", collectDeleteEvent)
 		.on("unlinkDir", collectDeleteEvent)
 		.once("ready", () => {
-			reportEmitResult(runCompile());
+			if (!server) {
+				reportEmitResult(runCompile());
+			}
 		});
 
 	if (useJsonEvents) {
@@ -354,5 +362,10 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		});
 
 		rl.on("line", handleRpcEvent);
+	} else if (server) {
+		server.start();
+		server.on("requestCompile", () => {
+			reportEmitResult(runCompile());
+		});
 	}
 }
