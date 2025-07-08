@@ -80,10 +80,23 @@ function shouldSkipSingletonImport(
 			const symbolOfNode = state.typeChecker.getSymbolAtLocation(node);
 			const typeOfNode = state.typeChecker.getTypeAtLocation(left);
 
+			// call expressions
+			const parent = node.parent;
+			if (
+				symbolOfNode &&
+				parent &&
+				ts.isCallExpression(parent) &&
+				!state.services.macroManager.isPropertyCallMacro(symbolOfNode)
+			) {
+				shouldSkip = false;
+				return "skip";
+			}
+
+			// value expressions
 			if (
 				symbolOfNode &&
 				typeOfNode === state.typeChecker.getTypeOfSymbol(symbol) &&
-				!state.services.macroManager.isPropertyMacro(symbolOfNode!)
+				!state.services.macroManager.isPropertyCallMacro(symbolOfNode!)
 			) {
 				shouldSkip = false;
 			}

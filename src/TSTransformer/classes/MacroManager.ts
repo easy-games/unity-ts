@@ -296,7 +296,7 @@ export class MacroManager {
 		return macro;
 	}
 
-	public isPropertyMacro(symbol: ts.Symbol) {
+	public isPropertyCallMacro(symbol: ts.Symbol) {
 		const macro = this.propertyCallMacros.get(symbol);
 		return macro !== undefined;
 	}
