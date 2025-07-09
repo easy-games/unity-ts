@@ -283,6 +283,11 @@ export class MacroManager {
 		}
 	}
 
+	public findPropertyCallMacro(symbol: ts.Symbol) {
+		const macro = this.propertyCallMacros.get(symbol);
+		return macro;
+	}
+
 	public getPropertyCallMacro(symbol: ts.Symbol) {
 		const macro = this.propertyCallMacros.get(symbol);
 		if (

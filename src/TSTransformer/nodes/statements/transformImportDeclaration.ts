@@ -106,7 +106,7 @@ function shouldSkipSingletonImport(
 			const symbolOfNode = state.typeChecker.getSymbolAtLocation(node);
 			const isGetMacro =
 				symbolOfNode !== undefined &&
-				state.services.macroManager.getPropertyCallMacro(symbolOfNode) === SINGLETON_STATICS.Get;
+				state.services.macroManager.findPropertyCallMacro(symbolOfNode) === SINGLETON_STATICS.Get;
 
 			if (!isGetMacro) shouldSkip = false;
 		} else if (ts.isIdentifier(node) && !ts.isPropertyAccessExpression(node.parent)) {
