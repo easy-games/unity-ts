@@ -57,10 +57,13 @@ function isSingletonAccess(state: TransformState, node: ts.PropertyAccessExpress
 	return isAccess;
 }
 
-function isStaticSingletonAccess(state: TransformState, node: ts.Node, symbol: ts.Symbol): boolean {
+function isStaticSingletonAccess(state: TransformState, node: ts.Node): boolean {
 	if (ts.isIdentifier(node) && !ts.isImportClause(node.parent)) {
-		const typeOfNode = state.typeChecker.getTypeAtLocation(node);
-		return isAirshipSingletonType(state, typeOfNode);
+		const symbolOfNode = state.typeChecker.getSymbolAtLocation(node);
+		if (!symbolOfNode) return false;
+
+		const declaredType = state.typeChecker.getDeclaredTypeOfSymbol(symbolOfNode);
+		return isAirshipSingletonType(state, declaredType);
 	} else if (ts.isPropertyAccessExpression(node)) {
 		return isSingletonAccess(state, node);
 	}
@@ -98,7 +101,7 @@ function shouldSkipSingletonImport(
 	// Ensure we're only using only a macro on the singleton
 	let shouldSkip = true;
 	ts.forEachChildRecursively(importDeclaration.getSourceFile(), node => {
-		if (!isStaticSingletonAccess(state, node, symbol)) return;
+		if (!isStaticSingletonAccess(state, node)) return;
 		if (ts.isPropertyAccessExpression(node)) {
 			const symbolOfNode = state.typeChecker.getSymbolAtLocation(node);
 			const isGetMacro =
@@ -106,6 +109,13 @@ function shouldSkipSingletonImport(
 				state.services.macroManager.getPropertyCallMacro(symbolOfNode) === SINGLETON_STATICS.Get;
 
 			if (!isGetMacro) shouldSkip = false;
+		} else if (ts.isIdentifier(node) && !ts.isPropertyAccessExpression(node.parent)) {
+			// E.g. let x = TestManager; (if this is done for any reason?)
+			const symbolOfId = state.typeChecker.getSymbolAtLocation(node);
+			if (symbolOfId) {
+				const declaredType = state.typeChecker.getDeclaredTypeOfSymbol(symbolOfId);
+				if (isAirshipSingletonType(state, declaredType)) shouldSkip = false;
+			}
 		}
 	});
 
