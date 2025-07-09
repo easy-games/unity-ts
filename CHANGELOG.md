@@ -4,6 +4,19 @@
 	- E.g. `const [a, b, ...c] = array`, `const {a, b, ...rest} = obj;`
 	- Note: This is not supported for C# objects, unity data types or any unity Object derived types!
 
+## 2025-07-09
+- Fixed bug with `AirshipSingleton` static method calls/member accesses not including an import (and thus erroring) - e.g.
+```ts
+import TestManager from "./TestManager"; // where TestManager extends AirshipSingleton
+
+export default class Test extends AirshipBehaviour {
+	Start(): void {
+		TestManager.OnTest.Connect(() => {}); // this would previously not cause an import in Luau
+	}
+}
+
+```
+
 # 3.5.x
 - Simple loops are now optimized by default
 	- This will optimize loops like `for (let i = 1; i <= 10; i++) {}` into `for i = 1, 10 do end`
