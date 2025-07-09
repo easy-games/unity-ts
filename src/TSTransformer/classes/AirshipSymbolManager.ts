@@ -39,7 +39,7 @@ const AIRSHIP_SERIALIZE_TYPES = {
 	AnimationCurve: "AnimationCurve",
 } as const;
 
-export const SINGLETON_STATICS: MacroList<PropertyCallMacro> = {
+export const SINGLETON_STATICS = {
 	Get: (state, node, expression, args) => {
 		const importId = state.addFileImport(SINGLETON_FILE_IMPORT, "SingletonRegistry");
 		const Singletons_Resolve = luau.property(importId, "Resolve");
@@ -51,7 +51,7 @@ export const SINGLETON_STATICS: MacroList<PropertyCallMacro> = {
 
 		return luau.nil();
 	},
-};
+} satisfies MacroList<PropertyCallMacro>;
 
 /**
  * Manages the macros of the ts.

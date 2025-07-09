@@ -1,10 +1,11 @@
 import luau from "@roblox-ts/luau-ast";
 import { Lazy } from "Shared/classes/Lazy";
 import { assert } from "Shared/util/assert";
-import { TransformState } from "TSTransformer";
+import { SINGLETON_STATICS, TransformState } from "TSTransformer";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { cleanModuleName } from "TSTransformer/util/cleanModuleName";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
+import { isAirshipSingletonSymbol, isAirshipSingletonType } from "TSTransformer/util/extendsAirshipBehaviour";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
@@ -34,6 +35,37 @@ function countImportExpUses(state: TransformState, importClause: ts.ImportClause
 	}
 
 	return uses;
+}
+
+function isSingletonAccess(state: TransformState, node: ts.PropertyAccessExpression): boolean {
+	const lhs = node.expression;
+	let isAccess = false;
+
+	if (ts.isIdentifier(lhs)) {
+		const symbol = state.typeChecker.getSymbolAtLocation(lhs);
+		if (!symbol) return false;
+		isAccess = isAirshipSingletonSymbol(state, symbol);
+
+		const declaredType = state.typeChecker.getDeclaredTypeOfSymbol(symbol);
+		if (declaredType) isAccess = isAirshipSingletonType(state, declaredType);
+	} else if (ts.isPropertyAccessExpression(lhs)) {
+		isAccess = isSingletonAccess(state, lhs);
+	} else if (ts.isCallExpression(lhs) && ts.isPropertyAccessExpression(lhs.expression)) {
+		isAccess = isSingletonAccess(state, lhs.expression);
+	}
+
+	return isAccess;
+}
+
+function isStaticSingletonAccess(state: TransformState, node: ts.Node, symbol: ts.Symbol): boolean {
+	if (ts.isIdentifier(node) && !ts.isImportClause(node.parent)) {
+		const typeOfNode = state.typeChecker.getTypeAtLocation(node);
+		return isAirshipSingletonType(state, typeOfNode);
+	} else if (ts.isPropertyAccessExpression(node)) {
+		return isSingletonAccess(state, node);
+	}
+
+	return false;
 }
 
 function shouldSkipSingletonImport(
@@ -66,41 +98,14 @@ function shouldSkipSingletonImport(
 	// Ensure we're only using only a macro on the singleton
 	let shouldSkip = true;
 	ts.forEachChildRecursively(importDeclaration.getSourceFile(), node => {
-		if (ts.isIdentifier(node) && !ts.isImportClause(node.parent)) {
+		if (!isStaticSingletonAccess(state, node, symbol)) return;
+		if (ts.isPropertyAccessExpression(node)) {
 			const symbolOfNode = state.typeChecker.getSymbolAtLocation(node);
-			const typeOfNode = state.typeChecker.getTypeAtLocation(node);
+			const isGetMacro =
+				symbolOfNode !== undefined &&
+				state.services.macroManager.getPropertyCallMacro(symbolOfNode) === SINGLETON_STATICS.Get;
 
-			if (symbolOfNode && typeOfNode === state.typeChecker.getTypeOfSymbol(symbol)) {
-				shouldSkip = false;
-			}
-			return "skip";
-		} else if (ts.isPropertyAccessExpression(node)) {
-			const left = node.expression;
-
-			const symbolOfNode = state.typeChecker.getSymbolAtLocation(node);
-			const typeOfNode = state.typeChecker.getTypeAtLocation(left);
-
-			// call expressions
-			const parent = node.parent;
-			if (
-				symbolOfNode &&
-				parent &&
-				ts.isCallExpression(parent) &&
-				!state.services.macroManager.isPropertyCallMacro(symbolOfNode)
-			) {
-				shouldSkip = false;
-				return "skip";
-			}
-
-			// value expressions
-			if (
-				symbolOfNode &&
-				typeOfNode === state.typeChecker.getTypeOfSymbol(symbol) &&
-				!state.services.macroManager.isPropertyCallMacro(symbolOfNode!)
-			) {
-				shouldSkip = false;
-			}
-			return "skip";
+			if (!isGetMacro) shouldSkip = false;
 		}
 	});
 

@@ -177,10 +177,12 @@ export function isAirshipSingletonType(state: TransformState, type: ts.Type) {
 	}
 
 	// Get the root inheriting symbol (Should match AirshipBehaviour for this to be "extending" AirshipBehaviour)
-	const baseTypeDeclaration = inheritance[inheritance.length - 1];
+	const baseTypeDeclaration = inheritance[inheritance.length - 2];
 	if (baseTypeDeclaration !== undefined) {
 		return baseTypeDeclaration === airshipBehaviourSymbol;
 	}
+
+	return false;
 }
 
 export function isAirshipSingletonSymbol(state: TransformState, symbol: ts.Symbol) {
@@ -194,8 +196,10 @@ export function isAirshipSingletonSymbol(state: TransformState, symbol: ts.Symbo
 	}
 
 	// Get the root inheriting symbol (Should match AirshipBehaviour for this to be "extending" AirshipBehaviour)
-	const baseTypeDeclaration = inheritance[inheritance.length - 1];
+	const baseTypeDeclaration = inheritance[inheritance.length - 2];
 	if (baseTypeDeclaration !== undefined) {
 		return baseTypeDeclaration === airshipBehaviourSymbol;
 	}
+
+	return false;
 }
