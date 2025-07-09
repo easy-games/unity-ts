@@ -1,11 +1,11 @@
 import luau from "@roblox-ts/luau-ast";
 import { Lazy } from "Shared/classes/Lazy";
 import { assert } from "Shared/util/assert";
-import { SINGLETON_STATICS, TransformState } from "TSTransformer";
+import { TransformState } from "TSTransformer";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { cleanModuleName } from "TSTransformer/util/cleanModuleName";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
-import { isAirshipSingletonSymbol, isAirshipSingletonType } from "TSTransformer/util/extendsAirshipBehaviour";
+import { isAirshipSingletonType } from "TSTransformer/util/extendsAirshipBehaviour";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
@@ -37,35 +37,29 @@ function countImportExpUses(state: TransformState, importClause: ts.ImportClause
 	return uses;
 }
 
-function isSingletonAccess(state: TransformState, node: ts.PropertyAccessExpression): boolean {
-	const lhs = node.expression;
-	let isAccess = false;
+export function isStaticAirshipSingletonPropertyAccess(
+	state: TransformState,
+	expression: ts.PropertyAccessExpression,
+): boolean {
+	const symbolOfAccessExpression = state.typeChecker.getSymbolAtLocation(expression);
+	if (!symbolOfAccessExpression) return false;
 
-	if (ts.isIdentifier(lhs)) {
-		const symbol = state.typeChecker.getSymbolAtLocation(lhs);
-		if (!symbol) return false;
-		isAccess = isAirshipSingletonSymbol(state, symbol);
+	const innerExpression = expression.expression;
+	if (ts.isIdentifier(innerExpression)) {
+		const expressionType = state.typeChecker.getDeclaredTypeOfSymbol(
+			state.typeChecker.getSymbolAtLocation(innerExpression)!,
+		);
 
-		const declaredType = state.typeChecker.getDeclaredTypeOfSymbol(symbol);
-		if (declaredType) isAccess = isAirshipSingletonType(state, declaredType);
-	} else if (ts.isPropertyAccessExpression(lhs)) {
-		isAccess = isSingletonAccess(state, lhs);
-	} else if (ts.isCallExpression(lhs) && ts.isPropertyAccessExpression(lhs.expression)) {
-		isAccess = isSingletonAccess(state, lhs.expression);
-	}
-
-	return isAccess;
-}
-
-function isStaticSingletonAccess(state: TransformState, node: ts.Node): boolean {
-	if (ts.isIdentifier(node) && !ts.isImportClause(node.parent)) {
-		const symbolOfNode = state.typeChecker.getSymbolAtLocation(node);
-		if (!symbolOfNode) return false;
-
-		const declaredType = state.typeChecker.getDeclaredTypeOfSymbol(symbolOfNode);
-		return isAirshipSingletonType(state, declaredType);
-	} else if (ts.isPropertyAccessExpression(node)) {
-		return isSingletonAccess(state, node);
+		if (isAirshipSingletonType(state, expressionType)) {
+			const callMacro = symbolOfAccessExpression
+				? state.services.macroManager.findPropertyCallMacro(symbolOfAccessExpression)
+				: undefined;
+			if (callMacro === undefined) {
+				return true;
+			} else {
+				return false;
+			}
+		}
 	}
 
 	return false;
@@ -101,21 +95,9 @@ function shouldSkipSingletonImport(
 	// Ensure we're only using only a macro on the singleton
 	let shouldSkip = true;
 	ts.forEachChildRecursively(importDeclaration.getSourceFile(), node => {
-		if (!isStaticSingletonAccess(state, node)) return;
-		if (ts.isPropertyAccessExpression(node)) {
-			const symbolOfNode = state.typeChecker.getSymbolAtLocation(node);
-			const isGetMacro =
-				symbolOfNode !== undefined &&
-				state.services.macroManager.findPropertyCallMacro(symbolOfNode) === SINGLETON_STATICS.Get;
-
-			if (!isGetMacro) shouldSkip = false;
-		} else if (ts.isIdentifier(node) && !ts.isPropertyAccessExpression(node.parent)) {
-			// E.g. let x = TestManager; (if this is done for any reason?)
-			const symbolOfId = state.typeChecker.getSymbolAtLocation(node);
-			if (symbolOfId) {
-				const declaredType = state.typeChecker.getDeclaredTypeOfSymbol(symbolOfId);
-				if (isAirshipSingletonType(state, declaredType)) shouldSkip = false;
-			}
+		if (ts.isPropertyAccessExpression(node) && isStaticAirshipSingletonPropertyAccess(state, node)) {
+			shouldSkip = false;
+			return "skip";
 		}
 	});
 

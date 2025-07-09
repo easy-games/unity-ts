@@ -3,8 +3,8 @@ import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
 import { MacroManager } from "TSTransformer/classes/MacroManager";
 import { SINGLETON_FILE_IMPORT } from "TSTransformer/classes/TransformState";
-import { PROPERTY_GETTERS, PROPERTY_SETTERS } from "TSTransformer/macros/propertyMacros";
-import { MacroList, PropertyCallMacro, PropertyGetMacro, PropertySetMacro } from "TSTransformer/macros/types";
+import { PROPERTY_SETTERS } from "TSTransformer/macros/propertyMacros";
+import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
@@ -39,8 +39,8 @@ const AIRSHIP_SERIALIZE_TYPES = {
 	AnimationCurve: "AnimationCurve",
 } as const;
 
-export const SINGLETON_STATICS = {
-	Get: (state, node, expression, args) => {
+export const AIRSHIP_SINGLETON_MACROS = {
+	Get: (state, node) => {
 		const importId = state.addFileImport(SINGLETON_FILE_IMPORT, "SingletonRegistry");
 		const Singletons_Resolve = luau.property(importId, "Resolve");
 
@@ -119,7 +119,7 @@ export class AirshipSymbolManager {
 			macroManager.addPropertySetMacro(methodSymbol, macro);
 		}
 
-		for (const [methodName, macro] of Object.entries(SINGLETON_STATICS)) {
+		for (const [methodName, macro] of Object.entries(AIRSHIP_SINGLETON_MACROS)) {
 			const methodSymbol = singletonMethodMap.get(methodName);
 			if (!methodSymbol) {
 				throw new ProjectError(
