@@ -40,6 +40,7 @@ function countImportExpUses(state: TransformState, importClause: ts.ImportClause
 export function isStaticAirshipSingletonPropertyAccess(
 	state: TransformState,
 	expression: ts.PropertyAccessExpression,
+	singletonName: string,
 ): boolean {
 	const symbolOfAccessExpression = state.typeChecker.getSymbolAtLocation(expression);
 	if (!symbolOfAccessExpression) return false;
@@ -51,6 +52,9 @@ export function isStaticAirshipSingletonPropertyAccess(
 		);
 
 		if (isAirshipSingletonType(state, expressionType)) {
+			const expressionTypeName = state.typeChecker.typeToString(expressionType);
+			if (expressionTypeName !== singletonName) return false;
+
 			const callMacro = symbolOfAccessExpression
 				? state.services.macroManager.findPropertyCallMacro(symbolOfAccessExpression)
 				: undefined;
@@ -92,10 +96,12 @@ function shouldSkipSingletonImport(
 		return false;
 	}
 
+	const typeName = state.typeChecker.typeToString(valueType);
+
 	// Ensure we're only using only a macro on the singleton
 	let shouldSkip = true;
 	ts.forEachChildRecursively(importDeclaration.getSourceFile(), node => {
-		if (ts.isPropertyAccessExpression(node) && isStaticAirshipSingletonPropertyAccess(state, node)) {
+		if (ts.isPropertyAccessExpression(node) && isStaticAirshipSingletonPropertyAccess(state, node, typeName)) {
 			shouldSkip = false;
 			return "skip";
 		}

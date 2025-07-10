@@ -4,7 +4,7 @@
 	- E.g. `const [a, b, ...c] = array`, `const {a, b, ...rest} = obj;`
 	- Note: This is not supported for C# objects, unity data types or any unity Object derived types!
 
-## 2025-07-09
+## 2025-07-10
 - Fixed bug with `AirshipSingleton` static method calls/member accesses not including an import (and thus erroring) - e.g.
 ```ts
 import TestManager from "./TestManager"; // where TestManager extends AirshipSingleton
