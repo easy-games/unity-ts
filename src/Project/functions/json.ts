@@ -22,7 +22,13 @@ interface EditorFileDiagnostic {
 	text: string | undefined;
 }
 
-interface CompiledFile {}
+interface CompiledFile {
+	readonly fileName: string;
+}
+interface CompiledFileWrite {
+	readonly fileName: string;
+	readonly changed: boolean;
+}
 
 interface StartCompile {
 	initial: boolean;
@@ -34,6 +40,7 @@ interface RpcType {
 	watchReport: WatchReport;
 	fileDiagnostic: EditorFileDiagnostic;
 	compiledFile: CompiledFile;
+	compiledFileWrite: CompiledFileWrite;
 	transformFile: CompiledFile;
 	startingCompile: StartCompile;
 	finishedCompile: FinishCompile;
