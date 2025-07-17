@@ -277,18 +277,25 @@ export function compileFiles(
 								fileMetadataWriteQueue.get(sourceFile) ===
 									fs.readFileSync(metadataPathOutPath).toString());
 
-						if (asJson) {
-							jsonReporter("compiledFileWrite", {
-								fileName: sourceFile.fileName,
-								changed: !isSourceUnchanged || !isMetadataSourceUnchanged,
-							});
-						}
-
 						if (isSourceUnchanged && isMetadataSourceUnchanged) {
+							if (asJson) {
+								jsonReporter("compiledFileWrite", {
+									fileName: sourceFile.fileName,
+									changed: false,
+								});
+							}
+
 							skipCount++;
 							continue;
 						}
 					}
+				}
+
+				if (asJson) {
+					jsonReporter("compiledFileWrite", {
+						fileName: sourceFile.fileName,
+						changed: true,
+					});
 				}
 
 				fs.outputFileSync(outPath, source);
