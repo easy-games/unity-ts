@@ -84,6 +84,9 @@ export function parseNumericLikeBinaryExpressions(
 		case ts.SyntaxKind.GreaterThanGreaterThanToken: {
 			return leftOperand >> rightOperand;
 		}
+		case ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken: {
+			return leftOperand >>> rightOperand;
+		}
 		case ts.SyntaxKind.LessThanLessThanToken: {
 			return leftOperand << rightOperand;
 		}
@@ -92,6 +95,9 @@ export function parseNumericLikeBinaryExpressions(
 		}
 		case ts.SyntaxKind.AmpersandToken: {
 			return leftOperand & rightOperand;
+		}
+		case ts.SyntaxKind.CaretToken: {
+			return leftOperand ^ rightOperand;
 		}
 	}
 }
