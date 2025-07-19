@@ -323,6 +323,11 @@ export const warnings = {
 		];
 	}),
 
+	invalidDefaultValueForProperty: warning(
+		"Property is public, and has a default value set that will not be visible in editor",
+		"use @NonSerialized() if you do not intend for this property to be serialized, or @HideInInspector to hide the property but serialize it",
+	),
+
 	flameworkTransformer: {
 		file: undefined,
 		code: " unity-ts" as unknown as number,
