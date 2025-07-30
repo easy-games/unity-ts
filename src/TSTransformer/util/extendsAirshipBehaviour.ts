@@ -140,7 +140,7 @@ export function isAirshipBehaviourProperty(state: TransformState, node: ts.Prope
 			// Disallow generic properties
 			const nodeTypeRef = node.type;
 			if (nodeTypeRef && ts.isTypeReferenceNode(nodeTypeRef) && nodeTypeRef.typeArguments) {
-				DiagnosticService.addDiagnostic(warnings.genericBehaviourRefernece(node));
+				DiagnosticService.addDiagnostic(warnings.genericBehaviourReference(node));
 				return false;
 			}
 		}
@@ -151,8 +151,10 @@ export function isAirshipBehaviourProperty(state: TransformState, node: ts.Prope
 	return false;
 }
 
-export function isAirshipBehaviourType(state: TransformState, type: ts.Type) {
+export function isAirshipBehaviourType(state: TransformState, type: ts.Type, includeBaseType = false) {
 	const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipBehaviourSymbolOrThrow();
+
+	if (includeBaseType && airshipBehaviourSymbol === type.symbol) return true;
 
 	// Get the inheritance tree, otherwise
 	const inheritance = getAncestorTypeSymbols(type, state.typeChecker);
@@ -165,6 +167,8 @@ export function isAirshipBehaviourType(state: TransformState, type: ts.Type) {
 	if (baseTypeDeclaration !== undefined) {
 		return baseTypeDeclaration === airshipBehaviourSymbol;
 	}
+
+	return false;
 }
 
 export function isAirshipSingletonType(state: TransformState, type: ts.Type) {
@@ -202,4 +206,16 @@ export function isAirshipSingletonSymbol(state: TransformState, symbol: ts.Symbo
 	}
 
 	return false;
+}
+
+export function isAirshipBehaviourTypeNode(state: TransformState, typeNode: ts.TypeNode) {
+	// We'll try the quick symbol way
+	const type = state.getType(typeNode);
+	if (isAirshipBehaviourType(state, type, true)) return true; // quick and dirty
+
+	// If not, we'll use the slower value declaration walking method
+	const symbolOfTypeArg = state.typeChecker.getTypeAtLocation(typeNode).symbol;
+	const valueDeclaration = symbolOfTypeArg.valueDeclaration;
+	if (!valueDeclaration || !ts.isClassDeclaration(valueDeclaration)) return false;
+	return isAirshipBehaviourClass(state, valueDeclaration);
 }

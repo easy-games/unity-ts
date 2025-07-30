@@ -251,6 +251,28 @@ export const errors = {
 		];
 	}),
 
+	unityMacroExpectsAirshipComponentTypeArgument: errorWithContext((type: string, isUnityObjectType: boolean) => {
+		if (isUnityObjectType) {
+			return [
+				`${type} is a Unity Component, not an Airship Component`,
+				suggestion("Change GetAirshipComponent to GetComponent<" + type + ">()"),
+			];
+		} else {
+			return [`${type} is not a derived type of AirshipBehaviour`];
+		}
+	}),
+
+	unityMacroExpectsComponentTypeArgument: errorWithContext((type: string, isAirshipBehaviourType: boolean) => {
+		if (isAirshipBehaviourType) {
+			return [
+				`${type} is an Airship Component, not a Unity Component`,
+				suggestion("Change GetComponent to GetAirshipComponent<" + type + ">()"),
+			];
+		} else {
+			return [`${type} is not a derived type of Component`];
+		}
+	}),
+
 	decoratorParamsLiteralsOnly: error(
 		"Airship Behaviour decorators only accept literal `string`, `boolean` or `number` values",
 	),
@@ -334,7 +356,7 @@ export const warnings = {
 			"please remove this from the file as it will not be maintained in future.",
 	} satisfies ts.Diagnostic,
 
-	genericBehaviourRefernece: warningWithContext(() => {
+	genericBehaviourReference: warningWithContext(() => {
 		return [
 			"Generic AirshipBehaviours cannot be exposed to the inspector",
 			suggestion(

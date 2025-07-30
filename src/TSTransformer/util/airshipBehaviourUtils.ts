@@ -71,6 +71,8 @@ export function getAncestorTypeSymbols(nodeType: ts.Type, typeChecker: ts.TypeCh
 		nodeType = nodeType.getNonNullableType();
 	}
 
+	if (!nodeType.symbol) return [];
+
 	const baseTypes = nodeType.getBaseTypes();
 
 	if (baseTypes) {

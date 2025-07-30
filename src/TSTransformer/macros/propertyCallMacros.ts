@@ -4,7 +4,9 @@ import { assert } from "Shared/util/assert";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
+import { isUnityObjectType } from "TSTransformer/util/airshipBehaviourUtils";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { isAirshipBehaviourType, isAirshipBehaviourTypeNode } from "TSTransformer/util/extendsAirshipBehaviour";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
 import { isDefinitelyType, isNumberType, isStringType } from "TSTransformer/util/types";
@@ -933,6 +935,44 @@ const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
 		}),
 };
 
+const expectAirshipComponentGeneric = (propertyCallMacro: PropertyCallMacro, index: 0 = 0): PropertyCallMacro => {
+	return (state, node, expression, args) => {
+		if (node.typeArguments) {
+			const typeNode = node.typeArguments[index];
+			if (!isAirshipBehaviourTypeNode(state, typeNode)) {
+				DiagnosticService.addDiagnostic(
+					errors.unityMacroExpectsAirshipComponentTypeArgument(
+						node,
+						state.typeChecker.typeToString(state.typeChecker.getTypeFromTypeNode(node.typeArguments[0])),
+						isUnityObjectType(state, state.getType(typeNode)),
+					),
+				);
+			}
+		}
+
+		return propertyCallMacro(state, node, expression, args);
+	};
+};
+
+const expectUnityComponentGeneric = (propertyCallMacro: PropertyCallMacro, index: 0 = 0): PropertyCallMacro => {
+	return (state, node, expression, args) => {
+		if (node.typeArguments) {
+			const type = state.getType(node.typeArguments[index]);
+			if (!isUnityObjectType(state, type)) {
+				DiagnosticService.addDiagnostic(
+					errors.unityMacroExpectsComponentTypeArgument(
+						node,
+						state.typeChecker.typeToString(state.typeChecker.getTypeFromTypeNode(node.typeArguments[0])),
+						isAirshipBehaviourType(state, type, true),
+					),
+				);
+			}
+		}
+
+		return propertyCallMacro(state, node, expression, args);
+	};
+};
+
 const makeTypeArgumentAsStringMacro =
 	(method: string, requiresArgument = true, defaultTypeName?: string): PropertyCallMacro =>
 	(state, node, expression, args) => {
@@ -971,21 +1011,34 @@ const makeTypeArgumentAsStringMacro =
 		}
 	};
 
-const UNITY_GAMEOBJECT_METHODS: MacroList<PropertyCallMacro> = {
+const COMPONENT_MACROS: MacroList<PropertyCallMacro> = {
 	GetComponent: makeTypeArgumentAsStringMacro("GetComponent"),
-	GetAirshipComponent: makeTypeArgumentAsStringMacro("GetAirshipComponent"),
 	GetComponents: makeTypeArgumentAsStringMacro("GetComponents"),
-	GetAirshipComponents: makeTypeArgumentAsStringMacro("GetAirshipComponents"),
 	AddComponent: makeTypeArgumentAsStringMacro("AddComponent"),
-	GetComponentInParent: makeTypeArgumentAsStringMacro("GetComponentInParent"),
-	AddAirshipComponent: makeTypeArgumentAsStringMacro("AddAirshipComponent"),
-	GetComponentsInChildren: makeTypeArgumentAsStringMacro("GetComponentsInChildren"),
-	GetAirshipComponentsInChildren: makeTypeArgumentAsStringMacro("GetAirshipComponentsInChildren"),
 	GetComponentInChildren: makeTypeArgumentAsStringMacro("GetComponentInChildren"),
+	GetComponentsInChildren: makeTypeArgumentAsStringMacro("GetComponentsInChildren"),
+	GetComponentInParent: makeTypeArgumentAsStringMacro("GetComponentInParent"),
+};
+
+const AIRSHIP_COMPONENT_MACROS: MacroList<PropertyCallMacro> = {
+	GetAirshipComponent: makeTypeArgumentAsStringMacro("GetAirshipComponent"),
+	GetAirshipComponents: makeTypeArgumentAsStringMacro("GetAirshipComponents"),
+	AddAirshipComponent: makeTypeArgumentAsStringMacro("AddAirshipComponent"),
+	GetAirshipComponentsInChildren: makeTypeArgumentAsStringMacro("GetAirshipComponentsInChildren"),
 	GetAirshipComponentInChildren: makeTypeArgumentAsStringMacro("GetAirshipComponentInChildren"),
 	GetAirshipComponentInParent: makeTypeArgumentAsStringMacro("GetAirshipComponentInParent"),
 	GetAirshipComponentsInParent: makeTypeArgumentAsStringMacro("GetAirshipComponentsInParent"),
 };
+
+const UNITY_GAMEOBJECT_METHODS: MacroList<PropertyCallMacro> = {};
+
+for (const [macro, call] of Object.entries(AIRSHIP_COMPONENT_MACROS)) {
+	UNITY_GAMEOBJECT_METHODS[macro] = expectAirshipComponentGeneric(call);
+}
+for (const [macro, call] of Object.entries(COMPONENT_MACROS)) {
+	UNITY_GAMEOBJECT_METHODS[macro] = expectUnityComponentGeneric(call);
+}
+
 const UNITY_STATIC_GAMEOBJECT_METHODS: MacroList<PropertyCallMacro> = {
 	FindObjectOfType: makeTypeArgumentAsStringMacro("FindObjectOfType"),
 	FindObjectsByType: makeTypeArgumentAsStringMacro("FindObjectsByType"),
