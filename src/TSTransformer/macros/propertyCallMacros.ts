@@ -1,12 +1,13 @@
 import luau from "@roblox-ts/luau-ast";
-import { errors, warnings } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { TransformState } from "TSTransformer/classes/TransformState";
+import {
+	UNITY_COMPONENT_METHODS,
+	UNITY_GAMEOBJECT_METHODS,
+	UNITY_STATIC_GAMEOBJECT_METHODS,
+} from "TSTransformer/macros/airship/propertyCallMacros";
 import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
-import { isUnityObjectType } from "TSTransformer/util/airshipBehaviourUtils";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
-import { isAirshipBehaviourType, isAirshipBehaviourTypeNode } from "TSTransformer/util/extendsAirshipBehaviour";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
 import { isDefinitelyType, isNumberType, isStringType } from "TSTransformer/util/types";
@@ -933,122 +934,6 @@ const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
 			name: "andThen",
 			args: luau.list.make(...args),
 		}),
-};
-
-const expectAirshipComponentGeneric = (propertyCallMacro: PropertyCallMacro, index: 0 = 0): PropertyCallMacro => {
-	return (state, node, expression, args) => {
-		if (node.typeArguments) {
-			const typeNode = node.typeArguments[index];
-			if (!isAirshipBehaviourTypeNode(state, typeNode)) {
-				DiagnosticService.addDiagnostic(
-					errors.unityMacroExpectsAirshipComponentTypeArgument(
-						node,
-						state.typeChecker.typeToString(state.typeChecker.getTypeFromTypeNode(node.typeArguments[0])),
-						isUnityObjectType(state, state.getType(typeNode)),
-					),
-				);
-			}
-		}
-
-		return propertyCallMacro(state, node, expression, args);
-	};
-};
-
-const expectUnityComponentGeneric = (propertyCallMacro: PropertyCallMacro, index: 0 = 0): PropertyCallMacro => {
-	return (state, node, expression, args) => {
-		if (node.typeArguments) {
-			const type = state.getType(node.typeArguments[index]);
-			if (!isUnityObjectType(state, type)) {
-				DiagnosticService.addDiagnostic(
-					errors.unityMacroExpectsComponentTypeArgument(
-						node,
-						state.typeChecker.typeToString(state.typeChecker.getTypeFromTypeNode(node.typeArguments[0])),
-						isAirshipBehaviourType(state, type, true),
-					),
-				);
-			}
-		}
-
-		return propertyCallMacro(state, node, expression, args);
-	};
-};
-
-const makeTypeArgumentAsStringMacro =
-	(method: string, requiresArgument = true, defaultTypeName?: string): PropertyCallMacro =>
-	(state, node, expression, args) => {
-		let type: ts.Type | undefined;
-
-		if (node.typeArguments) {
-			type = state.getType(node.typeArguments[0]);
-		} else if (ts.isAsExpression(node.parent)) {
-			type = state.getType(node.parent.type);
-			DiagnosticService.addDiagnostic(
-				warnings.unityMacroAsExpressionWarning(method, state.typeChecker.typeToString(type))(node.parent),
-			);
-		}
-
-		if (requiresArgument && !defaultTypeName && !type && args.length === 0) {
-			DiagnosticService.addSingleDiagnostic(errors.unityMacroTypeArgumentRequired(node, method));
-		}
-
-		if (type) {
-			args.unshift(luau.string(state.typeChecker.typeToString(type)));
-			return luau.create(luau.SyntaxKind.MethodCallExpression, {
-				expression: convertToIndexableExpression(expression),
-				name: method,
-				args: luau.list.make(...args),
-			});
-		} else {
-			if (defaultTypeName !== undefined) {
-				args.unshift(luau.string(defaultTypeName));
-			}
-
-			return luau.create(luau.SyntaxKind.MethodCallExpression, {
-				expression: convertToIndexableExpression(expression),
-				name: method,
-				args: luau.list.make(...args),
-			});
-		}
-	};
-
-const COMPONENT_MACROS: MacroList<PropertyCallMacro> = {
-	GetComponent: makeTypeArgumentAsStringMacro("GetComponent"),
-	GetComponents: makeTypeArgumentAsStringMacro("GetComponents"),
-	AddComponent: makeTypeArgumentAsStringMacro("AddComponent"),
-	GetComponentInChildren: makeTypeArgumentAsStringMacro("GetComponentInChildren"),
-	GetComponentsInChildren: makeTypeArgumentAsStringMacro("GetComponentsInChildren"),
-	GetComponentInParent: makeTypeArgumentAsStringMacro("GetComponentInParent"),
-};
-
-const AIRSHIP_COMPONENT_MACROS: MacroList<PropertyCallMacro> = {
-	GetAirshipComponent: makeTypeArgumentAsStringMacro("GetAirshipComponent"),
-	GetAirshipComponents: makeTypeArgumentAsStringMacro("GetAirshipComponents"),
-	AddAirshipComponent: makeTypeArgumentAsStringMacro("AddAirshipComponent"),
-	GetAirshipComponentsInChildren: makeTypeArgumentAsStringMacro("GetAirshipComponentsInChildren"),
-	GetAirshipComponentInChildren: makeTypeArgumentAsStringMacro("GetAirshipComponentInChildren"),
-	GetAirshipComponentInParent: makeTypeArgumentAsStringMacro("GetAirshipComponentInParent"),
-	GetAirshipComponentsInParent: makeTypeArgumentAsStringMacro("GetAirshipComponentsInParent"),
-};
-
-const UNITY_GAMEOBJECT_METHODS: MacroList<PropertyCallMacro> = {};
-
-for (const [macro, call] of Object.entries(AIRSHIP_COMPONENT_MACROS)) {
-	UNITY_GAMEOBJECT_METHODS[macro] = expectAirshipComponentGeneric(call);
-}
-for (const [macro, call] of Object.entries(COMPONENT_MACROS)) {
-	UNITY_GAMEOBJECT_METHODS[macro] = expectUnityComponentGeneric(call);
-}
-
-const UNITY_STATIC_GAMEOBJECT_METHODS: MacroList<PropertyCallMacro> = {
-	FindObjectOfType: makeTypeArgumentAsStringMacro("FindObjectOfType"),
-	FindObjectsByType: makeTypeArgumentAsStringMacro("FindObjectsByType"),
-};
-const UNITY_COMPONENT_METHODS: MacroList<PropertyCallMacro> = {
-	GetComponent: makeTypeArgumentAsStringMacro("GetComponent"),
-	GetComponents: makeTypeArgumentAsStringMacro("GetComponents"),
-};
-const UNITY_OBJECT_METHODS: MacroList<PropertyCallMacro> = {
-	IsA: makeTypeArgumentAsStringMacro("IsA"),
 };
 
 export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCallMacro> } = {
