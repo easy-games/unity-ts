@@ -630,13 +630,13 @@ function processRequireComponentDecorator(
 
 	const componentParameters = new Array<AirshipBehaviourFieldDecoratorParameter>();
 	for (const argument of decoratorArguments) {
-		if (!ts.isIdentifier(argument)) {
+		if (!ts.isTypeOfExpression(argument)) {
 			const argumentType = typeChecker.typeToString(typeChecker.getTypeAtLocation(argument));
 			DiagnosticService.addDiagnostic(errors.requiredComponentInvalidArgument(classNode, classNode.name?.text ?? "<anonymous>", argumentType));
 			continue;
 		}
 
-		let type = typeChecker.getTypeAtLocation(argument);
+		let type = typeChecker.getTypeAtLocation(argument.expression);
 
 		const constructSignatures = type.getConstructSignatures();
 		if (constructSignatures.length > 0) {
