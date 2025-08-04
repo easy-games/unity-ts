@@ -244,6 +244,34 @@ export const errors = {
 		];
 	}),
 
+	requiredComponentTypeParameterRequired: errorWithContext((methodName: string) => {
+		return [
+			`Macro ${methodName}<T>() requires a type argument at T`,
+			suggestion("Try adding a type argument to the function call"),
+		];
+	}),
+
+	requiredComponentArgumentRequired: errorWithContext((className: string) => {
+		return [
+			`@RequireComponent decorator on class '${className}' requires at least one component type argument`,
+			suggestion("Use @RequireComponent(typeof(ComponentType)) where ComponentType is a Unity component or AirshipBehaviour"),
+		];
+	}),
+
+	requiredComponentInvalidType: errorWithContext((className: string, typeName: string) => {
+		return [
+			`@RequireComponent decorator on class '${className}' received invalid component type '${typeName}'`,
+			suggestion("Component type must be a Unity component or AirshipBehaviour. Try @RequireComponent(typeof(ValidComponentType))"),
+		];
+	}),
+
+	requiredComponentInvalidArgument: errorWithContext((className: string, argumentType: string) => {
+		return [
+			`@RequireComponent decorator on class '${className}' received invalid argument of type '${argumentType}'`,
+			suggestion("Use @RequireComponent(typeof(ComponentType)) where ComponentType is a Unity component or AirshipBehaviour"),
+		];
+	}),
+
 	unityMacroTypeArgumentRequired: errorWithContext((methodName: string) => {
 		return [
 			`Macro ${methodName}<T>() requires a type argument at T`,
@@ -252,7 +280,7 @@ export const errors = {
 	}),
 
 	decoratorParamsLiteralsOnly: error(
-		"Airship Behaviour decorators only accept literal `string`, `boolean` or `number` values",
+		"Airship Behaviour decorators only accept literal `string`, `boolean` or `number` values. For RequireComponent, use `typeof(ComponentType)` syntax.",
 	),
 
 	// files

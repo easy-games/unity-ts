@@ -615,47 +615,125 @@ function createAirshipProperty(
 	return prop;
 }
 
-export function getClassDecorators(state: TransformState, classNode: ts.ClassLikeDeclaration) {
-	const decorators = ts.hasDecorators(classNode) ? ts.getDecorators(classNode) : undefined;
-	if (decorators) {
-		const items = new Array<AirshipBehaviourClassDecorator>();
+function processRequireComponentDecorator(
+	state: TransformState,
+	classNode: ts.ClassLikeDeclaration,
+	expression: ts.CallExpression,
+): AirshipBehaviourClassDecorator | undefined {
+	const typeChecker = state.typeChecker;
+	const decoratorArguments = expression.arguments;
+	
+	if (!decoratorArguments || decoratorArguments.length === 0) {
+		DiagnosticService.addDiagnostic(errors.requiredComponentArgumentRequired(classNode, classNode.name?.text || "<anonymous>"));
+		return undefined;
+	}
 
-		for (const decorator of decorators) {
-			const expression = decorator.expression;
-			if (!ts.isCallExpression(expression)) continue;
-
-			const aliasSymbol = state.typeChecker.getTypeAtLocation(expression).aliasSymbol;
-			if (!aliasSymbol) continue;
-
-			const airshipFieldSymbol = state.services.airshipSymbolManager.getSymbolOrThrow("AirshipDecorator");
-
-			if (aliasSymbol === airshipFieldSymbol) {
-				items.push({
-					name: expression.expression.getText(),
-					typeParameters: expression.typeArguments?.map(typeNode => {
-						return state.typeChecker.typeToString(state.typeChecker.getTypeFromTypeNode(typeNode));
-					}),
-					parameters: expression.arguments.map((argument, i): AirshipBehaviourFieldDecoratorParameter => {
-						const value = getLiteralFromNode(state, argument);
-
-						if (value) {
-							return value;
-						} else {
-							DiagnosticService.addDiagnostic(
-								errors.decoratorParamsLiteralsOnly(expression.arguments[i]),
-							);
-
-							return { type: "invalid", value: undefined };
-						}
-					}),
-				});
-			}
+	const componentParameters = new Array<AirshipBehaviourFieldDecoratorParameter>();
+	for (const argument of decoratorArguments) {
+		if (!ts.isIdentifier(argument)) {
+			const argumentType = typeChecker.typeToString(typeChecker.getTypeAtLocation(argument));
+			DiagnosticService.addDiagnostic(errors.requiredComponentInvalidArgument(classNode, classNode.name?.text ?? "<anonymous>", argumentType));
+			continue;
 		}
 
-		return items;
-	} else {
+		let type = typeChecker.getTypeAtLocation(argument);
+
+		const constructSignatures = type.getConstructSignatures();
+		if (constructSignatures.length > 0) {
+			const constructSignature = constructSignatures[0];
+			type = typeChecker.getReturnTypeOfSignature(constructSignature);
+		}
+
+		if (isAirshipBehaviourType(state, type)) {
+			const typeString = typeChecker.typeToString(type);
+			componentParameters.push({
+				type: "AirshipBehaviour",
+				value: typeString,
+			});
+		} else if (isUnityObjectType(state, type)) {
+			const nonNullableType = typeChecker.getNonNullableType(type);
+			const nonNullableTypeString = typeChecker.typeToString(nonNullableType);
+			componentParameters.push({
+				type: "object",
+				value: nonNullableTypeString,
+			});
+		} else {
+			const typeString = typeChecker.typeToString(type);
+			DiagnosticService.addDiagnostic(errors.requiredComponentInvalidType(classNode, classNode.name?.text ?? "<anonymous>", typeString));
+		}
+	}
+
+	if (componentParameters.length === 0) {
+		return undefined;
+	}
+
+	return {
+		name: "RequireComponent",
+		typeParameters: expression.typeArguments?.map(typeNode => {
+			return state.typeChecker.typeToString(state.typeChecker.getTypeFromTypeNode(typeNode));
+		}),
+		parameters: componentParameters,
+	};
+}
+
+function processGenericDecorator(
+	state: TransformState,
+	expression: ts.CallExpression,
+	decoratorName: string,
+): AirshipBehaviourClassDecorator {
+	return {
+		name: decoratorName,
+		typeParameters: expression.typeArguments?.map(typeNode => {
+			return state.typeChecker.typeToString(state.typeChecker.getTypeFromTypeNode(typeNode));
+		}),
+		parameters: expression.arguments.map((argument, i): AirshipBehaviourFieldDecoratorParameter => {
+			const value = getLiteralFromNode(state, argument);
+
+			if (value) {
+				return value;
+			} else {
+				DiagnosticService.addDiagnostic(
+					errors.decoratorParamsLiteralsOnly(expression.arguments[i]),
+				);
+
+				return { type: "invalid", value: undefined };
+			}
+		}),
+	};
+}
+
+export function getClassDecorators(state: TransformState, classNode: ts.ClassLikeDeclaration) {
+	const decorators = ts.hasDecorators(classNode) ? ts.getDecorators(classNode) : undefined;
+	if (!decorators) {
 		return [];
 	}
+
+	const items = new Array<AirshipBehaviourClassDecorator>();
+
+	for (const decorator of decorators) {
+		const expression = decorator.expression;
+		if (!ts.isCallExpression(expression)) continue;
+
+		const aliasSymbol = state.typeChecker.getTypeAtLocation(expression).aliasSymbol;
+		if (!aliasSymbol) continue;
+
+		const airshipFieldSymbol = state.services.airshipSymbolManager.getSymbolOrThrow("AirshipDecorator");
+		if (aliasSymbol !== airshipFieldSymbol) continue;
+
+		const decoratorName = expression.expression.getText();
+		
+		if (decoratorName === "RequireComponent") {
+			const processedDecorator = processRequireComponentDecorator(state, classNode, expression);
+			if (processedDecorator) {
+				items.push(processedDecorator);
+			}
+		} else {
+			const processedDecorator = processGenericDecorator(state, expression, decoratorName);
+			items.push(processedDecorator);
+		}
+	}
+
+	return items;
 }
 
 function getPropertyDecorators(
@@ -1056,3 +1134,4 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 
 	return { statements, name: returnVar };
 }
+
