@@ -621,28 +621,16 @@ function processRequireComponentDecorator(
 	expression: ts.CallExpression,
 ): AirshipBehaviourClassDecorator | undefined {
 	const typeChecker = state.typeChecker;
-	const decoratorArguments = expression.arguments;
+	const typeArguments = expression.typeArguments;
 	
-	if (!decoratorArguments || decoratorArguments.length === 0) {
-		DiagnosticService.addDiagnostic(errors.requiredComponentArgumentRequired(classNode, classNode.name?.text || "<anonymous>"));
+	if (!typeArguments || typeArguments.length === 0) {
+		DiagnosticService.addDiagnostic(errors.requiredComponentTypeParameterRequired(classNode, classNode.name?.text || "<anonymous>"));
 		return undefined;
 	}
 
 	const componentParameters = new Array<AirshipBehaviourFieldDecoratorParameter>();
-	for (const argument of decoratorArguments) {
-		if (!ts.isTypeOfExpression(argument)) {
-			const argumentType = typeChecker.typeToString(typeChecker.getTypeAtLocation(argument));
-			DiagnosticService.addDiagnostic(errors.requiredComponentInvalidArgument(classNode, classNode.name?.text ?? "<anonymous>", argumentType));
-			continue;
-		}
-
-		let type = typeChecker.getTypeAtLocation(argument.expression);
-
-		const constructSignatures = type.getConstructSignatures();
-		if (constructSignatures.length > 0) {
-			const constructSignature = constructSignatures[0];
-			type = typeChecker.getReturnTypeOfSignature(constructSignature);
-		}
+	for (const typeArgument of typeArguments) {
+		const type = typeChecker.getTypeFromTypeNode(typeArgument);
 
 		if (isAirshipBehaviourType(state, type)) {
 			const typeString = typeChecker.typeToString(type);

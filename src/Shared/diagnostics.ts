@@ -244,31 +244,31 @@ export const errors = {
 		];
 	}),
 
-	requiredComponentTypeParameterRequired: errorWithContext((methodName: string) => {
+	requiredComponentTypeParameterRequired: errorWithContext((className: string) => {
 		return [
-			`Macro ${methodName}<T>() requires a type argument at T`,
-			suggestion("Try adding a type argument to the function call"),
+			`@RequireComponent decorator on class '${className}' requires at least one type parameter`,
+			suggestion("Use @RequireComponent<ComponentType>() where ComponentType is a Unity component or AirshipBehaviour"),
 		];
 	}),
 
 	requiredComponentArgumentRequired: errorWithContext((className: string) => {
 		return [
-			`@RequireComponent decorator on class '${className}' requires at least one component type argument`,
-			suggestion("Use @RequireComponent(typeof(ComponentType)) where ComponentType is a Unity component or AirshipBehaviour"),
+			`@RequireComponent decorator on class '${className}' requires at least one type parameter`,
+			suggestion("Use @RequireComponent<ComponentType>() where ComponentType is a Unity component or AirshipBehaviour"),
 		];
 	}),
 
 	requiredComponentInvalidType: errorWithContext((className: string, typeName: string) => {
 		return [
 			`@RequireComponent decorator on class '${className}' received invalid component type '${typeName}'`,
-			suggestion("Component type must be a Unity component or AirshipBehaviour. Try @RequireComponent(typeof(ValidComponentType))"),
+			suggestion("Component type must be a Unity component or AirshipBehaviour. Try @RequireComponent<ValidComponentType>()"),
 		];
 	}),
 
 	requiredComponentInvalidArgument: errorWithContext((className: string, argumentType: string) => {
 		return [
 			`@RequireComponent decorator on class '${className}' received invalid argument of type '${argumentType}'`,
-			suggestion("Use @RequireComponent(typeof(ComponentType)) where ComponentType is a Unity component or AirshipBehaviour"),
+			suggestion("Use @RequireComponent<ComponentType>() where ComponentType is a Unity component or AirshipBehaviour"),
 		];
 	}),
 
