@@ -13,3 +13,6 @@ Below is our documentation around quirks and features of this Typescript compile
 - [AirshipBehaviour](https://docs.airship.gg/typescript/airshipbehaviour) - Airship's TypeScript parallel to `MonoBehaviour`
 - [DataType math](https://docs.airship.gg/typescript/datatype-math) - Since Typescript has no operators, we have our own operator "macros"
 - [JS to Luau](https://docs.airship.gg/typescript/js-to-luau) - Our flavour of TypeScript is a Luau-based one, so our API is a little different from vanilla TypeScript.
+
+# Special Thanks
+We give our apprecation to the [roblox-ts](https://github.com/roblox-ts/roblox-ts) project on which unity-ts is based.
