@@ -1,8 +1,8 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
 import {
-	containsClientCheckDirective,
-	containsServerCheckDirective,
+	isClientDirective,
+	isServerDirective,
 	isGuardClause,
 	transformDirectiveIfStatement,
 } from "TSTransformer/macros/transformDirectives";
@@ -33,13 +33,14 @@ export function transformStatementList(
 
 		if (!state.isSharedContext && ts.isIfStatement(statement)) {
 			if (isGuardClause(state, statement)) {
-				if (state.isServerContext && containsServerCheckDirective(state, statement)) {
+				state.pushDirectiveStatement(statement);
+				if (state.isServerContext && isServerDirective(state, statement)) {
 					shouldEarlyReturn = true;
 					const newStatement = transformDirectiveIfStatement(state, statement, true);
 					if (newStatement) {
 						statement = newStatement;
 					}
-				} else if (state.isClientContext && containsClientCheckDirective(state, statement)) {
+				} else if (state.isClientContext && isClientDirective(state, statement)) {
 					shouldEarlyReturn = true;
 					const newStatement = transformDirectiveIfStatement(state, statement, true);
 					if (newStatement) {

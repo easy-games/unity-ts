@@ -58,6 +58,8 @@ export const SYMBOL_NAMES = {
 
 	$SERVER: "$SERVER",
 	$CLIENT: "$CLIENT",
+	Server: "Server",
+	Client: "Client",
 } as const;
 
 export const NOMINAL_LUA_TUPLE_NAME = "_nominal_LuaTuple";
@@ -307,5 +309,15 @@ export class MacroManager {
 	public isPropertyCallMacro(symbol: ts.Symbol) {
 		const macro = this.propertyCallMacros.get(symbol);
 		return macro !== undefined;
+	}
+
+	public isDirective(symbol: ts.Symbol) {
+		return symbol === this.getSymbolOrThrow("$CLIENT") || symbol === this.getSymbolOrThrow("$SERVER");
+	}
+
+	public isDirectiveAtLocation(node: ts.Expression) {
+		const symbol = this.typeChecker.getSymbolAtLocation(node);
+		if (!symbol) return false;
+		return this.isDirective(symbol);
 	}
 }

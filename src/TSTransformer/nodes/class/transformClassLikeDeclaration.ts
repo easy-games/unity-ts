@@ -54,6 +54,8 @@ import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfN
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
 import ts, { JSDoc, JSDocComment, JSDocTag, ModifierFlags } from "typescript";
+import { transformPropertyName } from "../transformPropertyName";
+import { createStripMethod, isStrippableContextMethod } from "TSTransformer/macros/transformContextMethods";
 
 const MAGIC_TO_STRING_METHOD = "toString";
 
@@ -622,9 +624,11 @@ function processRequireComponentDecorator(
 ): AirshipBehaviourClassDecorator | undefined {
 	const typeChecker = state.typeChecker;
 	const typeArguments = expression.typeArguments;
-	
+
 	if (!typeArguments || typeArguments.length === 0) {
-		DiagnosticService.addDiagnostic(errors.requiredComponentTypeParameterRequired(classNode, classNode.name?.text || "<anonymous>"));
+		DiagnosticService.addDiagnostic(
+			errors.requiredComponentTypeParameterRequired(classNode, classNode.name?.text || "<anonymous>"),
+		);
 		return undefined;
 	}
 
@@ -647,7 +651,9 @@ function processRequireComponentDecorator(
 			});
 		} else {
 			const typeString = typeChecker.typeToString(type);
-			DiagnosticService.addDiagnostic(errors.requiredComponentInvalidType(classNode, classNode.name?.text ?? "<anonymous>", typeString));
+			DiagnosticService.addDiagnostic(
+				errors.requiredComponentInvalidType(classNode, classNode.name?.text ?? "<anonymous>", typeString),
+			);
 		}
 	}
 
@@ -680,9 +686,7 @@ function processGenericDecorator(
 			if (value) {
 				return value;
 			} else {
-				DiagnosticService.addDiagnostic(
-					errors.decoratorParamsLiteralsOnly(expression.arguments[i]),
-				);
+				DiagnosticService.addDiagnostic(errors.decoratorParamsLiteralsOnly(expression.arguments[i]));
 
 				return { type: "invalid", value: undefined };
 			}
@@ -709,7 +713,7 @@ export function getClassDecorators(state: TransformState, classNode: ts.ClassLik
 		if (aliasSymbol !== airshipFieldSymbol) continue;
 
 		const decoratorName = expression.expression.getText();
-		
+
 		if (decoratorName === "RequireComponent") {
 			const processedDecorator = processRequireComponentDecorator(state, classNode, expression);
 			if (processedDecorator) {
@@ -1030,6 +1034,16 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 			}
 		}
 
+		if (
+			isBehaviourClass &&
+			!state.isSharedContext &&
+			isStrippableContextMethod(state, method) &&
+			!ts.getSelectedSyntacticModifierFlags(method, ts.ModifierFlags.Async)
+		) {
+			luau.list.pushList(statementsInner, createStripMethod(state, method, internalName));
+			continue;
+		}
+
 		luau.list.pushList(
 			statementsInner,
 			transformMethodDeclaration(state, method, { name: "name", value: internalName }),
@@ -1122,4 +1136,3 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 
 	return { statements, name: returnVar };
 }
-

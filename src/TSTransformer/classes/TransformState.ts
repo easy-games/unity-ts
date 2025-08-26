@@ -101,6 +101,22 @@ export class TransformState {
 		this.resolver = typeChecker.getEmitResolver(sourceFile);
 	}
 
+	private guardClauses = new Array<ts.IfStatement>();
+	public pushDirectiveStatement(statement: ts.IfStatement) {
+		console.log("push", statement.id);
+		this.guardClauses.push(statement);
+	}
+
+	public isDirectiveStatement(statement: ts.IfStatement) {
+		console.log("check", statement.id)
+		return this.guardClauses.includes(statement);
+	}
+
+	public popDirectiveStatement() {
+		console.log("pop");
+		return this.guardClauses.pop();
+	}
+
 	public readonly tryUsesStack = new Array<TryUses>();
 
 	/**

@@ -27,9 +27,8 @@ export const IDENTIFIER_MACROS: MacroList<IdentifierMacro> = {
 	},
 
 	$SERVER: (state, node) => {
-		if (!ts.isIfStatement(node.parent)) DiagnosticService.addDiagnostic(warnings.contextMacro(node));
+		if (!ts.isIfStatement(node.parent)) DiagnosticService.addDiagnostic(errors.directiveServerInvalid(node));
 
-		// return state.isServer ? true : state.isClient ? false  ? luau.call(luau.property(luau.id("Game"), "IsServer");
 		if (state.isServerContext) {
 			return luau.bool(true);
 		} else if (state.isClientContext) {
@@ -45,7 +44,8 @@ export const IDENTIFIER_MACROS: MacroList<IdentifierMacro> = {
 
 	$CLIENT: (state, node) => {
 		// DiagnosticService.addDiagnostic(errors.invalidServerMacroUse(node));
-		// DiagnosticService.addDiagnostic(warnings.contextMacro(node));
+
+		if (!ts.isIfStatement(node.parent)) DiagnosticService.addDiagnostic(errors.directiveClientInvalid(node.parent));
 
 		// return state.isServer ? true : state.isClient ? false  ? luau.call(luau.property(luau.id("Game"), "IsServer");
 		if (state.isClientContext) {

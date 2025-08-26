@@ -1,8 +1,13 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
-import { TransformState } from "TSTransformer";
+import { CompliationContext, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import {
+	createStripReturn,
+	getStrippableMethodType,
+	isStrippableContextMethod,
+} from "TSTransformer/macros/transformContextMethods";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
@@ -47,6 +52,16 @@ export function transformMethodDeclaration(
 	}
 
 	const isAsync = !!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.Async);
+
+	if (isStrippableContextMethod(state, node)) {
+		const contextType = getStrippableMethodType(state, node);
+		if (contextType !== undefined) {
+			luau.list.unshiftList(
+				statements,
+				createStripReturn(state, luau.isStringLiteral(name) ? name.value : "", contextType),
+			);
+		}
+	}
 
 	if (node.asteriskToken) {
 		if (isAsync) {
