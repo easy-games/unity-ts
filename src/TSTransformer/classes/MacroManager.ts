@@ -55,6 +55,9 @@ export const SYMBOL_NAMES = {
 
 	$range: "$range",
 	$tuple: "$tuple",
+
+	$SERVER: "$SERVER",
+	$CLIENT: "$CLIENT",
 } as const;
 
 export const NOMINAL_LUA_TUPLE_NAME = "_nominal_LuaTuple";

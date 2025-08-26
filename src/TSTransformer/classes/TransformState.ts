@@ -15,6 +15,21 @@ import ts from "typescript";
 
 export const SINGLETON_FILE_IMPORT = "AirshipPackages/@Easy/Core/Shared/Singletons/Singletons";
 
+export enum CompliationContext {
+	/**
+	 * Compiling for the server
+	 */
+	Server,
+	/**
+	 * Compiling for the client
+	 */
+	Client,
+	/**
+	 * Compiling for editor or packages
+	 */
+	Shared,
+}
+
 /**
  * Represents the state of the transformation between TS -> Luau AST.
  */
@@ -38,6 +53,34 @@ export class TransformState {
 	}
 
 	public readonly resolver: ts.EmitResolver;
+
+	private _context = CompliationContext.Shared;
+	public get context() {
+		return this._context;
+	}
+
+	public get isServerContext() {
+		return this._context === CompliationContext.Server;
+	}
+
+	public get isClientContext() {
+		return this._context === CompliationContext.Client;
+	}
+
+	public get isSharedContext() {
+		return this._context === CompliationContext.Shared;
+	}
+
+	// public set context(value: CompliationContext) {
+	// 	console.log("changed context to", CompliationContext[value]);
+	// 	this._context = value;
+	// }
+
+	public useContext(context: CompliationContext, action: (context: CompliationContext) => void) {
+		this._context = context;
+		action(context);
+		this._context = CompliationContext.Shared;
+	}
 
 	constructor(
 		public readonly program: ts.Program,

@@ -43,13 +43,27 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 			default: ".",
 			describe: "project path",
 		},
+		// dist: {
+		// 	alias: "D",
+		// 	choices: ["server", "client", "shared"],
+		// 	describe: "The distribution of this compile",
+		// 	default: "shared",
+		// },
+		skipPackages: {
+			type: "boolean",
+			alias: "P",
+			describe: "Compile only the game's code",
+			boolean: true,
+			default: false,
+		},
 		json: {
 			hidden: true,
 			boolean: true,
 			default: false,
 		},
 		publish: {
-			hidden: true,
+			// hidden: true,
+			alias: "D",
 			boolean: true,
 			default: false,
 		},

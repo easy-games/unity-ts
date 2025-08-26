@@ -37,6 +37,14 @@ class PathInfo {
 	}
 }
 
+export enum PathHint {
+	None,
+	Server,
+	Client,
+}
+
+type PathInfoDelegate = (pathInfo: PathInfo) => string;
+
 export class PathTranslator {
 	constructor(
 		public readonly rootDir: string,
@@ -46,7 +54,7 @@ export class PathTranslator {
 		public readonly projectOptions: ProjectOptions,
 	) {}
 
-	private makeRelativeFactory(from = this.rootDir, to = this.outDir) {
+	private makeRelativeFactory(from = this.rootDir, to = this.outDir): PathInfoDelegate {
 		return (pathInfo: PathInfo) => path.join(to, path.relative(from, pathInfo.join()));
 	}
 
@@ -69,8 +77,17 @@ export class PathTranslator {
 	 * 	- `index` -> `init`
 	 * - `src/*` -> `out/*`
 	 */
-	public getOutputPath(filePath: string) {
-		const makeRelative = this.makeRelativeFactory();
+	public getOutputPath(filePath: string, pathHint = PathHint.None) {
+		let makeRelative: PathInfoDelegate;
+
+		if (pathHint === PathHint.Server) {
+			makeRelative = this.makeRelativeFactory(undefined, path.resolve(this.outDir, "../dist/server"));
+		} else if (pathHint === PathHint.Client) {
+			makeRelative = this.makeRelativeFactory(undefined, path.resolve(this.outDir, "../dist/client"));
+		} else {
+			makeRelative = this.makeRelativeFactory();
+		}
+
 		filePath = path.join(filePath);
 
 		const pathInfo = PathInfo.from(filePath);

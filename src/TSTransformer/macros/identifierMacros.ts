@@ -23,4 +23,34 @@ export const IDENTIFIER_MACROS: MacroList<IdentifierMacro> = {
 
 		return luau.id("gameObject");
 	},
+
+	$SERVER: (state, node) => {
+		// return state.isServer ? true : state.isClient ? false  ? luau.call(luau.property(luau.id("Game"), "IsServer");
+		if (state.isServerContext) {
+			return luau.bool(true);
+		} else if (state.isClientContext) {
+			return luau.bool(false);
+		} else {
+			return luau.create(luau.SyntaxKind.MethodCallExpression, {
+				expression: luau.id("Game"),
+				name: "IsServer",
+				args: luau.list.make(),
+			});
+		}
+	},
+
+	$CLIENT: (state, node) => {
+		// return state.isServer ? true : state.isClient ? false  ? luau.call(luau.property(luau.id("Game"), "IsServer");
+		if (state.isClientContext) {
+			return luau.bool(true);
+		} else if (state.isServerContext) {
+			return luau.bool(false);
+		} else {
+			return luau.create(luau.SyntaxKind.MethodCallExpression, {
+				expression: luau.id("Game"),
+				name: "IsClient",
+				args: luau.list.make(),
+			});
+		}
+	},
 };
