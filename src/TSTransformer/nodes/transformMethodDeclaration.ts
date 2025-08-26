@@ -52,13 +52,14 @@ export function transformMethodDeclaration(
 	}
 
 	const isAsync = !!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.Async);
+	const isStrippable = isStrippableContextMethod(state, node);
 
-	if (isStrippableContextMethod(state, node)) {
+	if (isStrippable) {
 		const contextType = getStrippableMethodType(state, node);
 		if (contextType !== undefined) {
 			luau.list.unshiftList(
 				statements,
-				createStripReturn(state, luau.isStringLiteral(name) ? name.value : "", contextType),
+				createStripReturn(state, luau.isStringLiteral(name) ? name.value : "", node, contextType),
 			);
 		}
 	}

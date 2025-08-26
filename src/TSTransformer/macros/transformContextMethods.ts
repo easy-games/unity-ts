@@ -1,7 +1,12 @@
 import luau from "@roblox-ts/luau-ast";
 import { CompliationContext, TransformState } from "TSTransformer/classes/TransformState";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
-import ts from "typescript";
+import ts, { MethodDeclaration } from "typescript";
+
+function getReturnType(state: TransformState, method: MethodDeclaration): ts.Type | undefined {
+	const methodType = state.typeChecker.getSignatureFromDeclaration(method);
+	return methodType?.getReturnType();
+}
 
 export function hasDecoratorByName(state: TransformState, decorators: Array<ts.Decorator>, name: "Client" | "Server") {
 	const symbol = state.services.macroManager.getSymbolOrThrow(name);
@@ -21,26 +26,43 @@ export function createStripMethod(
 	state: TransformState,
 	method: ts.MethodDeclaration,
 	internalName: luau.AnyIdentifier,
+	shouldAssert = false,
 ): luau.List<luau.Statement> {
 	const statements = luau.list.make<luau.Statement>();
+	const methodBody = luau.list.make<luau.Statement>();
+
 	const name = transformPropertyName(state, method.name);
 
+	const type = getReturnType(state, method);
+	const isVoidReturn = state.typeChecker.getVoidType() === type || state.typeChecker.getUndefinedType() === type;
+
 	if (luau.isStringLiteral(name)) {
+		if (!isVoidReturn || shouldAssert) {
+			luau.list.push(
+				methodBody,
+				luau.create(luau.SyntaxKind.CallStatement, {
+					expression: luau.call(luau.globals.error, [
+						luau.string(
+							`Attempted to call ${state.isClientContext ? "server" : "client"}-only method '${
+								name.value
+							}'!`,
+						),
+						luau.number(2),
+					]),
+				}),
+			);
+		} else {
+			luau.list.push(methodBody, luau.comment(" ► Method has no expected return values"));
+		}
+
 		luau.list.push(
 			statements,
 			luau.create(luau.SyntaxKind.MethodDeclaration, {
 				expression: internalName,
 				name: name.value,
 				parameters: luau.list.make(),
-				statements: luau.list.make<luau.Statement>(
-					luau.create(luau.SyntaxKind.CallStatement, {
-						expression: luau.call(luau.globals.error, [
-							luau.string(`Attempt to call context stripped method '${name.value}'`),
-							luau.number(2),
-						]),
-					}),
-				),
-				hasDotDotDot: true,
+				statements: methodBody,
+				hasDotDotDot: false,
 			}),
 		);
 	}
@@ -51,22 +73,37 @@ export function createStripMethod(
 export function createStripReturn(
 	state: TransformState,
 	name: string,
+	method: ts.MethodDeclaration,
 	context: CompliationContext,
+	shouldAssert = false,
 ): luau.List<luau.Statement> {
 	const statements = luau.list.make<luau.Statement>();
+
+	const type = getReturnType(state, method);
+	const isVoidReturn = state.typeChecker.getVoidType() === type || state.typeChecker.getUndefinedType() === type;
+
+	const methodStatements = luau.list.make<luau.Statement>();
+	if (!isVoidReturn || shouldAssert) {
+		luau.list.push(
+			methodStatements,
+			luau.create(luau.SyntaxKind.CallStatement, {
+				expression: luau.call(luau.globals.error, [
+					luau.string(`Attempt to call context stripped method '${name}'`),
+					luau.number(2),
+				]),
+			}),
+		);
+	} else {
+		luau.list.push(
+			methodStatements,
+			luau.create(luau.SyntaxKind.ReturnStatement, { expression: luau.list.make() }),
+		);
+	}
 
 	luau.list.push(
 		statements,
 		luau.create(luau.SyntaxKind.IfStatement, {
-			statements: luau.list.make<luau.Statement>(
-				luau.create(luau.SyntaxKind.CallStatement, {
-					expression: luau.call(luau.globals.error, [
-						luau.string(`Attempt to call context stripped method '${name}'`),
-						luau.number(2),
-					]),
-				}),
-				// luau.create(luau.SyntaxKind.ReturnStatement, { expression: luau.nil() }),
-			),
+			statements: methodStatements,
 			condition: luau.create(luau.SyntaxKind.UnaryExpression, {
 				expression: luau.create(luau.SyntaxKind.MethodCallExpression, {
 					expression: luau.id("Game"),

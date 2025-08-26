@@ -19,6 +19,7 @@ import { assert } from "Shared/util/assert";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { isAirshipBehaviourReserved } from "TSTransformer/macros/propertyMacros";
+import { createStripMethod, isStrippableContextMethod } from "TSTransformer/macros/transformContextMethods";
 import { transformClassConstructor } from "TSTransformer/nodes/class/transformClassConstructor";
 import { transformDecorators } from "TSTransformer/nodes/class/transformDecorators";
 import { transformPropertyDeclaration } from "TSTransformer/nodes/class/transformPropertyDeclaration";
@@ -54,8 +55,6 @@ import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfN
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
 import ts, { JSDoc, JSDocComment, JSDocTag, ModifierFlags } from "typescript";
-import { transformPropertyName } from "../transformPropertyName";
-import { createStripMethod, isStrippableContextMethod } from "TSTransformer/macros/transformContextMethods";
 
 const MAGIC_TO_STRING_METHOD = "toString";
 
