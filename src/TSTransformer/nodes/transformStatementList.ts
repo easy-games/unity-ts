@@ -1,5 +1,11 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
+import {
+	containsClientCheckDirective,
+	containsServerCheckDirective,
+	isGuardClause,
+	transformDirectiveIfStatement,
+} from "TSTransformer/macros/transformDirectives";
 import { transformStatement } from "TSTransformer/nodes/statements/transformStatement";
 import { createHoistDeclaration } from "TSTransformer/util/createHoistDeclaration";
 import ts from "typescript";
@@ -22,7 +28,29 @@ export function transformStatementList(
 	const result = luau.list.make<luau.Statement>();
 
 	// iterate through each statement in the `statements` array
-	for (const statement of statements) {
+	for (let statement of statements) {
+		let shouldEarlyReturn = false;
+
+		if (!state.isSharedContext && ts.isIfStatement(statement)) {
+			if (isGuardClause(state, statement)) {
+				if (state.isServerContext && containsServerCheckDirective(state, statement)) {
+					shouldEarlyReturn = true;
+					const newStatement = transformDirectiveIfStatement(state, statement, true);
+					if (newStatement) {
+						statement = newStatement;
+					}
+				} else if (state.isClientContext && containsClientCheckDirective(state, statement)) {
+					shouldEarlyReturn = true;
+					const newStatement = transformDirectiveIfStatement(state, statement, true);
+					if (newStatement) {
+						statement = newStatement;
+					}
+				} else {
+					continue;
+				}
+			}
+		}
+
 		// capture prerequisite statements for the `ts.Statement`
 		// transform the statement into a luau.List<...>
 		const [transformedStatements, prereqStatements] = state.capture(() => transformStatement(state, statement));
@@ -64,6 +92,8 @@ export function transformStatementList(
 				}
 			}
 		}
+
+		if (shouldEarlyReturn) break;
 	}
 
 	if (state.compilerOptions.removeComments !== true && statements.length > 0) {

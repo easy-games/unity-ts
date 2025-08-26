@@ -8,8 +8,6 @@ import { createTruthinessChecks } from "TSTransformer/util/createTruthinessCheck
 import { getStatements } from "TSTransformer/util/getStatements";
 import ts from "typescript";
 
-
-
 export function transformIfStatementInner(state: TransformState, node: ts.IfStatement): luau.IfStatement {
 	const condition = createTruthinessChecks(state, transformExpression(state, node.expression), node.expression);
 

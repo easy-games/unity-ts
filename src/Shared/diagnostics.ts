@@ -244,6 +244,8 @@ export const errors = {
 		];
 	}),
 
+	invalidServerMacroUse:error("invalid"),
+
 	requiredComponentTypeParameterRequired: errorWithContext((className: string) => {
 		return [
 			`@RequireComponent decorator on class '${className}' requires at least one type parameter`,
@@ -343,6 +345,8 @@ export const warnings = {
 	runtimeLibUsedInReplicatedFirst: warning(
 		"This statement would generate a call to the runtime library. The runtime library should not be used from ReplicatedFirst.",
 	),
+
+	contextMacro: warning("Directive used here will not strip code"),
 
 	dependencyInjectionDeprecated: warningWithContext((id: ts.Identifier) => {
 		return [

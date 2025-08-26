@@ -1,4 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
+import { errors, warnings } from "Shared/diagnostics";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { IdentifierMacro, MacroList } from "TSTransformer/macros/types";
 import { isAirshipBehaviourClass } from "TSTransformer/util/extendsAirshipBehaviour";
 import ts from "typescript";
@@ -25,6 +27,8 @@ export const IDENTIFIER_MACROS: MacroList<IdentifierMacro> = {
 	},
 
 	$SERVER: (state, node) => {
+		if (!ts.isIfStatement(node.parent)) DiagnosticService.addDiagnostic(warnings.contextMacro(node));
+
 		// return state.isServer ? true : state.isClient ? false  ? luau.call(luau.property(luau.id("Game"), "IsServer");
 		if (state.isServerContext) {
 			return luau.bool(true);
@@ -40,6 +44,9 @@ export const IDENTIFIER_MACROS: MacroList<IdentifierMacro> = {
 	},
 
 	$CLIENT: (state, node) => {
+		// DiagnosticService.addDiagnostic(errors.invalidServerMacroUse(node));
+		// DiagnosticService.addDiagnostic(warnings.contextMacro(node));
+
 		// return state.isServer ? true : state.isClient ? false  ? luau.call(luau.property(luau.id("Game"), "IsServer");
 		if (state.isClientContext) {
 			return luau.bool(true);
