@@ -20,7 +20,7 @@ import { ProjectOptions, TypeScriptConfiguration } from "Shared/types";
 import { getRootDirs } from "Shared/util/getRootDirs";
 import { hasErrors } from "Shared/util/hasErrors";
 import { AirshipBuildState, BUILD_FILE, EDITOR_FILE } from "TSTransformer";
-import ts, { TSConfig } from "typescript";
+import ts from "typescript";
 import yargs from "yargs";
 
 interface BuildFlags {

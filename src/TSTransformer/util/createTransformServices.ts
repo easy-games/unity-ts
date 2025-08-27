@@ -8,9 +8,7 @@ export function createTransformServices(
 	typeChecker: ts.TypeChecker,
 	data: ProjectData,
 ): TransformServices {
-	const macroManager = new MacroManager(typeChecker);
-
-	// const roactSymbolManager = RoactSymbolManager.create(data, program, typeChecker);
+	const macroManager = new MacroManager(typeChecker, program);
 	const airshipSymbolManager = new AirshipSymbolManager(typeChecker, macroManager);
 
 	return { macroManager, roactSymbolManager: undefined, airshipSymbolManager };

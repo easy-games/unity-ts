@@ -1,16 +1,37 @@
 import { TransformState } from "TSTransformer/classes/TransformState";
 import ts, { factory } from "typescript";
 
+function isExclamationUnaryExpression(
+	node: ts.Expression,
+): node is ts.PrefixUnaryExpression & { operator: ts.SyntaxKind.ExclamationToken } {
+	return ts.isPrefixUnaryExpression(node) && node.operator === ts.SyntaxKind.ExclamationToken;
+}
+
 export function isServerDirective(state: TransformState, node: ts.IfStatement) {
+	const { isServerSymbol, isClientSymbol } = state.services.macroManager;
+
+	if (isServerSymbol) {
+		if (ts.isCallExpression(node.expression)) {
+			const symbol = state.typeChecker.getSymbolAtLocation(node.expression.expression);
+			if (!symbol) return false;
+			return isServerSymbol === symbol;
+		}
+	}
+
+	if (isClientSymbol) {
+		if (isExclamationUnaryExpression(node.expression) && ts.isCallExpression(node.expression.operand)) {
+			const symbol = state.typeChecker.getSymbolAtLocation(node.expression.operand.expression);
+			if (!symbol) return false;
+			return isClientSymbol === symbol;
+		}
+	}
+
 	if (ts.isIdentifier(node.expression)) {
 		const symbol = state.typeChecker.getSymbolAtLocation(node.expression);
 		if (!symbol) return false;
 
 		return state.services.macroManager.getSymbolOrThrow("$SERVER") === symbol;
-	} else if (
-		ts.isPrefixUnaryExpression(node.expression) &&
-		node.expression.operator === ts.SyntaxKind.ExclamationToken
-	) {
+	} else if (isExclamationUnaryExpression(node.expression)) {
 		const symbol = state.typeChecker.getSymbolAtLocation(node.expression.operand);
 		if (!symbol) return false;
 		return state.services.macroManager.getSymbolOrThrow("$CLIENT") === symbol;
@@ -19,16 +40,44 @@ export function isServerDirective(state: TransformState, node: ts.IfStatement) {
 	return false;
 }
 
+export function isEditorDirective(state: TransformState, node: ts.IfStatement) {
+	const { isEditorSymbol } = state.services.macroManager;
+
+	if (!isEditorSymbol) return false;
+	if (ts.isCallExpression(node.expression)) {
+		const symbol = state.typeChecker.getSymbolAtLocation(node.expression.expression);
+		if (!symbol) return false;
+		return isEditorSymbol === symbol;
+	}
+
+	return false;
+}
+
 export function isClientDirective(state: TransformState, node: ts.IfStatement) {
+	const { isClientSymbol, isServerSymbol } = state.services.macroManager;
+
+	if (isClientSymbol) {
+		if (ts.isCallExpression(node.expression)) {
+			const symbol = state.typeChecker.getSymbolAtLocation(node.expression.expression);
+			if (!symbol) return false;
+			return isClientSymbol === symbol;
+		}
+	}
+
+	if (isServerSymbol) {
+		if (isExclamationUnaryExpression(node.expression) && ts.isCallExpression(node.expression.operand)) {
+			const symbol = state.typeChecker.getSymbolAtLocation(node.expression.operand.expression);
+			if (!symbol) return false;
+			return isServerSymbol === symbol;
+		}
+	}
+
 	if (ts.isIdentifier(node.expression)) {
 		const symbol = state.typeChecker.getSymbolAtLocation(node.expression);
 		if (!symbol) return false;
 
 		return state.services.macroManager.getSymbolOrThrow("$CLIENT") === symbol;
-	} else if (
-		ts.isPrefixUnaryExpression(node.expression) &&
-		node.expression.operator === ts.SyntaxKind.ExclamationToken
-	) {
+	} else if (isExclamationUnaryExpression(node.expression)) {
 		const symbol = state.typeChecker.getSymbolAtLocation(node.expression.operand);
 		if (!symbol) return false;
 		return state.services.macroManager.getSymbolOrThrow("$SERVER") === symbol;
@@ -55,27 +104,6 @@ export function isGuardClause(state: TransformState, node: ts.IfStatement) {
 	return false;
 }
 
-// function hasDirective(state: TransformState, expr: ts.Expression, check: (value: ts.Expression) => boolean) {
-// 	if (
-// 		ts.isBinaryExpression(expr) &&
-// 		(check(expr.left) || check(expr.right) || hasDirective(state, expr.left, check))
-// 	) {
-// 		return true;
-// 	}
-
-// 	return false;
-// }
-
-// function extractDirective(state: TransformState, expr: ts.BinaryExpression) {
-// 	if (ts.isIdentifier(expr.left) && state.services.macroManager.isDirectiveAtLocation(expr.left)) {
-// 		return expr.left;
-// 	} else if (ts.isIdentifier(expr.right) && state.services.macroManager.isDirectiveAtLocation(expr.right)) {
-// 		return expr.left;
-// 	}
-
-// 	return undefined;
-// }
-
 export function transformDirectiveIfStatement(
 	state: TransformState,
 	node: ts.IfStatement,
@@ -99,18 +127,13 @@ export function transformDirectiveIfStatement(
 		} else {
 			return node.elseStatement ?? false;
 		}
+	} else if (isEditorDirective(state, node)) {
+		if (state.isPublish) {
+			return node.elseStatement ?? false;
+		} else {
+			return node.thenStatement;
+		}
 	}
-
-	// if (
-	// 	ts.isBinaryExpression(node.expression) &&
-	// 	hasDirective(
-	// 		state,
-	// 		node.expression,
-	// 		v => ts.isIdentifier(v) && state.services.macroManager.isDirectiveAtLocation(v),
-	// 	)
-	// ) {
-	// 	// return transformWithDirective(state, node);
-	// }
 
 	return undefined;
 }
