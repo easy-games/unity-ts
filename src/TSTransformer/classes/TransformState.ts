@@ -76,10 +76,11 @@ export class TransformState {
 	// 	this._context = value;
 	// }
 
-	public useContext(context: CompliationContext, action: (context: CompliationContext) => void) {
+	public useContext<R = void>(context: CompliationContext, action: (context: CompliationContext) => R) {
 		this._context = context;
-		action(context);
+		const value = action(context);
 		this._context = CompliationContext.Shared;
+		return value;
 	}
 
 	constructor(

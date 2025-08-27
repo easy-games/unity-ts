@@ -41,6 +41,7 @@ export enum PathHint {
 	None,
 	Server,
 	Client,
+	Shared,
 }
 
 type PathInfoDelegate = (pathInfo: PathInfo) => string;
@@ -84,6 +85,8 @@ export class PathTranslator {
 			makeRelative = this.makeRelativeFactory(undefined, path.resolve(this.outDir, "../dist/server"));
 		} else if (pathHint === PathHint.Client) {
 			makeRelative = this.makeRelativeFactory(undefined, path.resolve(this.outDir, "../dist/client"));
+		} else if (pathHint === PathHint.Shared) {
+			makeRelative = this.makeRelativeFactory(undefined, path.resolve(this.outDir, "../dist/shared"));
 		} else {
 			makeRelative = this.makeRelativeFactory();
 		}

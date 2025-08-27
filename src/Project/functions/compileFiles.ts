@@ -51,6 +51,12 @@ export function isPackage(relativePath: string) {
 	return relativePath.startsWith("AirshipPackages" + path.sep);
 }
 
+interface FileWriteEntry {
+	sourceFile: ts.SourceFile;
+	source: string;
+	context?: CompliationContext;
+}
+
 /**
  * 'transpiles' TypeScript project into a logically identical Luau project.
  *
@@ -97,7 +103,7 @@ export function compileFiles(
 
 	LogService.writeLineIfVerbose(`Now running TypeScript compiler:`);
 
-	const fileWriteQueue = new Array<{ sourceFile: ts.SourceFile; source: string; context?: CompliationContext }>();
+	const fileWriteQueue = new Array<FileWriteEntry>();
 	const fileMetadataWriteQueue = new Map<ts.SourceFile, string>();
 
 	const progressMaxLength = `${sourceFiles.length}/${sourceFiles.length}`.length;
@@ -208,20 +214,30 @@ export function compileFiles(
 			);
 
 			if (isPublish && !isPackage(relativePath)) {
-				transformState.useContext(CompliationContext.Server, context => {
+				const serverWriteEntry = transformState.useContext(CompliationContext.Server, context => {
 					const luauAST = transformSourceFile(transformState, sourceFile);
 					if (DiagnosticService.hasErrors()) return;
 					const source = renderAST(luauAST);
-					fileWriteQueue.push({ sourceFile, source, context });
+					return { sourceFile, source, context } satisfies FileWriteEntry;
 				});
 
-				if (DiagnosticService.hasErrors()) return;
-				transformState.useContext(CompliationContext.Client, context => {
+				if (DiagnosticService.hasErrors() || !serverWriteEntry) return;
+
+				const clientWriteEntry = transformState.useContext(CompliationContext.Client, context => {
 					const luauAST = transformSourceFile(transformState, sourceFile);
 					if (DiagnosticService.hasErrors()) return;
 					const source = renderAST(luauAST);
-					fileWriteQueue.push({ sourceFile, source, context });
+					return { sourceFile, source, context } satisfies FileWriteEntry;
 				});
+
+				if (!clientWriteEntry) return;
+
+				if (clientWriteEntry.source !== serverWriteEntry.source) {
+					fileWriteQueue.push(clientWriteEntry);
+					fileWriteQueue.push(serverWriteEntry);
+				} else {
+					fileWriteQueue.push({ ...serverWriteEntry, context: CompliationContext.Shared });
+				}
 			} else {
 				const luauAST = transformSourceFile(transformState, sourceFile);
 				if (DiagnosticService.hasErrors()) return;
@@ -295,6 +311,9 @@ export function compileFiles(
 							break;
 						case CompliationContext.Server:
 							pathHint = PathHint.Server;
+							break;
+						case CompliationContext.Shared:
+							pathHint = PathHint.Shared;
 							break;
 					}
 				}
