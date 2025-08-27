@@ -52,6 +52,7 @@ export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	usePolling: false,
 	json: false,
 	verbose: false,
+	skipPackages: false,
 	noInclude: false,
 	logTruthyChanges: false,
 	incremental: undefined,

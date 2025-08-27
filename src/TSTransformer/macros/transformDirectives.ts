@@ -82,7 +82,6 @@ export function transformDirectiveIfStatement(
 	ignoreGuard = false,
 ): ts.Statement | false | undefined {
 	if (isGuardClause(state, node) && !ignoreGuard) {
-		state.pushDirectiveStatement(node);
 		return undefined;
 	}
 

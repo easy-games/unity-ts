@@ -45,14 +45,12 @@ export function createStripMethod(
 						luau.string(
 							`Attempted to call ${state.isClientContext ? "server" : "client"}-only method '${
 								name.value
-							}'!`,
+							}' from the ${state.isServerContext ? "server" : "client"}!`,
 						),
 						luau.number(2),
 					]),
 				}),
 			);
-		} else {
-			luau.list.push(methodBody, luau.comment(" ► Method has no expected return values"));
 		}
 
 		luau.list.push(
@@ -100,13 +98,14 @@ export function createStripReturn(
 		);
 	}
 
+	const id = state.addFileImport("AirshipPackages/@Easy/Core/Shared/Game", "Game");
 	luau.list.push(
 		statements,
 		luau.create(luau.SyntaxKind.IfStatement, {
 			statements: methodStatements,
 			condition: luau.create(luau.SyntaxKind.UnaryExpression, {
 				expression: luau.create(luau.SyntaxKind.MethodCallExpression, {
-					expression: luau.id("Game"),
+					expression: id,
 					name: context === CompliationContext.Server ? "IsServer" : "IsClient",
 					args: luau.list.make(),
 				}),

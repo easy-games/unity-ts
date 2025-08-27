@@ -34,8 +34,9 @@ export const IDENTIFIER_MACROS: MacroList<IdentifierMacro> = {
 		} else if (state.isClientContext) {
 			return luau.bool(false);
 		} else {
+			const id = state.addFileImport("AirshipPackages/@Easy/Core/Shared/Game", "Game");
 			return luau.create(luau.SyntaxKind.MethodCallExpression, {
-				expression: luau.id("Game"),
+				expression: id,
 				name: "IsServer",
 				args: luau.list.make(),
 			});
@@ -53,8 +54,9 @@ export const IDENTIFIER_MACROS: MacroList<IdentifierMacro> = {
 		} else if (state.isServerContext) {
 			return luau.bool(false);
 		} else {
+			const id = state.addFileImport("AirshipPackages/@Easy/Core/Shared/Game", "Game");
 			return luau.create(luau.SyntaxKind.MethodCallExpression, {
-				expression: luau.id("Game"),
+				expression: id,
 				name: "IsClient",
 				args: luau.list.make(),
 			});

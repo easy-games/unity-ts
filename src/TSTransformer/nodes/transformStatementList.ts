@@ -33,7 +33,6 @@ export function transformStatementList(
 
 		if (!state.isSharedContext && ts.isIfStatement(statement)) {
 			if (isGuardClause(state, statement)) {
-				state.pushDirectiveStatement(statement);
 				if (state.isServerContext && isServerDirective(state, statement)) {
 					shouldEarlyReturn = true;
 					const newStatement = transformDirectiveIfStatement(state, statement, true);
