@@ -72,6 +72,18 @@ export class PathTranslator {
 	// 	return unityPath;
 	// }
 
+	public getOutDir(pathHint = PathHint.None) {
+		if (pathHint === PathHint.Server) {
+			return path.resolve(this.outDir, "../dist/server");
+		} else if (pathHint === PathHint.Client) {
+			return path.resolve(this.outDir, "../dist/client");
+		} else if (pathHint === PathHint.Shared) {
+			return path.resolve(this.outDir, "../dist/shared");
+		} else {
+			return this.outDir;
+		}
+	}
+
 	/**
 	 * Maps an input path to an output path
 	 * - `.tsx?` && !`.d.tsx?` -> `.lua`

@@ -186,6 +186,17 @@ export function compileFiles(
 		});
 	}
 
+	if (isPublish) {
+		const sharedDirectory = pathTranslator.getOutDir(PathHint.Shared);
+		if (fs.pathExistsSync(sharedDirectory)) fs.removeSync(sharedDirectory);
+
+		const clientDirectory = pathTranslator.getOutDir(PathHint.Client);
+		if (fs.pathExistsSync(clientDirectory)) fs.removeSync(clientDirectory);
+
+		const serverDirectory = pathTranslator.getOutDir(PathHint.Server);
+		if (fs.pathExistsSync(serverDirectory)) fs.removeSync(serverDirectory);
+	}
+
 	for (let i = 0; i < sourceFiles.length; i++) {
 		const sourceFile = proxyProgram.getSourceFile(sourceFiles[i].fileName);
 		assert(sourceFile);

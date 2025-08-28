@@ -1,5 +1,5 @@
 import { TransformState } from "TSTransformer/classes/TransformState";
-import ts, { factory } from "typescript";
+import ts from "typescript";
 
 function isExclamationUnaryExpression(
 	node: ts.Expression,
