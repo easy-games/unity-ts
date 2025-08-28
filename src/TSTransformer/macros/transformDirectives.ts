@@ -171,27 +171,34 @@ export function transformDirectiveIfStatement(
 	state: TransformState,
 	node: ts.IfStatement,
 	ignoreGuard = false,
+	inverse = false,
 ): ts.Statement | false | undefined {
 	if (isGuardClause(state, node) && !ignoreGuard) {
 		return undefined;
 	}
 
 	if (isServerIfDirective(state, node)) {
+		const useThenStatement = inverse ? !state.isServerContext : state.isServerContext;
+
 		// we're in contextual mode
-		if (state.isServerContext) {
+		if (useThenStatement) {
 			return transformThenStatement(state, node);
 		} else {
 			return transformElseStatement(state, node); // node.elseStatement ?? false;
 		}
 	} else if (isClientIfDirective(state, node)) {
+		const useThenStatement = inverse ? !state.isClientContext : state.isClientContext;
+
 		// we're in contextual mode
-		if (state.isClientContext) {
+		if (useThenStatement) {
 			return transformThenStatement(state, node);
 		} else {
 			return transformElseStatement(state, node); //node.elseStatement ?? false;
 		}
 	} else if (isEditorIfDirective(state, node)) {
-		if (state.isPublish) {
+		const useThenStatement = inverse ? !state.isPublish : state.isPublish;
+
+		if (useThenStatement) {
 			return transformElseStatement(state, node); //node.elseStatement ?? false;
 		} else {
 			return transformThenStatement(state, node);

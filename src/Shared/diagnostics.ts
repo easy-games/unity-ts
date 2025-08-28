@@ -325,10 +325,6 @@ export const errors = {
 		"$CLIENT is a directive macro and can only be used as a top-level condition in an if statement - e.g. if ($CLIENT)",
 	),
 
-	inverseGuardClause: error(
-		"Inverse guard clauses are not supported with directives, please reverse the flow of the guard clause.",
-	),
-
 	flameworkIdNoType: errorWithContext(() => {
 		return [
 			"Macro Flamework.id<T> requires a type argument at T",

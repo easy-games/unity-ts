@@ -53,7 +53,21 @@ export function transformStatementList(
 					continue;
 				}
 			} else if (isInverseGuardClause(state, statement)) {
-				DiagnosticService.addDiagnostic(errors.inverseGuardClause(statement));
+				if (state.isClientContext && isServerIfDirective(state, statement)) {
+					shouldEarlyReturn = true;
+					const newStatement = transformDirectiveIfStatement(state, statement, true);
+					if (newStatement) {
+						statement = newStatement;
+					}
+				} else if (state.isServerContext && isClientIfDirective(state, statement)) {
+					shouldEarlyReturn = true;
+					const newStatement = transformDirectiveIfStatement(state, statement, true);
+					if (newStatement) {
+						statement = newStatement;
+					}
+				} else {
+					continue;
+				}
 			}
 		}
 
