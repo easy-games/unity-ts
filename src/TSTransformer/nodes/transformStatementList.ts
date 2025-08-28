@@ -1,10 +1,14 @@
 import luau from "@roblox-ts/luau-ast";
+import { stat } from "fs";
+import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import {
 	isClientIfDirective,
 	isServerIfDirective,
 	isGuardClause,
 	transformDirectiveIfStatement,
+	isInverseGuardClause,
 } from "TSTransformer/macros/transformDirectives";
 import { transformStatement } from "TSTransformer/nodes/statements/transformStatement";
 import { createHoistDeclaration } from "TSTransformer/util/createHoistDeclaration";
@@ -48,6 +52,8 @@ export function transformStatementList(
 				} else {
 					continue;
 				}
+			} else if (isInverseGuardClause(state, statement)) {
+				DiagnosticService.addDiagnostic(errors.inverseGuardClause(statement));
 			}
 		}
 

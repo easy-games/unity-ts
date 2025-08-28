@@ -103,7 +103,10 @@ export function isEditorIfDirective(state: TransformState, node: ts.IfStatement)
 
 function isReturning(state: TransformState, statement: ts.Statement) {
 	if (ts.isBlock(statement)) {
-		return ts.isReturnStatement(statement.statements[statement.statements.length - 1]);
+		return (
+			statement.statements.length > 0 &&
+			ts.isReturnStatement(statement.statements[statement.statements.length - 1])
+		);
 	} else if (ts.isReturnStatement(statement)) {
 		return true;
 	}
@@ -113,7 +116,10 @@ function isReturning(state: TransformState, statement: ts.Statement) {
 
 function isThrowing(state: TransformState, statement: ts.Statement) {
 	if (ts.isBlock(statement)) {
-		return ts.isThrowStatement(statement.statements[statement.statements.length - 1]);
+		return (
+			statement.statements.length > 0 &&
+			ts.isThrowStatement(statement.statements[statement.statements.length - 1])
+		);
 	} else if (ts.isThrowStatement(statement)) {
 		return true;
 	}
@@ -126,6 +132,18 @@ export function isGuardClause(state: TransformState, node: ts.IfStatement) {
 	if (
 		(isServerIfDirective(state, node) || isClientIfDirective(state, node)) &&
 		(isReturning(state, node.thenStatement) || isThrowing(state, node.thenStatement))
+	) {
+		return true;
+	}
+
+	return false;
+}
+
+export function isInverseGuardClause(state: TransformState, node: ts.IfStatement) {
+	if (
+		node.elseStatement &&
+		(isServerIfDirective(state, node) || isClientIfDirective(state, node)) &&
+		(isReturning(state, node.elseStatement) || isThrowing(state, node.elseStatement))
 	) {
 		return true;
 	}
