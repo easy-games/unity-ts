@@ -57,8 +57,8 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 			default: false,
 		},
 		publish: {
-			// hidden: true,
 			alias: "D",
+			hidden: true,
 			boolean: true,
 			default: false,
 		},

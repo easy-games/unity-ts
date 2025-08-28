@@ -4,7 +4,7 @@ import { assert } from "Shared/util/assert";
 import { CALL_MACROS } from "TSTransformer/macros/callMacros";
 import { CONSTRUCTOR_MACROS } from "TSTransformer/macros/constructorMacros";
 import { IDENTIFIER_MACROS } from "TSTransformer/macros/identifierMacros";
-import { GAME_MACROS, PROPERTY_CALL_MACROS } from "TSTransformer/macros/propertyCallMacros";
+import { PROPERTY_CALL_MACROS } from "TSTransformer/macros/propertyCallMacros";
 import {
 	CallDecoratorMacro,
 	CallMacro,
