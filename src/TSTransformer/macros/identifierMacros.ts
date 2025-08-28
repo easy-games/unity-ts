@@ -1,9 +1,13 @@
 import luau from "@roblox-ts/luau-ast";
-import { errors, warnings } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { IdentifierMacro, MacroList } from "TSTransformer/macros/types";
 import { isAirshipBehaviourClass } from "TSTransformer/util/extendsAirshipBehaviour";
 import ts from "typescript";
+
+function isValidDirectiveParent(node: ts.Node) {
+	return ts.isIfStatement(node);
+}
 
 export const IDENTIFIER_MACROS: MacroList<IdentifierMacro> = {
 	Promise: (state, node) => state.TS(node, "Promise"),
@@ -27,7 +31,10 @@ export const IDENTIFIER_MACROS: MacroList<IdentifierMacro> = {
 	},
 
 	$SERVER: (state, node) => {
-		if (!ts.isIfStatement(node.parent)) DiagnosticService.addDiagnostic(errors.directiveServerInvalid(node));
+		if (!isValidDirectiveParent(node.parent) && !state.isSharedContext) {
+
+			DiagnosticService.addDiagnostic(errors.directiveClientInvalid(node.parent));
+		}
 
 		if (state.isServerContext) {
 			return luau.bool(true);
@@ -46,7 +53,10 @@ export const IDENTIFIER_MACROS: MacroList<IdentifierMacro> = {
 	$CLIENT: (state, node) => {
 		// DiagnosticService.addDiagnostic(errors.invalidServerMacroUse(node));
 
-		if (!ts.isIfStatement(node.parent)) DiagnosticService.addDiagnostic(errors.directiveClientInvalid(node.parent));
+		if (!isValidDirectiveParent(node.parent) && !state.isSharedContext) {
+			console.log(ts.SyntaxKind[node.parent.kind])
+			DiagnosticService.addDiagnostic(errors.directiveClientInvalid(node.parent));
+		}
 
 		// return state.isServer ? true : state.isClient ? false  ? luau.call(luau.property(luau.id("Game"), "IsServer");
 		if (state.isClientContext) {
