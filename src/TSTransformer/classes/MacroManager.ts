@@ -130,6 +130,8 @@ export class MacroManager {
 	public readonly isServerSymbol: ts.Symbol | undefined;
 	public readonly isClientSymbol: ts.Symbol | undefined;
 	public readonly isEditorSymbol: ts.Symbol | undefined;
+	public readonly $SERVER: ts.Symbol;
+	public readonly $CLIENT: ts.Symbol;
 
 	constructor(private readonly typeChecker: ts.TypeChecker, private readonly program: ts.Program) {
 		for (const [name, macro] of Object.entries(IDENTIFIER_MACROS)) {
@@ -225,6 +227,9 @@ export class MacroManager {
 				this.symbols.set(NOMINAL_LUA_TUPLE_NAME, nominalLuaTupleSymbol);
 			}
 		}
+
+		this.$SERVER = this.getSymbolOrThrow("$SERVER");
+		this.$CLIENT = this.getSymbolOrThrow("$CLIENT");
 	}
 
 	public isMacroOnlySymbol(symbol: ts.Symbol) {

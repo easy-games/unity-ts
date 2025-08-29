@@ -32,8 +32,7 @@ export const IDENTIFIER_MACROS: MacroList<IdentifierMacro> = {
 
 	$SERVER: (state, node) => {
 		if (!isValidDirectiveParent(node.parent) && !state.isSharedContext) {
-
-			DiagnosticService.addDiagnostic(errors.directiveClientInvalid(node.parent));
+			DiagnosticService.addDiagnostic(errors.directiveServerInvalid(node.parent));
 		}
 
 		if (state.isServerContext) {
@@ -54,7 +53,6 @@ export const IDENTIFIER_MACROS: MacroList<IdentifierMacro> = {
 		// DiagnosticService.addDiagnostic(errors.invalidServerMacroUse(node));
 
 		if (!isValidDirectiveParent(node.parent) && !state.isSharedContext) {
-			console.log(ts.SyntaxKind[node.parent.kind])
 			DiagnosticService.addDiagnostic(errors.directiveClientInvalid(node.parent));
 		}
 

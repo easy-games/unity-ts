@@ -1,14 +1,11 @@
 import luau from "@roblox-ts/luau-ast";
-import { stat } from "fs";
-import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import {
 	isClientIfDirective,
-	isServerIfDirective,
 	isGuardClause,
-	transformDirectiveIfStatement,
 	isInverseGuardClause,
+	isServerIfDirective,
+	transformDirectiveIfStatement,
 } from "TSTransformer/macros/transformDirectives";
 import { transformStatement } from "TSTransformer/nodes/statements/transformStatement";
 import { createHoistDeclaration } from "TSTransformer/util/createHoistDeclaration";
@@ -37,17 +34,25 @@ export function transformStatementList(
 
 		if (!state.isSharedContext && ts.isIfStatement(statement)) {
 			if (isGuardClause(state, statement)) {
-				if (state.isServerContext && isServerIfDirective(state, statement)) {
-					shouldEarlyReturn = true;
+				if (isServerIfDirective(state, statement)) {
 					const newStatement = transformDirectiveIfStatement(state, statement, true);
-					if (newStatement) {
+					if (state.isServerContext && newStatement) {
 						statement = newStatement;
+						shouldEarlyReturn = true;
+					} else if (statement.elseStatement) {
+						statement = statement.elseStatement;
+					} else if (newStatement === false) {
+						continue;
 					}
-				} else if (state.isClientContext && isClientIfDirective(state, statement)) {
-					shouldEarlyReturn = true;
+				} else if (isClientIfDirective(state, statement)) {
 					const newStatement = transformDirectiveIfStatement(state, statement, true);
-					if (newStatement) {
+					if (state.isClientContext && newStatement) {
+						shouldEarlyReturn = true;
 						statement = newStatement;
+					} else if (statement.elseStatement) {
+						statement = statement.elseStatement;
+					} else if (newStatement === false) {
+						continue;
 					}
 				} else {
 					continue;
@@ -58,12 +63,16 @@ export function transformStatementList(
 					const newStatement = transformDirectiveIfStatement(state, statement, true);
 					if (newStatement) {
 						statement = newStatement;
+					} else if (newStatement === false) {
+						continue;
 					}
 				} else if (state.isServerContext && isClientIfDirective(state, statement)) {
 					shouldEarlyReturn = true;
 					const newStatement = transformDirectiveIfStatement(state, statement, true);
 					if (newStatement) {
 						statement = newStatement;
+					} else if (newStatement === false) {
+						continue;
 					}
 				} else {
 					continue;

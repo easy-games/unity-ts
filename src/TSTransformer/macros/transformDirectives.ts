@@ -8,7 +8,7 @@ function isExclamationUnaryExpression(
 }
 
 function isServerDirective(state: TransformState, expression: ts.Expression) {
-	const { isServerSymbol, isClientSymbol } = state.services.macroManager;
+	const { isServerSymbol, isClientSymbol, $CLIENT, $SERVER } = state.services.macroManager;
 
 	if (isServerSymbol) {
 		if (ts.isCallExpression(expression)) {
@@ -16,6 +16,13 @@ function isServerDirective(state: TransformState, expression: ts.Expression) {
 			if (!symbol) return false;
 			return isServerSymbol === symbol;
 		}
+	}
+
+	if (ts.isIdentifier(expression)) {
+		const symbol = state.typeChecker.getSymbolAtLocation(expression);
+		if (!symbol) return false;
+
+		return $SERVER === symbol;
 	}
 
 	if (isClientSymbol) {
@@ -26,22 +33,17 @@ function isServerDirective(state: TransformState, expression: ts.Expression) {
 		}
 	}
 
-	if (ts.isIdentifier(expression)) {
-		const symbol = state.typeChecker.getSymbolAtLocation(expression);
-		if (!symbol) return false;
-
-		return state.services.macroManager.getSymbolOrThrow("$SERVER") === symbol;
-	} else if (isExclamationUnaryExpression(expression)) {
+	if (isExclamationUnaryExpression(expression)) {
 		const symbol = state.typeChecker.getSymbolAtLocation(expression.operand);
 		if (!symbol) return false;
-		return state.services.macroManager.getSymbolOrThrow("$CLIENT") === symbol;
+		return $CLIENT === symbol;
 	}
 
 	return false;
 }
 
 function isClientDirective(state: TransformState, expression: ts.Expression) {
-	const { isClientSymbol, isServerSymbol } = state.services.macroManager;
+	const { isClientSymbol, isServerSymbol, $CLIENT, $SERVER } = state.services.macroManager;
 
 	if (isClientSymbol) {
 		if (ts.isCallExpression(expression)) {
@@ -49,6 +51,13 @@ function isClientDirective(state: TransformState, expression: ts.Expression) {
 			if (!symbol) return false;
 			return isClientSymbol === symbol;
 		}
+	}
+
+	if (ts.isIdentifier(expression)) {
+		const symbol = state.typeChecker.getSymbolAtLocation(expression);
+		if (!symbol) return false;
+
+		return $CLIENT === symbol;
 	}
 
 	if (isServerSymbol) {
@@ -59,15 +68,10 @@ function isClientDirective(state: TransformState, expression: ts.Expression) {
 		}
 	}
 
-	if (ts.isIdentifier(expression)) {
-		const symbol = state.typeChecker.getSymbolAtLocation(expression);
-		if (!symbol) return false;
-
-		return state.services.macroManager.getSymbolOrThrow("$CLIENT") === symbol;
-	} else if (isExclamationUnaryExpression(expression)) {
+	if (isExclamationUnaryExpression(expression)) {
 		const symbol = state.typeChecker.getSymbolAtLocation(expression.operand);
 		if (!symbol) return false;
-		return state.services.macroManager.getSymbolOrThrow("$SERVER") === symbol;
+		return $SERVER === symbol;
 	}
 
 	return false;
@@ -153,6 +157,16 @@ export function isInverseGuardClause(state: TransformState, node: ts.IfStatement
 
 export function transformThenStatement(state: TransformState, node: ts.IfStatement) {
 	if (ts.isBinaryExpression(node.expression)) {
+		// E.g. $SERVER && $CLIENT (Host only)
+		if (isServerDirective(state, node.expression.left) && isClientDirective(state, node.expression.right)) {
+			return node.elseStatement ?? false;
+		}
+
+		// e.g. $SERVER && !$CLIENT (Dedicated server)
+		if (isServerDirective(state, node.expression.left) && isServerDirective(state, node.expression.right)) {
+			return state.isServerContext ? node.thenStatement : node.elseStatement ?? false;
+		}
+
 		if (isServerDirective(state, node.expression.left)) {
 			return factory.updateIfStatement(node, node.expression.right, node.thenStatement, node.elseStatement);
 		} else if (isServerDirective(state, node.expression.right)) {
@@ -167,15 +181,47 @@ export function transformElseStatement(state: TransformState, node: ts.IfStateme
 	return node.elseStatement ?? false;
 }
 
+function isIdentifierLike(
+	node: ts.Expression,
+): node is
+	| ts.Identifier
+	| (ts.PrefixUnaryExpression & { operator: ts.SyntaxKind.ExclamationToken; operand: ts.Identifier }) {
+	return (
+		ts.isIdentifier(node) ||
+		(ts.isPrefixUnaryExpression(node) &&
+			node.operator === ts.SyntaxKind.ExclamationToken &&
+			ts.isIdentifier(node.operand))
+	);
+}
+
+export function isSimpleIfStatement(state: TransformState, node: ts.IfStatement) {
+	return (
+		isIdentifierLike(node.expression) ||
+		(ts.isBinaryExpression(node.expression) &&
+			node.expression.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken &&
+			isIdentifierLike(node.expression.left) &&
+			isIdentifierLike(node.expression.right))
+	);
+}
+
 export function transformDirectiveIfStatement(
 	state: TransformState,
 	node: ts.IfStatement,
 	ignoreGuard = false,
 	inverse = false,
 ): ts.Statement | false | undefined {
-	if (isGuardClause(state, node) && !ignoreGuard) {
-		return undefined;
-	}
+	if (!isSimpleIfStatement(state, node)) return;
+
+	// if (ts.isBinaryExpression(node.expression)) {
+	// 	const { left, right } = node.expression;
+
+	// 	if (isServerDirective(state, left) && isServerDirective(state, right)) {
+	// 		console.log("server check");
+	// 		return;
+	// 	}
+
+	// 	return;
+	// }
 
 	if (isServerIfDirective(state, node)) {
 		const useThenStatement = inverse ? !state.isServerContext : state.isServerContext;
@@ -186,7 +232,9 @@ export function transformDirectiveIfStatement(
 		} else {
 			return transformElseStatement(state, node); // node.elseStatement ?? false;
 		}
-	} else if (isClientIfDirective(state, node)) {
+	}
+
+	if (isClientIfDirective(state, node)) {
 		const useThenStatement = inverse ? !state.isClientContext : state.isClientContext;
 
 		// we're in contextual mode
@@ -195,7 +243,9 @@ export function transformDirectiveIfStatement(
 		} else {
 			return transformElseStatement(state, node); //node.elseStatement ?? false;
 		}
-	} else if (isEditorIfDirective(state, node)) {
+	}
+
+	if (isEditorIfDirective(state, node)) {
 		const useThenStatement = inverse ? !state.isPublish : state.isPublish;
 
 		if (useThenStatement) {
