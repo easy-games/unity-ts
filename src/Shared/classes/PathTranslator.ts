@@ -175,7 +175,7 @@ export class PathTranslator {
 		const pathInfo = PathInfo.from(filePath);
 
 		// index.*.lua cannot come from a .ts file
-		if (pathInfo.extsPeek() === LUA_EXT && pathInfo.fileName !== INDEX_NAME) {
+		if (pathInfo.extsPeek() === LUA_EXT) {
 			pathInfo.exts.pop();
 
 			// ts
@@ -187,24 +187,6 @@ export class PathTranslator {
 			pathInfo.exts.push(TSX_EXT);
 			possiblePaths.push(makeRelative(pathInfo));
 			pathInfo.exts.pop();
-
-			// init -> index
-			if (pathInfo.fileName === INIT_NAME) {
-				const originalFileName = pathInfo.fileName;
-				pathInfo.fileName = INDEX_NAME;
-
-				// index.*.ts
-				pathInfo.exts.push(TS_EXT);
-				possiblePaths.push(makeRelative(pathInfo));
-				pathInfo.exts.pop();
-
-				// index.*.tsx
-				pathInfo.exts.push(TSX_EXT);
-				possiblePaths.push(makeRelative(pathInfo));
-				pathInfo.exts.pop();
-
-				pathInfo.fileName = originalFileName;
-			}
 
 			pathInfo.exts.push(LUA_EXT);
 		}
