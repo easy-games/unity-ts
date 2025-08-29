@@ -1,8 +1,9 @@
 import { findTsConfigPath, getPackageJson, getTsConfigProjectOptions } from "CLI/util/findTsConfigPath";
 import { existsSync } from "fs";
+import path from "path";
 import { buildTypes } from "Project/functions/buildTypes";
 import { cleanup } from "Project/functions/cleanup";
-import { compileFiles } from "Project/functions/compileFiles";
+import { compileFiles, isPackage } from "Project/functions/compileFiles";
 import { copyFiles } from "Project/functions/copyFiles";
 import { copyNodeModules } from "Project/functions/copyInclude";
 import { createPathTranslator } from "Project/functions/createPathTranslator";
@@ -19,7 +20,7 @@ import { ProjectOptions, TypeScriptConfiguration } from "Shared/types";
 import { getRootDirs } from "Shared/util/getRootDirs";
 import { hasErrors } from "Shared/util/hasErrors";
 import { AirshipBuildState, BUILD_FILE, EDITOR_FILE } from "TSTransformer";
-import ts, { TSConfig } from "typescript";
+import ts from "typescript";
 import yargs from "yargs";
 
 interface BuildFlags {
@@ -43,12 +44,20 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 			default: ".",
 			describe: "project path",
 		},
+		skipPackages: {
+			type: "boolean",
+			alias: "P",
+			describe: "Compile only the game's code",
+			boolean: true,
+			default: false,
+		},
 		json: {
 			hidden: true,
 			boolean: true,
 			default: false,
 		},
 		publish: {
+			alias: "D",
 			hidden: true,
 			boolean: true,
 			default: false,
@@ -148,7 +157,15 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 					pathTranslator,
 					new Set(getRootDirs(program.getCompilerOptions(), data.projectOptions)),
 				);
-				const sourceFiles = getChangedSourceFiles(program);
+
+				let sourceFiles = getChangedSourceFiles(program);
+
+				if (projectOptions.skipPackages) {
+					LogService.writeIfVerbose("Filtering out packages from compile");
+					sourceFiles = sourceFiles.filter(
+						sourceFile => !isPackage(path.relative(process.cwd(), sourceFile.fileName)),
+					);
+				}
 
 				if (projectOptions.json) {
 					jsonReporter("startingCompile", { initial: true, count: sourceFiles.length });

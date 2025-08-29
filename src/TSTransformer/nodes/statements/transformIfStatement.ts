@@ -1,6 +1,8 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
+import { transformDirectiveIfStatement as tryTransformContextDirectives } from "TSTransformer/macros/transformDirectives";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { transformStatement } from "TSTransformer/nodes/statements/transformStatement";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { getStatements } from "TSTransformer/util/getStatements";
@@ -37,6 +39,15 @@ export function transformIfStatementInner(state: TransformState, node: ts.IfStat
 	});
 }
 
-export function transformIfStatement(state: TransformState, node: ts.IfStatement) {
+export function transformIfStatement(state: TransformState, node: ts.IfStatement): luau.List<luau.Statement> {
+	if (!state.isSharedContext) {
+		const directive = tryTransformContextDirectives(state, node);
+		if (directive) {
+			return transformStatement(state, directive);
+		} else if (directive === false) {
+			return luau.list.make();
+		}
+	}
+
 	return luau.list.make(transformIfStatementInner(state, node));
 }

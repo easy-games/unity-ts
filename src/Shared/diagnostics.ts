@@ -244,31 +244,41 @@ export const errors = {
 		];
 	}),
 
+	invalidServerMacroUse: error("invalid"),
+
 	requiredComponentTypeParameterRequired: errorWithContext((className: string) => {
 		return [
 			`@RequireComponent decorator on class '${className}' requires at least one type parameter`,
-			suggestion("Use @RequireComponent<ComponentType>() where ComponentType is a Unity component or AirshipBehaviour"),
+			suggestion(
+				"Use @RequireComponent<ComponentType>() where ComponentType is a Unity component or AirshipBehaviour",
+			),
 		];
 	}),
 
 	requiredComponentArgumentRequired: errorWithContext((className: string) => {
 		return [
 			`@RequireComponent decorator on class '${className}' requires at least one type parameter`,
-			suggestion("Use @RequireComponent<ComponentType>() where ComponentType is a Unity component or AirshipBehaviour"),
+			suggestion(
+				"Use @RequireComponent<ComponentType>() where ComponentType is a Unity component or AirshipBehaviour",
+			),
 		];
 	}),
 
 	requiredComponentInvalidType: errorWithContext((className: string, typeName: string) => {
 		return [
 			`@RequireComponent decorator on class '${className}' received invalid component type '${typeName}'`,
-			suggestion("Component type must be a Unity component or AirshipBehaviour. Try @RequireComponent<ValidComponentType>()"),
+			suggestion(
+				"Component type must be a Unity component or AirshipBehaviour. Try @RequireComponent<ValidComponentType>()",
+			),
 		];
 	}),
 
 	requiredComponentInvalidArgument: errorWithContext((className: string, argumentType: string) => {
 		return [
 			`@RequireComponent decorator on class '${className}' received invalid argument of type '${argumentType}'`,
-			suggestion("Use @RequireComponent<ComponentType>() where ComponentType is a Unity component or AirshipBehaviour"),
+			suggestion(
+				"Use @RequireComponent<ComponentType>() where ComponentType is a Unity component or AirshipBehaviour",
+			),
 		];
 	}),
 
@@ -307,6 +317,13 @@ export const errors = {
 			suggestion("Try adding a type argument to the function call"),
 		];
 	}),
+
+	directiveServerInvalid: error(
+		"$SERVER is a directive macro and can only be used as a top-level condition in an if statement - e.g. if ($SERVER)",
+	),
+	directiveClientInvalid: error(
+		"$CLIENT is a directive macro and can only be used as a top-level condition in an if statement - e.g. if ($CLIENT)",
+	),
 
 	flameworkIdNoType: errorWithContext(() => {
 		return [

@@ -1,3 +1,4 @@
+import path from "path";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
 import { CALL_MACROS } from "TSTransformer/macros/callMacros";
@@ -14,7 +15,7 @@ import {
 	PropertySetMacro,
 } from "TSTransformer/macros/types";
 import { skipUpwards } from "TSTransformer/util/traversal";
-import ts from "typescript";
+import ts, { MethodDeclaration } from "typescript";
 
 function getType(typeChecker: ts.TypeChecker, node: ts.Node) {
 	return typeChecker.getTypeAtLocation(skipUpwards(node));
@@ -55,6 +56,11 @@ export const SYMBOL_NAMES = {
 
 	$range: "$range",
 	$tuple: "$tuple",
+
+	$SERVER: "$SERVER",
+	$CLIENT: "$CLIENT",
+	Server: "Server",
+	Client: "Client",
 } as const;
 
 export const NOMINAL_LUA_TUPLE_NAME = "_nominal_LuaTuple";
@@ -121,7 +127,13 @@ export class MacroManager {
 	private macroOnlySymbols = new Set<ts.Symbol>();
 	private propertyMacros = new Map<ts.Symbol, PropertyMacro>();
 
-	constructor(private readonly typeChecker: ts.TypeChecker) {
+	public readonly isServerSymbol: ts.Symbol | undefined;
+	public readonly isClientSymbol: ts.Symbol | undefined;
+	public readonly isEditorSymbol: ts.Symbol | undefined;
+	public readonly $SERVER: ts.Symbol;
+	public readonly $CLIENT: ts.Symbol;
+
+	constructor(private readonly typeChecker: ts.TypeChecker, private readonly program: ts.Program) {
 		for (const [name, macro] of Object.entries(IDENTIFIER_MACROS)) {
 			const symbol = getGlobalSymbolByNameOrThrow(typeChecker, name, ts.SymbolFlags.Variable);
 			this.identifierMacros.set(symbol, macro);
@@ -175,6 +187,35 @@ export class MacroManager {
 			}
 		}
 
+		/** Macros relating to Game */
+		const gameModuleDir = path.relative(process.cwd(), "AirshipPackages/@Easy/Core/Shared/Game.ts");
+		const gameModuleFile = program.getSourceFile(gameModuleDir);
+		if (gameModuleFile) {
+			const gameDeclaration = gameModuleFile.statements.find(
+				(f): f is ts.ClassDeclaration => ts.isClassDeclaration(f) && f.name?.text === "Game",
+			);
+
+			if (gameDeclaration) {
+				const isServer = gameDeclaration.members.find(
+					(f): f is MethodDeclaration & { name: ts.Identifier } =>
+						ts.isMethodDeclaration(f) && ts.isIdentifier(f.name) && f.name.text === "IsServer",
+				);
+				if (isServer) this.isServerSymbol = typeChecker.getSymbolAtLocation(isServer.name);
+
+				const isClient = gameDeclaration.members.find(
+					(f): f is MethodDeclaration & { name: ts.Identifier } =>
+						ts.isMethodDeclaration(f) && ts.isIdentifier(f.name) && f.name.text === "IsClient",
+				);
+				if (isClient) this.isClientSymbol = typeChecker.getSymbolAtLocation(isClient.name);
+
+				const isEditor = gameDeclaration.members.find(
+					(f): f is MethodDeclaration & { name: ts.Identifier } =>
+						ts.isMethodDeclaration(f) && ts.isIdentifier(f.name) && f.name.text === "IsEditor",
+				);
+				if (isEditor) this.isEditorSymbol = typeChecker.getSymbolAtLocation(isEditor.name);
+			}
+		}
+
 		const luaTupleTypeDec = this.symbols
 			.get(SYMBOL_NAMES.LuaTuple)
 			?.declarations?.find(v => ts.isTypeAliasDeclaration(v));
@@ -186,6 +227,9 @@ export class MacroManager {
 				this.symbols.set(NOMINAL_LUA_TUPLE_NAME, nominalLuaTupleSymbol);
 			}
 		}
+
+		this.$SERVER = this.getSymbolOrThrow("$SERVER");
+		this.$CLIENT = this.getSymbolOrThrow("$CLIENT");
 	}
 
 	public isMacroOnlySymbol(symbol: ts.Symbol) {
@@ -304,5 +348,15 @@ export class MacroManager {
 	public isPropertyCallMacro(symbol: ts.Symbol) {
 		const macro = this.propertyCallMacros.get(symbol);
 		return macro !== undefined;
+	}
+
+	public isDirective(symbol: ts.Symbol) {
+		return symbol === this.getSymbolOrThrow("$CLIENT") || symbol === this.getSymbolOrThrow("$SERVER");
+	}
+
+	public isDirectiveAtLocation(node: ts.Expression) {
+		const symbol = this.typeChecker.getSymbolAtLocation(node);
+		if (!symbol) return false;
+		return this.isDirective(symbol);
 	}
 }

@@ -11,7 +11,7 @@ import { createTransformerWatcher } from "Project/transformers/createTransformer
 import { getPluginConfigs } from "Project/transformers/getPluginConfigs";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { LogService } from "Shared/classes/LogService";
-import { PathTranslator } from "Shared/classes/PathTranslator";
+import { PathHint, PathTranslator } from "Shared/classes/PathTranslator";
 import { ProjectType } from "Shared/constants";
 import { warnings } from "Shared/diagnostics";
 import { AirshipBuildFile, ProjectData } from "Shared/types";
@@ -20,6 +20,7 @@ import { benchmarkIfVerbose } from "Shared/util/benchmark";
 import {
 	AirshipBuildState,
 	BUILD_FILE,
+	CompliationContext,
 	EDITOR_FILE,
 	MultiTransformState,
 	transformSourceFile,
@@ -46,6 +47,16 @@ function getReverseSymlinkMap(program: ts.Program) {
 	return result;
 }
 
+export function isPackage(relativePath: string) {
+	return relativePath.startsWith("AirshipPackages" + path.sep);
+}
+
+interface FileWriteEntry {
+	sourceFile: ts.SourceFile;
+	source: string;
+	context?: CompliationContext;
+}
+
 /**
  * 'transpiles' TypeScript project into a logically identical Luau project.
  *
@@ -58,7 +69,7 @@ export function compileFiles(
 	buildState: AirshipBuildState,
 	sourceFiles: Array<ts.SourceFile>,
 ): ts.EmitResult {
-	const asJson = data.projectOptions.json;
+	const { json: asJson, publish: isPublish } = data.projectOptions;
 	const compilerOptions = program.getCompilerOptions();
 
 	const watch = compilerOptions.watch ?? false;
@@ -92,7 +103,7 @@ export function compileFiles(
 
 	LogService.writeLineIfVerbose(`Now running TypeScript compiler:`);
 
-	const fileWriteQueue = new Array<{ sourceFile: ts.SourceFile; source: string }>();
+	const fileWriteQueue = new Array<FileWriteEntry>();
 	const fileMetadataWriteQueue = new Map<ts.SourceFile, string>();
 
 	const progressMaxLength = `${sourceFiles.length}/${sourceFiles.length}`.length;
@@ -175,11 +186,24 @@ export function compileFiles(
 		});
 	}
 
+	if (isPublish) {
+		const sharedDirectory = pathTranslator.getOutDir(PathHint.Shared);
+		if (fs.pathExistsSync(sharedDirectory)) fs.removeSync(sharedDirectory);
+
+		const clientDirectory = pathTranslator.getOutDir(PathHint.Client);
+		if (fs.pathExistsSync(clientDirectory)) fs.removeSync(clientDirectory);
+
+		const serverDirectory = pathTranslator.getOutDir(PathHint.Server);
+		if (fs.pathExistsSync(serverDirectory)) fs.removeSync(serverDirectory);
+	}
+
 	for (let i = 0; i < sourceFiles.length; i++) {
 		const sourceFile = proxyProgram.getSourceFile(sourceFiles[i].fileName);
 		assert(sourceFile);
 		const progress = `${i + 1}/${sourceFiles.length}`.padStart(progressMaxLength);
-		benchmarkIfVerbose(`${progress} compile ${path.relative(process.cwd(), sourceFile.fileName)}`, () => {
+		const relativePath = path.relative(process.cwd(), sourceFile.fileName);
+
+		benchmarkIfVerbose(`${progress} compile ${relativePath}`, () => {
 			DiagnosticService.addDiagnostics(ts.getPreEmitDiagnostics(proxyProgram, sourceFile));
 			DiagnosticService.addDiagnostics(getCustomPreEmitDiagnostics(data, sourceFile));
 			if (DiagnosticService.hasErrors()) return;
@@ -200,12 +224,37 @@ export function compileFiles(
 				sourceFile,
 			);
 
-			const luauAST = transformSourceFile(transformState, sourceFile);
-			if (DiagnosticService.hasErrors()) return;
+			if (isPublish && !isPackage(relativePath)) {
+				const serverWriteEntry = transformState.useContext(CompliationContext.Server, context => {
+					const luauAST = transformSourceFile(transformState, sourceFile);
+					if (DiagnosticService.hasErrors()) return;
+					const source = renderAST(luauAST);
+					return { sourceFile, source, context } satisfies FileWriteEntry;
+				});
 
-			const source = renderAST(luauAST);
+				if (DiagnosticService.hasErrors() || !serverWriteEntry) return;
 
-			fileWriteQueue.push({ sourceFile, source });
+				const clientWriteEntry = transformState.useContext(CompliationContext.Client, context => {
+					const luauAST = transformSourceFile(transformState, sourceFile);
+					if (DiagnosticService.hasErrors()) return;
+					const source = renderAST(luauAST);
+					return { sourceFile, source, context } satisfies FileWriteEntry;
+				});
+
+				if (!clientWriteEntry) return;
+
+				if (clientWriteEntry.source !== serverWriteEntry.source) {
+					fileWriteQueue.push(clientWriteEntry);
+					fileWriteQueue.push(serverWriteEntry);
+				} else {
+					fileWriteQueue.push({ ...serverWriteEntry, context: CompliationContext.Shared });
+				}
+			} else {
+				const luauAST = transformSourceFile(transformState, sourceFile);
+				if (DiagnosticService.hasErrors()) return;
+				const source = renderAST(luauAST);
+				fileWriteQueue.push({ sourceFile, source });
+			}
 
 			const airshipBehaviours = transformState.airshipBehaviours;
 
@@ -231,7 +280,8 @@ export function compileFiles(
 					const airshipBehaviourMetadata = behaviour.metadata;
 
 					if (airshipBehaviourMetadata) {
-						assert(!fileMetadataWriteQueue.has(sourceFile));
+						if (fileMetadataWriteQueue.has(sourceFile)) continue;
+
 						fileMetadataWriteQueue.set(sourceFile, JSON.stringify(airshipBehaviourMetadata, null, "\t"));
 					}
 
@@ -263,8 +313,23 @@ export function compileFiles(
 			let writeCount = 0;
 			let metadataCount = 0;
 
-			for (const { sourceFile, source } of fileWriteQueue) {
-				const outPath = pathTranslator.getOutputPath(sourceFile.fileName);
+			for (const { sourceFile, source, context } of fileWriteQueue) {
+				let pathHint: PathHint | undefined;
+				if (context !== undefined) {
+					switch (context) {
+						case CompliationContext.Client:
+							pathHint = PathHint.Client;
+							break;
+						case CompliationContext.Server:
+							pathHint = PathHint.Server;
+							break;
+						case CompliationContext.Shared:
+							pathHint = PathHint.Shared;
+							break;
+					}
+				}
+
+				const outPath = pathTranslator.getOutputPath(sourceFile.fileName, pathHint);
 				const hasMetadata = fileMetadataWriteQueue.has(sourceFile);
 				const metadataPathOutPath = outPath + ".json~";
 

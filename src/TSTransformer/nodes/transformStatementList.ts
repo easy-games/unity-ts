@@ -1,5 +1,12 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
+import {
+	isClientIfDirective,
+	isGuardClause,
+	isInverseGuardClause,
+	isServerIfDirective,
+	transformDirectiveIfStatement,
+} from "TSTransformer/macros/transformDirectives";
 import { transformStatement } from "TSTransformer/nodes/statements/transformStatement";
 import { createHoistDeclaration } from "TSTransformer/util/createHoistDeclaration";
 import ts from "typescript";
@@ -22,7 +29,57 @@ export function transformStatementList(
 	const result = luau.list.make<luau.Statement>();
 
 	// iterate through each statement in the `statements` array
-	for (const statement of statements) {
+	for (let statement of statements) {
+		let shouldEarlyReturn = false;
+
+		if (!state.isSharedContext && ts.isIfStatement(statement)) {
+			if (isGuardClause(state, statement)) {
+				if (isServerIfDirective(state, statement)) {
+					const newStatement = transformDirectiveIfStatement(state, statement, true);
+					if (state.isServerContext && newStatement) {
+						statement = newStatement;
+						shouldEarlyReturn = true;
+					} else if (statement.elseStatement) {
+						statement = statement.elseStatement;
+					} else if (newStatement === false) {
+						continue;
+					}
+				} else if (isClientIfDirective(state, statement)) {
+					const newStatement = transformDirectiveIfStatement(state, statement, true);
+					if (state.isClientContext && newStatement) {
+						shouldEarlyReturn = true;
+						statement = newStatement;
+					} else if (statement.elseStatement) {
+						statement = statement.elseStatement;
+					} else if (newStatement === false) {
+						continue;
+					}
+				} else {
+					continue;
+				}
+			} else if (isInverseGuardClause(state, statement)) {
+				if (state.isClientContext && isServerIfDirective(state, statement)) {
+					shouldEarlyReturn = true;
+					const newStatement = transformDirectiveIfStatement(state, statement, true);
+					if (newStatement) {
+						statement = newStatement;
+					} else if (newStatement === false) {
+						continue;
+					}
+				} else if (state.isServerContext && isClientIfDirective(state, statement)) {
+					shouldEarlyReturn = true;
+					const newStatement = transformDirectiveIfStatement(state, statement, true);
+					if (newStatement) {
+						statement = newStatement;
+					} else if (newStatement === false) {
+						continue;
+					}
+				} else {
+					continue;
+				}
+			}
+		}
+
 		// capture prerequisite statements for the `ts.Statement`
 		// transform the statement into a luau.List<...>
 		const [transformedStatements, prereqStatements] = state.capture(() => transformStatement(state, statement));
@@ -64,6 +121,8 @@ export function transformStatementList(
 				}
 			}
 		}
+
+		if (shouldEarlyReturn) break;
 	}
 
 	if (state.compilerOptions.removeComments !== true && statements.length > 0) {

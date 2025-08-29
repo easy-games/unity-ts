@@ -19,6 +19,7 @@ import { assert } from "Shared/util/assert";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { isAirshipBehaviourReserved } from "TSTransformer/macros/propertyMacros";
+import { createStripMethod, isStrippableContextMethod } from "TSTransformer/macros/transformContextMethods";
 import { transformClassConstructor } from "TSTransformer/nodes/class/transformClassConstructor";
 import { transformDecorators } from "TSTransformer/nodes/class/transformDecorators";
 import { transformPropertyDeclaration } from "TSTransformer/nodes/class/transformPropertyDeclaration";
@@ -622,9 +623,11 @@ function processRequireComponentDecorator(
 ): AirshipBehaviourClassDecorator | undefined {
 	const typeChecker = state.typeChecker;
 	const typeArguments = expression.typeArguments;
-	
+
 	if (!typeArguments || typeArguments.length === 0) {
-		DiagnosticService.addDiagnostic(errors.requiredComponentTypeParameterRequired(classNode, classNode.name?.text || "<anonymous>"));
+		DiagnosticService.addDiagnostic(
+			errors.requiredComponentTypeParameterRequired(classNode, classNode.name?.text || "<anonymous>"),
+		);
 		return undefined;
 	}
 
@@ -647,7 +650,9 @@ function processRequireComponentDecorator(
 			});
 		} else {
 			const typeString = typeChecker.typeToString(type);
-			DiagnosticService.addDiagnostic(errors.requiredComponentInvalidType(classNode, classNode.name?.text ?? "<anonymous>", typeString));
+			DiagnosticService.addDiagnostic(
+				errors.requiredComponentInvalidType(classNode, classNode.name?.text ?? "<anonymous>", typeString),
+			);
 		}
 	}
 
@@ -680,9 +685,7 @@ function processGenericDecorator(
 			if (value) {
 				return value;
 			} else {
-				DiagnosticService.addDiagnostic(
-					errors.decoratorParamsLiteralsOnly(expression.arguments[i]),
-				);
+				DiagnosticService.addDiagnostic(errors.decoratorParamsLiteralsOnly(expression.arguments[i]));
 
 				return { type: "invalid", value: undefined };
 			}
@@ -709,7 +712,7 @@ export function getClassDecorators(state: TransformState, classNode: ts.ClassLik
 		if (aliasSymbol !== airshipFieldSymbol) continue;
 
 		const decoratorName = expression.expression.getText();
-		
+
 		if (decoratorName === "RequireComponent") {
 			const processedDecorator = processRequireComponentDecorator(state, classNode, expression);
 			if (processedDecorator) {
@@ -1030,6 +1033,16 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 			}
 		}
 
+		if (
+			isBehaviourClass &&
+			!state.isSharedContext &&
+			isStrippableContextMethod(state, method) &&
+			!ts.getSelectedSyntacticModifierFlags(method, ts.ModifierFlags.Async)
+		) {
+			luau.list.pushList(statementsInner, createStripMethod(state, method, internalName));
+			continue;
+		}
+
 		luau.list.pushList(
 			statementsInner,
 			transformMethodDeclaration(state, method, { name: "name", value: internalName }),
@@ -1122,4 +1135,3 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 
 	return { statements, name: returnVar };
 }
-

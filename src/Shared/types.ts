@@ -28,6 +28,7 @@ export interface ProjectOptions {
 	watch: boolean;
 	json: boolean;
 	publish: boolean;
+	skipPackages: boolean;
 	writeOnlyChanged: boolean;
 	optimizedLoops: boolean;
 	allowCommentDirectives: boolean;
