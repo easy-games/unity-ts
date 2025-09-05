@@ -35,7 +35,7 @@ export function transformStatementList(
 		if (!state.isSharedContext && ts.isIfStatement(statement)) {
 			if (isGuardClause(state, statement)) {
 				if (isServerIfDirective(state, statement)) {
-					const newStatement = transformDirectiveIfStatement(state, statement, true);
+					const newStatement = transformDirectiveIfStatement(state, statement);
 					if (state.isServerContext && newStatement) {
 						statement = newStatement;
 						shouldEarlyReturn = true;
@@ -45,7 +45,7 @@ export function transformStatementList(
 						continue;
 					}
 				} else if (isClientIfDirective(state, statement)) {
-					const newStatement = transformDirectiveIfStatement(state, statement, true);
+					const newStatement = transformDirectiveIfStatement(state, statement);
 					if (state.isClientContext && newStatement) {
 						shouldEarlyReturn = true;
 						statement = newStatement;
@@ -60,7 +60,7 @@ export function transformStatementList(
 			} else if (isInverseGuardClause(state, statement)) {
 				if (state.isClientContext && isServerIfDirective(state, statement)) {
 					shouldEarlyReturn = true;
-					const newStatement = transformDirectiveIfStatement(state, statement, true);
+					const newStatement = transformDirectiveIfStatement(state, statement);
 					if (newStatement) {
 						statement = newStatement;
 					} else if (newStatement === false) {
@@ -68,7 +68,7 @@ export function transformStatementList(
 					}
 				} else if (state.isServerContext && isClientIfDirective(state, statement)) {
 					shouldEarlyReturn = true;
-					const newStatement = transformDirectiveIfStatement(state, statement, true);
+					const newStatement = transformDirectiveIfStatement(state, statement);
 					if (newStatement) {
 						statement = newStatement;
 					} else if (newStatement === false) {

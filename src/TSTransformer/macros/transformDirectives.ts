@@ -1,4 +1,7 @@
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import ts, { factory } from "typescript";
 
 function isExclamationUnaryExpression(
@@ -18,19 +21,19 @@ function isServerDirective(state: TransformState, expression: ts.Expression) {
 		}
 	}
 
-	if (ts.isIdentifier(expression)) {
-		const symbol = state.typeChecker.getSymbolAtLocation(expression);
-		if (!symbol) return false;
-
-		return $SERVER === symbol;
-	}
-
 	if (isClientSymbol) {
 		if (isExclamationUnaryExpression(expression) && ts.isCallExpression(expression.operand)) {
 			const symbol = state.typeChecker.getSymbolAtLocation(expression.operand.expression);
 			if (!symbol) return false;
 			return isClientSymbol === symbol;
 		}
+	}
+
+	if (ts.isIdentifier(expression)) {
+		const symbol = state.typeChecker.getSymbolAtLocation(expression);
+		if (!symbol) return false;
+
+		return $SERVER === symbol;
 	}
 
 	if (isExclamationUnaryExpression(expression)) {
@@ -53,19 +56,19 @@ function isClientDirective(state: TransformState, expression: ts.Expression) {
 		}
 	}
 
-	if (ts.isIdentifier(expression)) {
-		const symbol = state.typeChecker.getSymbolAtLocation(expression);
-		if (!symbol) return false;
-
-		return $CLIENT === symbol;
-	}
-
 	if (isServerSymbol) {
 		if (isExclamationUnaryExpression(expression) && ts.isCallExpression(expression.operand)) {
 			const symbol = state.typeChecker.getSymbolAtLocation(expression.operand.expression);
 			if (!symbol) return false;
 			return isServerSymbol === symbol;
 		}
+	}
+
+	if (ts.isIdentifier(expression)) {
+		const symbol = state.typeChecker.getSymbolAtLocation(expression);
+		if (!symbol) return false;
+
+		return $CLIENT === symbol;
 	}
 
 	if (isExclamationUnaryExpression(expression)) {
@@ -155,7 +158,7 @@ export function isInverseGuardClause(state: TransformState, node: ts.IfStatement
 	return false;
 }
 
-export function transformThenStatement(state: TransformState, node: ts.IfStatement) {
+function transformThenStatement(state: TransformState, node: ts.IfStatement) {
 	if (ts.isBinaryExpression(node.expression)) {
 		// E.g. $SERVER && $CLIENT (Host only)
 		if (isServerDirective(state, node.expression.left) && isClientDirective(state, node.expression.right)) {
@@ -177,83 +180,109 @@ export function transformThenStatement(state: TransformState, node: ts.IfStateme
 	return node.thenStatement;
 }
 
-export function transformElseStatement(state: TransformState, node: ts.IfStatement) {
+function transformElseStatement(state: TransformState, node: ts.IfStatement) {
 	return node.elseStatement ?? false;
 }
 
-function isIdentifierLike(
-	node: ts.Expression,
-): node is
-	| ts.Identifier
-	| (ts.PrefixUnaryExpression & { operator: ts.SyntaxKind.ExclamationToken; operand: ts.Identifier }) {
-	return (
-		ts.isIdentifier(node) ||
-		(ts.isPrefixUnaryExpression(node) &&
-			node.operator === ts.SyntaxKind.ExclamationToken &&
-			ts.isIdentifier(node.operand))
-	);
+export function containsDirectiveLikeExpression(state: TransformState, expression: ts.Expression) {
+	if (ts.isIdentifier(expression) || ts.isCallExpression(expression)) {
+		return isServerDirective(state, expression) || isClientDirective(state, expression);
+	}
+
+	return false;
 }
 
-export function isSimpleIfStatement(state: TransformState, node: ts.IfStatement) {
-	return (
-		isIdentifierLike(node.expression) ||
-		(ts.isBinaryExpression(node.expression) &&
-			node.expression.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken &&
-			isIdentifierLike(node.expression.left) &&
-			isIdentifierLike(node.expression.right))
-	);
+function transformServerIfDirective(state: TransformState, node: ts.IfStatement) {
+	if (state.isServerContext) {
+		return transformThenStatement(state, node);
+	} else {
+		return transformElseStatement(state, node);
+	}
+}
+
+function transformClientIfDirective(state: TransformState, node: ts.IfStatement) {
+	if (state.isClientContext) {
+		return transformThenStatement(state, node);
+	} else {
+		return transformElseStatement(state, node);
+	}
+}
+
+function transformComplexDirectiveIfStatement(
+	state: TransformState,
+	ifStatement: ts.IfStatement,
+	binaryExpression: ts.BinaryExpression,
+): ts.Statement | false | undefined {
+	const { left, right } = binaryExpression;
+
+	// We consider a binary expression (e.g. X && Y as complex)
+	// But we're only gonna allow 1-depth expressions, anything deeper is invalid
+
+	/**
+	 * e.g. if ($SERVER && Game.IsHosting())
+	 * if ($SERVER && !$CLIENT)
+	 */
+	if (containsDirectiveLikeExpression(state, left)) {
+		if (isServerDirective(state, left) && !ts.isBinaryExpression(right)) {
+			return transformServerIfDirective(state, ifStatement);
+		}
+		if (isClientDirective(state, left) && !ts.isBinaryExpression(right)) {
+			return transformClientIfDirective(state, ifStatement);
+		}
+	}
+
+	/**
+	 * e.g. if (Game.IsHosting() && $SERVER)
+	 * if (!$CLIENT && $SERVER)
+	 */
+	if (containsDirectiveLikeExpression(state, binaryExpression.right)) {
+		if (isServerDirective(state, right) && !ts.isBinaryExpression(left)) {
+			return transformServerIfDirective(state, ifStatement);
+		}
+		if (isClientDirective(state, right) && !ts.isBinaryExpression(left)) {
+			return transformClientIfDirective(state, ifStatement);
+		}
+	}
+
+	return;
+}
+
+export function transformDirectiveConditionalExpression(state: TransformState, conditional: ts.ConditionalExpression) {
+	const condition = conditional.condition;
+
+	if (isServerDirective(state, condition)) {
+		if (state.isServerContext) {
+			return transformExpression(state, conditional.whenTrue);
+		} else {
+			return transformExpression(state, conditional.whenFalse);
+		}
+	}
+
+	if (isClientDirective(state, condition)) {
+		if (state.isClientContext) {
+			return transformExpression(state, conditional.whenTrue);
+		} else {
+			return transformExpression(state, conditional.whenFalse);
+		}
+	}
+
+	assert(false);
 }
 
 export function transformDirectiveIfStatement(
 	state: TransformState,
-	node: ts.IfStatement,
-	ignoreGuard = false,
-	inverse = false,
+	ifStatement: ts.IfStatement,
 ): ts.Statement | false | undefined {
-	if (!isSimpleIfStatement(state, node)) return;
+	const expression = ifStatement.expression;
 
-	// if (ts.isBinaryExpression(node.expression)) {
-	// 	const { left, right } = node.expression;
-
-	// 	if (isServerDirective(state, left) && isServerDirective(state, right)) {
-	// 		console.log("server check");
-	// 		return;
-	// 	}
-
-	// 	return;
-	// }
-
-	if (isServerIfDirective(state, node)) {
-		const useThenStatement = inverse ? !state.isServerContext : state.isServerContext;
-
-		// we're in contextual mode
-		if (useThenStatement) {
-			return transformThenStatement(state, node);
-		} else {
-			return transformElseStatement(state, node); // node.elseStatement ?? false;
+	if (ts.isBinaryExpression(expression) && expression.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken) {
+		return transformComplexDirectiveIfStatement(state, ifStatement, expression);
+	} else if (containsDirectiveLikeExpression(state, expression)) {
+		// Simple directive macro usage
+		if (isServerDirective(state, expression)) {
+			return transformServerIfDirective(state, ifStatement);
+		} else if (isClientDirective(state, expression)) {
+			return transformClientIfDirective(state, ifStatement);
 		}
 	}
-
-	if (isClientIfDirective(state, node)) {
-		const useThenStatement = inverse ? !state.isClientContext : state.isClientContext;
-
-		// we're in contextual mode
-		if (useThenStatement) {
-			return transformThenStatement(state, node);
-		} else {
-			return transformElseStatement(state, node); //node.elseStatement ?? false;
-		}
-	}
-
-	if (isEditorIfDirective(state, node)) {
-		const useThenStatement = inverse ? !state.isPublish : state.isPublish;
-
-		if (useThenStatement) {
-			return transformElseStatement(state, node); //node.elseStatement ?? false;
-		} else {
-			return transformThenStatement(state, node);
-		}
-	}
-
-	return undefined;
 }

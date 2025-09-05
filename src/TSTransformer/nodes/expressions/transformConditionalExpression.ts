@@ -1,5 +1,9 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
+import {
+	containsDirectiveLikeExpression,
+	transformDirectiveConditionalExpression,
+} from "TSTransformer/macros/transformDirectives";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
@@ -7,6 +11,10 @@ import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatem
 import ts from "typescript";
 
 export function transformConditionalExpression(state: TransformState, node: ts.ConditionalExpression) {
+	if (!state.isSharedContext && containsDirectiveLikeExpression(state, node.condition)) {
+		return transformDirectiveConditionalExpression(state, node);
+	}
+
 	const condition = transformExpression(state, node.condition);
 	const [whenTrue, whenTruePrereqs] = state.capture(() => transformExpression(state, node.whenTrue));
 	const [whenFalse, whenFalsePrereqs] = state.capture(() => transformExpression(state, node.whenFalse));

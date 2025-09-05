@@ -40,13 +40,11 @@ export function transformIfStatementInner(state: TransformState, node: ts.IfStat
 }
 
 export function transformIfStatement(state: TransformState, node: ts.IfStatement): luau.List<luau.Statement> {
-	if (!state.isSharedContext) {
-		const directive = tryTransformContextDirectives(state, node);
-		if (directive) {
-			return transformStatement(state, directive);
-		} else if (directive === false) {
-			return luau.list.make();
-		}
+	const directive = tryTransformContextDirectives(state, node);
+	if (directive) {
+		return transformStatement(state, directive);
+	} else if (directive === false) {
+		return luau.list.make();
 	}
 
 	return luau.list.make(transformIfStatementInner(state, node));
