@@ -185,6 +185,10 @@ function transformElseStatement(state: TransformState, node: ts.IfStatement) {
 }
 
 export function containsDirectiveLikeExpression(state: TransformState, expression: ts.Expression) {
+	if (ts.isPrefixUnaryExpression(expression) && expression.operator === ts.SyntaxKind.ExclamationToken) {
+		expression = expression.operand; // skip !
+	}
+
 	if (ts.isIdentifier(expression) || ts.isCallExpression(expression)) {
 		return isServerDirective(state, expression) || isClientDirective(state, expression);
 	}
