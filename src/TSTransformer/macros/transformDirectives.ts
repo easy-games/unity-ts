@@ -134,10 +134,24 @@ function isThrowing(state: TransformState, statement: ts.Statement) {
 	return false;
 }
 
+function hasAnyExpression(
+	state: TransformState,
+	node: ts.Expression,
+	check: (state: TransformState, value: ts.Expression) => boolean,
+) {
+	if (ts.isBinaryExpression(node)) {
+		return check(state, node.left) || check(state, node.right);
+	}
+
+	return false;
+}
+
 // if returns or throws early
 export function isGuardClause(state: TransformState, node: ts.IfStatement) {
 	if (
-		(isServerIfDirective(state, node) || isClientIfDirective(state, node)) &&
+		(containsDirectiveLikeExpression(state, node.expression) ||
+			containsDirectiveLikeExpression(state, node.expression) ||
+			hasAnyExpression(state, node.expression, containsDirectiveLikeExpression)) &&
 		(isReturning(state, node.thenStatement) || isThrowing(state, node.thenStatement))
 	) {
 		return true;
