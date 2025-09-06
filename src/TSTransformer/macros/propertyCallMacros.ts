@@ -878,6 +878,69 @@ const READONLY_MAP_METHODS: MacroList<PropertyCallMacro> = {
 		return !isUsedAsStatement(node) ? luau.nil() : luau.none();
 	},
 
+	some: makeSomeMethod((keyId, valueId, expression) => [valueId, keyId, expression]),
+	every: makeEveryMethod((keyId, valueId, expression) => [valueId, keyId, expression]),
+
+	keys: (state, node, expression) => {
+		const valueIsUsed = !isUsedAsStatement(node);
+		// if (!valueIsUsed) return luau.none();
+
+		expression = state.pushToVarIfComplex(expression, "exp");
+
+		const valuesId = luau.tempId("values");
+		const keyId = luau.tempId("k");
+
+		state.prereq(
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: valuesId,
+				right: luau.array(),
+			}),
+		);
+		state.prereq(
+			luau.create(luau.SyntaxKind.ForStatement, {
+				ids: luau.list.make(keyId),
+				expression,
+				statements: luau.list.make(
+					luau.create(luau.SyntaxKind.CallStatement, {
+						expression: luau.call(luau.globals.table.insert, [valuesId, keyId]),
+					}),
+				),
+			}),
+		);
+
+		return valueIsUsed ? valuesId : luau.none();
+	},
+
+	values: (state, node, expression) => {
+		const valueIsUsed = !isUsedAsStatement(node);
+
+		expression = state.pushToVarIfComplex(expression, "exp");
+
+		const valuesId = luau.tempId("values");
+		const keyId = luau.tempId();
+		const valueId = luau.tempId("v");
+
+		state.prereq(
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: valuesId,
+				right: luau.array(),
+			}),
+		);
+		state.prereq(
+			luau.create(luau.SyntaxKind.ForStatement, {
+				ids: luau.list.make(keyId, valueId),
+				expression,
+				statements: luau.list.make(
+					luau.create(luau.SyntaxKind.CallStatement, {
+						expression: luau.call(luau.globals.table.insert, [valuesId, valueId]),
+					}),
+				),
+			}),
+		);
+
+		return valueIsUsed ? valuesId : luau.none();
+	},
+
 	get: (state, node, expression, args) =>
 		luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: convertToIndexableExpression(expression),
@@ -887,6 +950,148 @@ const READONLY_MAP_METHODS: MacroList<PropertyCallMacro> = {
 
 const MAP_METHODS: MacroList<PropertyCallMacro> = {
 	...SET_MAP_SHARED_METHODS,
+
+	getOrInsert: (state, node, expression, [key, value]) => {
+		const valueIsUsed = !isUsedAsStatement(node);
+
+		if (valueIsUsed) {
+			expression = state.pushToVarIfComplex(expression, "exp");
+		}
+
+		const statements = luau.list.make<luau.Statement>();
+
+		const tempId = luau.tempId("value");
+		luau.list.push(
+			statements,
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: tempId,
+				right: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+					expression: convertToIndexableExpression(expression),
+					index: key,
+				}),
+			}),
+		);
+
+		const ifBodyStatements = luau.list.make<luau.Statement>();
+
+		if (valueIsUsed) {
+			luau.list.push(
+				ifBodyStatements,
+				luau.create(luau.SyntaxKind.Assignment, {
+					left: tempId,
+					operator: "=",
+					right: value,
+				}),
+			);
+			luau.list.push(
+				ifBodyStatements,
+				luau.create(luau.SyntaxKind.Assignment, {
+					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+						expression: convertToIndexableExpression(expression),
+						index: key,
+					}),
+					operator: "=",
+					right: tempId,
+				}),
+			);
+		} else {
+			luau.list.push(
+				ifBodyStatements,
+				luau.create(luau.SyntaxKind.Assignment, {
+					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+						expression: convertToIndexableExpression(expression),
+						index: key,
+					}),
+					operator: "=",
+					right: value,
+				}),
+			);
+		}
+
+		luau.list.push(
+			statements,
+			luau.create(luau.SyntaxKind.IfStatement, {
+				condition: luau.binary(tempId, "==", luau.nil()),
+				statements: ifBodyStatements,
+				elseBody: luau.list.make(),
+			}),
+		);
+
+		state.prereqList(statements);
+		return valueIsUsed ? tempId : luau.none();
+	},
+
+	getOrInsertComputed: (state, node, expression, [key, value]) => {
+		const valueIsUsed = !isUsedAsStatement(node);
+
+		if (valueIsUsed) {
+			expression = state.pushToVarIfComplex(expression, "exp");
+		}
+
+		const keyId = state.pushToVarIfNonId(key, "mapKey");
+		const statements = luau.list.make<luau.Statement>();
+
+		const tempId = luau.tempId("value");
+		luau.list.push(
+			statements,
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: tempId,
+				right: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+					expression: convertToIndexableExpression(expression),
+					index: keyId,
+				}),
+			}),
+		);
+
+		const ifBodyStatements = luau.list.make<luau.Statement>();
+		assert(luau.isIndexableExpression(value));
+
+		if (valueIsUsed) {
+			luau.list.push(
+				ifBodyStatements,
+				luau.create(luau.SyntaxKind.Assignment, {
+					left: tempId,
+					operator: "=",
+					right: luau.call(value, [keyId]),
+				}),
+			);
+			luau.list.push(
+				ifBodyStatements,
+				luau.create(luau.SyntaxKind.Assignment, {
+					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+						expression: convertToIndexableExpression(expression),
+						index: keyId,
+					}),
+					operator: "=",
+					right: tempId,
+				}),
+			);
+		} else {
+			luau.list.push(
+				ifBodyStatements,
+				luau.create(luau.SyntaxKind.Assignment, {
+					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+						expression: convertToIndexableExpression(expression),
+						index: keyId,
+					}),
+					operator: "=",
+					right: luau.call(value, [keyId]),
+				}),
+			);
+		}
+
+		luau.list.push(
+			statements,
+			luau.create(luau.SyntaxKind.IfStatement, {
+				condition: luau.binary(tempId, "==", luau.nil()),
+				statements: ifBodyStatements,
+				elseBody: luau.list.make(),
+			}),
+		);
+
+		state.prereqList(statements);
+		return valueIsUsed ? tempId : luau.none();
+	},
 
 	set: (state, node, expression, args) => {
 		const [keyExp, valueExp] = args;
