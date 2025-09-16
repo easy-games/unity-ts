@@ -5,9 +5,22 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { createArrayCountExpression } from "TSTransformer/util/createArrayCounter";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
+import {
+	createLuauForStatement,
+	createLuauIfStatement,
+	createLuauVariableDeclaration,
+} from "TSTransformer/util/luauExpressions";
 import { offset } from "TSTransformer/util/offset";
-import { isDefinitelyType, isNumberType, isStringType } from "TSTransformer/util/types";
+import {
+	isAnyOrUnknownType,
+	isAnyType,
+	isDefinitelyType,
+	isNumberType,
+	isArrayLikeTypeWithUndefined as isArrayLikeTypeWithUndefined,
+	isStringType,
+} from "TSTransformer/util/types";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import ts from "typescript";
 
@@ -124,6 +137,14 @@ function makeSomeMethod(
 	return makeEveryOrSomeMethod(callbackArgsListMaker, false);
 }
 
+function makeTableCloneMethod(): PropertyCallMacro {
+	return (state, node, expression) => {
+		const valueIsUsed = !isUsedAsStatement(node);
+		if (valueIsUsed) expression = state.pushToVarIfComplex(expression, "exp");
+		return luau.call(luau.globals.table.clone, [expression]);
+	};
+}
+
 function argumentsWithDefaults(
 	state: TransformState,
 	args: Array<luau.Expression>,
@@ -158,11 +179,36 @@ function argumentsWithDefaults(
 }
 
 const ARRAY_LIKE_METHODS: MacroList<PropertyCallMacro> = {
-	size: (state, node, expression) => luau.unary("#", expression),
+	size: (state, node, expression) => {
+		return transformArrayCount(state, node, expression);
+	},
 };
 
+function transformArrayCount(
+	state: TransformState,
+	arrayMethodNode: ts.CallExpression & {
+		expression: ts.PropertyAccessExpression | ts.ElementAccessExpression;
+	},
+	expression: luau.Expression,
+) {
+	if (ts.isPropertyAccessExpression(arrayMethodNode.expression)) {
+		const arrayType = state.typeChecker.getTypeAtLocation(arrayMethodNode.expression.expression);
+
+		// Handle counting arrays with holes in them a bit differently, unknown/any is included since it counts as `defined | undefined`
+		if (isArrayLikeTypeWithUndefined(state, arrayType)) {
+			return createArrayCountExpression(state, arrayMethodNode.expression.expression, expression);
+		}
+	}
+
+	return luau.unary("#", expression);
+}
+
 const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
-	isEmpty: (state, node, expression) => luau.binary(luau.unary("#", expression), "==", luau.number(0)),
+	clone: makeTableCloneMethod(),
+
+	isEmpty: (state, node, expression) => {
+		return luau.binary(transformArrayCount(state, node, expression), "==", luau.number(0));
+	},
 
 	join: (state, node, expression, args) => {
 		args = argumentsWithDefaults(state, args, [luau.strings[", "]]);
@@ -762,6 +808,8 @@ const READONLY_SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 		});
 		return luau.binary(left, "~=", luau.nil());
 	},
+
+	clone: makeTableCloneMethod(),
 };
 
 const SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
@@ -953,10 +1001,7 @@ const MAP_METHODS: MacroList<PropertyCallMacro> = {
 
 	getOrInsert: (state, node, expression, [key, value]) => {
 		const valueIsUsed = !isUsedAsStatement(node);
-
-		if (valueIsUsed) {
-			expression = state.pushToVarIfComplex(expression, "exp");
-		}
+		expression = state.pushToVarIfComplex(expression, "exp");
 
 		const statements = luau.list.make<luau.Statement>();
 
@@ -1023,10 +1068,7 @@ const MAP_METHODS: MacroList<PropertyCallMacro> = {
 
 	getOrInsertComputed: (state, node, expression, [key, value]) => {
 		const valueIsUsed = !isUsedAsStatement(node);
-
-		if (valueIsUsed) {
-			expression = state.pushToVarIfComplex(expression, "exp");
-		}
+		expression = state.pushToVarIfComplex(expression, "exp");
 
 		const keyId = state.pushToVarIfNonId(key, "mapKey");
 		const statements = luau.list.make<luau.Statement>();

@@ -4,8 +4,9 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { createArrayCountExpression } from "TSTransformer/util/createArrayCounter";
 import { getAddIterableToArrayBuilder } from "TSTransformer/util/getAddIterableToArrayBuilder";
-import { isArrayType, isDefinitelyType } from "TSTransformer/util/types";
+import { isArrayLikeTypeWithUndefined, isArrayType, isDefinitelyType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";
 
@@ -22,6 +23,12 @@ export function transformSpreadElement(state: TransformState, node: ts.SpreadEle
 
 	const type = state.getType(node.expression);
 	if (isDefinitelyType(type, isArrayType(state))) {
+		if (isArrayLikeTypeWithUndefined(state, type)) {
+			const varName = state.pushToVar(expression);
+			const count = createArrayCountExpression(state, node.expression, varName);
+			return luau.call(luau.globals.unpack, [varName, luau.number(1), count]);
+		}
+
 		return luau.call(luau.globals.unpack, [expression]);
 	} else {
 		const addIterableToArrayBuilder = getAddIterableToArrayBuilder(state, node.expression, type);

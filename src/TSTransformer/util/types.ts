@@ -117,6 +117,16 @@ export function isStringType(type: ts.Type) {
 	return !!(type.flags & (ts.TypeFlags.String | ts.TypeFlags.StringLike | ts.TypeFlags.StringLiteral));
 }
 
+export function isArrayLikeTypeWithUndefined(state: TransformState, type: ts.Type) {
+	if (!state.typeChecker.isArrayLikeType(type) || state.typeChecker.isTupleType(type)) return false;
+
+	const arrayValueType = type.getNumberIndexType();
+	if (!arrayValueType) return false;
+
+	// If contains `undefined` (e.g. `T | undefined`) or `unknown`
+	return arrayValueType.isNullableType() || isAnyOrUnknownType(arrayValueType);
+}
+
 export function isArrayType(state: TransformState): TypeCheck {
 	return type =>
 		state.typeChecker.isTupleType(type) ||
@@ -179,6 +189,10 @@ export function isObjectType(type: ts.Type) {
 
 export function isUndefinedType(type: ts.Type) {
 	return !!(type.flags & (ts.TypeFlags.Undefined | ts.TypeFlags.Void));
+}
+
+export function isAnyOrUnknownType(type: ts.Type) {
+	return !!(type.flags & ts.TypeFlags.AnyOrUnknown);
 }
 
 export function isEmptyStringType(type: ts.Type) {
