@@ -8,7 +8,11 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
-import { isRootAirshipBehaviourClass, isRootAirshipSingletonClass } from "TSTransformer/util/extendsAirshipBehaviour";
+import {
+	isAirshipSingletonClass,
+	isRootAirshipBehaviourClass,
+	isRootAirshipSingletonClass,
+} from "TSTransformer/util/extendsAirshipBehaviour";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getStatements } from "TSTransformer/util/getStatements";
 import ts from "typescript";
@@ -67,9 +71,10 @@ export function transformClassConstructor(
 
 	let bodyStatements = originNode ? getStatements(originNode.body) : [];
 
-	const isAirshipSingleton = isRootAirshipSingletonClass(state, node);
-	const isAirshipBehaviour = isRootAirshipBehaviourClass(state, node);
-	let removeFirstSuper = isAirshipBehaviour || isAirshipSingleton;
+	const isRootSingletonClass = isRootAirshipSingletonClass(state, node);
+	const isAirshipSingleton = isAirshipSingletonClass(state, node);
+	const isRootAirshipBehaviour = isRootAirshipBehaviourClass(state, node);
+	let removeFirstSuper = isRootAirshipBehaviour || isAirshipSingleton;
 
 	let parameters = luau.list.make<luau.AnyIdentifier>();
 	let hasDotDotDot = false;
@@ -82,7 +87,7 @@ export function transformClassConstructor(
 		luau.list.pushList(statements, paramStatements);
 		parameters = constructorParams;
 		hasDotDotDot = constructorHasDotDotDot;
-	} else if (getExtendsNode(node) && !isAirshipBehaviour && !isAirshipSingleton) {
+	} else if (getExtendsNode(node) && !isRootAirshipBehaviour && !isRootSingletonClass) {
 		// if extends + no constructor:
 		// - add ... to params
 		// - add super.constructor(self, ...)
@@ -143,7 +148,7 @@ export function transformClassConstructor(
 
 			if (
 				ts.isIdentifier(member.name) &&
-				(isAirshipSingleton || isAirshipBehaviour) &&
+				(isAirshipSingleton || isRootAirshipBehaviour) &&
 				isAirshipBehaviourReserved(member.name.text)
 			) {
 				DiagnosticService.addDiagnostic(errors.noReservedAirshipIdentifier(member.name));
@@ -177,7 +182,7 @@ export function transformClassConstructor(
 		}
 	}
 
-	if (isAirshipSingleton) {
+	if (isAirshipSingleton && !node.modifiers?.some(value => ts.isAbstractModifier(value))) {
 		createAirshipSingletonBoilerplate(state, node, name, statements);
 	}
 
