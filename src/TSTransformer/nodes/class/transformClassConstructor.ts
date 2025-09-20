@@ -182,10 +182,6 @@ export function transformClassConstructor(
 		}
 	}
 
-	luau.list.push(
-		statements,
-		luau.comment(` isAirshipSingleton=${isAirshipSingleton}, isRootAirshipBehaviour=${isRootAirshipBehaviour}`),
-	);
 	if (isAirshipSingleton && !node.modifiers?.some(value => ts.isAbstractModifier(value))) {
 		createAirshipSingletonBoilerplate(state, node, name, statements);
 	}
