@@ -11,7 +11,7 @@ import {
 } from "TSTransformer/macros/directives/checkDirectives";
 import { parseDirectives } from "TSTransformer/macros/directives/transformGuardDirectives";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import ts, { CommentDirectiveType, factory } from "typescript";
+import ts, { factory } from "typescript";
 
 function isReturning(state: TransformState, statement: ts.Statement) {
 	if (ts.isBlock(statement)) {
@@ -88,12 +88,6 @@ function transformThenStatement(state: TransformState, node: ts.IfStatement) {
 		if (isServerDirective(state, node.expression.left) && isServerDirective(state, node.expression.right)) {
 			return state.isServerContext ? node.thenStatement : node.elseStatement ?? false;
 		}
-
-		// if (isServerDirective(state, node.expression.left)) {
-		// 	return factory.updateIfStatement(node, node.expression.right, node.thenStatement, node.elseStatement);
-		// } else if (isServerDirective(state, node.expression.right)) {
-		// 	return factory.updateIfStatement(node, node.expression.left, node.thenStatement, node.elseStatement);
-		// }
 	}
 
 	return node.thenStatement;
@@ -113,61 +107,6 @@ export function containsDirectiveLikeExpression(state: TransformState, expressio
 	}
 
 	return false;
-}
-
-function transformServerIfDirective(state: TransformState, node: ts.IfStatement) {
-	if (state.isServerContext) {
-		return transformThenStatement(state, node);
-	} else {
-		return transformElseStatement(state, node);
-	}
-}
-
-function transformClientIfDirective(state: TransformState, node: ts.IfStatement) {
-	if (state.isClientContext) {
-		return transformThenStatement(state, node);
-	} else {
-		return transformElseStatement(state, node);
-	}
-}
-
-function transformComplexDirectiveIfStatement(
-	state: TransformState,
-	ifStatement: ts.IfStatement,
-	binaryExpression: ts.BinaryExpression,
-): ts.Statement | false | undefined {
-	const { left, right } = binaryExpression;
-
-	// We consider a binary expression (e.g. X && Y as complex)
-	// But we're only gonna allow 1-depth expressions, anything deeper is invalid
-
-	/**
-	 * e.g. if ($SERVER && Game.IsHosting())
-	 * if ($SERVER && !$CLIENT)
-	 */
-	if (containsDirectiveLikeExpression(state, left)) {
-		if (isServerDirective(state, left) && !ts.isBinaryExpression(right)) {
-			return transformServerIfDirective(state, ifStatement);
-		}
-		if (isClientDirective(state, left) && !ts.isBinaryExpression(right)) {
-			return transformClientIfDirective(state, ifStatement);
-		}
-	}
-
-	/**
-	 * e.g. if (Game.IsHosting() && $SERVER)
-	 * if (!$CLIENT && $SERVER)
-	 */
-	if (containsDirectiveLikeExpression(state, binaryExpression.right)) {
-		if (isServerDirective(state, right) && !ts.isBinaryExpression(left)) {
-			return transformServerIfDirective(state, ifStatement);
-		}
-		if (isClientDirective(state, right) && !ts.isBinaryExpression(left)) {
-			return transformClientIfDirective(state, ifStatement);
-		}
-	}
-
-	return;
 }
 
 export function transformDirectiveConditionalExpression(state: TransformState, conditional: ts.ConditionalExpression) {
@@ -226,13 +165,6 @@ export function transformDirectiveIfStatement(
 	);
 	if (parsedDirectiveCondition === undefined) return;
 	const directives = parsedDirectiveCondition.directives;
-
-	// console.log({
-	// 	directives: parsedDirectiveCondition.directives,
-	// 	text: expression.getText(),
-	// 	isComplexDirectiveCheck: parsedDirectiveCondition.isComplexDirectiveCheck,
-	// 	hasUpdatedExpr: parsedDirectiveCondition.updatedExpression !== undefined,
-	// });
 
 	if (
 		(directives.includes(CompilerDirective.SERVER) && directives.includes(CompilerDirective.CLIENT)) ||

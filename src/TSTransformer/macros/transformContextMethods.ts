@@ -1,6 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { CompliationContext, TransformState } from "TSTransformer/classes/TransformState";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
+import { isAirshipBehaviourClass, isAirshipBehaviourMethod } from "TSTransformer/util/extendsAirshipBehaviour";
 import ts, { MethodDeclaration } from "typescript";
 
 function getReturnType(state: TransformState, method: MethodDeclaration): ts.Type | undefined {
@@ -36,8 +37,10 @@ export function createStripMethod(
 	const type = getReturnType(state, method);
 	const isVoidReturn = state.typeChecker.getVoidType() === type || state.typeChecker.getUndefinedType() === type;
 
+	const isLifecycleMethod = isVoidReturn && isAirshipBehaviourMethod(state, method);
+
 	if (luau.isStringLiteral(name)) {
-		if (!isVoidReturn || shouldAssert) {
+		if (shouldAssert || !isVoidReturn || (isVoidReturn && !isLifecycleMethod)) {
 			luau.list.push(
 				methodBody,
 				luau.create(luau.SyntaxKind.CallStatement, {

@@ -127,6 +127,18 @@ export function isAirshipSingletonClass(state: TransformState, node: ts.ClassLik
 	return false;
 }
 
+export function isAirshipBehaviourMethod(state: TransformState, node: ts.MethodDeclaration) {
+	const symbol = state.typeChecker.getSymbolAtLocation(node.name);
+	if (!symbol) return false;
+
+	if (!ts.isIdentifier(node.name)) {
+		return false;
+	}
+
+	const behaviourMethods = state.services.airshipSymbolManager.behaviourMethods;
+	return behaviourMethods.get(node.name.text) !== undefined;
+}
+
 export function isAirshipBehaviourProperty(state: TransformState, node: ts.PropertyDeclaration) {
 	const nodeType = state.getType(node);
 	if (isAirshipBehaviourType(state, nodeType)) {
