@@ -1,112 +1,17 @@
+import { warnings } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { TransformState } from "TSTransformer/classes/TransformState";
+import { CompilerDirective } from "TSTransformer/macros/directives";
+import {
+	isClientDirective,
+	isClientIfDirective,
+	isServerDirective,
+	isServerIfDirective,
+} from "TSTransformer/macros/directives/checkDirectives";
+import { parseDirectives } from "TSTransformer/macros/directives/transformGuardDirectives";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
-import ts, { factory } from "typescript";
-
-function isExclamationUnaryExpression(
-	node: ts.Expression,
-): node is ts.PrefixUnaryExpression & { operator: ts.SyntaxKind.ExclamationToken } {
-	return ts.isPrefixUnaryExpression(node) && node.operator === ts.SyntaxKind.ExclamationToken;
-}
-
-function isServerDirective(state: TransformState, expression: ts.Expression) {
-	const { isServerSymbol, isClientSymbol, $CLIENT, $SERVER } = state.services.macroManager;
-
-	if (isServerSymbol) {
-		if (ts.isCallExpression(expression)) {
-			const symbol = state.typeChecker.getSymbolAtLocation(expression.expression);
-			if (!symbol) return false;
-			return isServerSymbol === symbol;
-		}
-	}
-
-	if (isClientSymbol) {
-		if (isExclamationUnaryExpression(expression) && ts.isCallExpression(expression.operand)) {
-			const symbol = state.typeChecker.getSymbolAtLocation(expression.operand.expression);
-			if (!symbol) return false;
-			return isClientSymbol === symbol;
-		}
-	}
-
-	if (ts.isIdentifier(expression)) {
-		const symbol = state.typeChecker.getSymbolAtLocation(expression);
-		if (!symbol) return false;
-
-		return $SERVER === symbol;
-	}
-
-	if (isExclamationUnaryExpression(expression)) {
-		const symbol = state.typeChecker.getSymbolAtLocation(expression.operand);
-		if (!symbol) return false;
-		return $CLIENT === symbol;
-	}
-
-	return false;
-}
-
-function isClientDirective(state: TransformState, expression: ts.Expression) {
-	const { isClientSymbol, isServerSymbol, $CLIENT, $SERVER } = state.services.macroManager;
-
-	if (isClientSymbol) {
-		if (ts.isCallExpression(expression)) {
-			const symbol = state.typeChecker.getSymbolAtLocation(expression.expression);
-			if (!symbol) return false;
-			return isClientSymbol === symbol;
-		}
-	}
-
-	if (isServerSymbol) {
-		if (isExclamationUnaryExpression(expression) && ts.isCallExpression(expression.operand)) {
-			const symbol = state.typeChecker.getSymbolAtLocation(expression.operand.expression);
-			if (!symbol) return false;
-			return isServerSymbol === symbol;
-		}
-	}
-
-	if (ts.isIdentifier(expression)) {
-		const symbol = state.typeChecker.getSymbolAtLocation(expression);
-		if (!symbol) return false;
-
-		return $CLIENT === symbol;
-	}
-
-	if (isExclamationUnaryExpression(expression)) {
-		const symbol = state.typeChecker.getSymbolAtLocation(expression.operand);
-		if (!symbol) return false;
-		return $SERVER === symbol;
-	}
-
-	return false;
-}
-
-export function isClientIfDirective(state: TransformState, node: ts.IfStatement) {
-	return isClientDirective(state, node.expression);
-}
-
-export function isServerIfDirective(state: TransformState, node: ts.IfStatement) {
-	if (
-		ts.isBinaryExpression(node.expression) &&
-		node.expression.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken
-	) {
-		return isServerDirective(state, node.expression.left) || isServerDirective(state, node.expression.right);
-	}
-
-	return isServerDirective(state, node.expression);
-}
-
-export function isEditorIfDirective(state: TransformState, node: ts.IfStatement) {
-	const { isEditorSymbol } = state.services.macroManager;
-
-	if (!isEditorSymbol) return false;
-	if (ts.isCallExpression(node.expression)) {
-		const symbol = state.typeChecker.getSymbolAtLocation(node.expression.expression);
-		if (!symbol) return false;
-		return isEditorSymbol === symbol;
-	}
-
-	return false;
-}
+import ts, { CommentDirectiveType, factory } from "typescript";
 
 function isReturning(state: TransformState, statement: ts.Statement) {
 	if (ts.isBlock(statement)) {
@@ -184,11 +89,11 @@ function transformThenStatement(state: TransformState, node: ts.IfStatement) {
 			return state.isServerContext ? node.thenStatement : node.elseStatement ?? false;
 		}
 
-		if (isServerDirective(state, node.expression.left)) {
-			return factory.updateIfStatement(node, node.expression.right, node.thenStatement, node.elseStatement);
-		} else if (isServerDirective(state, node.expression.right)) {
-			return factory.updateIfStatement(node, node.expression.left, node.thenStatement, node.elseStatement);
-		}
+		// if (isServerDirective(state, node.expression.left)) {
+		// 	return factory.updateIfStatement(node, node.expression.right, node.thenStatement, node.elseStatement);
+		// } else if (isServerDirective(state, node.expression.right)) {
+		// 	return factory.updateIfStatement(node, node.expression.left, node.thenStatement, node.elseStatement);
+		// }
 	}
 
 	return node.thenStatement;
@@ -287,20 +192,93 @@ export function transformDirectiveConditionalExpression(state: TransformState, c
 	assert(false);
 }
 
+function transformDirectiveIfStatementInner(
+	state: TransformState,
+	ifStatement: ts.IfStatement,
+	condition: boolean,
+	conditionLikeExpression: ts.Expression | undefined,
+) {
+	if (condition) {
+		if (conditionLikeExpression) {
+			const result = transformThenStatement(state, ifStatement);
+			if (!result) return false;
+
+			return factory.createIfStatement(conditionLikeExpression, result);
+		} else {
+			return transformThenStatement(state, ifStatement);
+		}
+	} else {
+		return transformElseStatement(state, ifStatement);
+	}
+}
+
 export function transformDirectiveIfStatement(
 	state: TransformState,
 	ifStatement: ts.IfStatement,
 ): ts.Statement | false | undefined {
 	const expression = ifStatement.expression;
 
-	if (ts.isBinaryExpression(expression) && expression.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken) {
-		return transformComplexDirectiveIfStatement(state, ifStatement, expression);
-	} else if (containsDirectiveLikeExpression(state, expression)) {
-		// Simple directive macro usage
-		if (isServerDirective(state, expression)) {
-			return transformServerIfDirective(state, ifStatement);
-		} else if (isClientDirective(state, expression)) {
-			return transformClientIfDirective(state, ifStatement);
+	const parsedDirectiveCondition = parseDirectives(
+		state,
+		expression,
+		/** allowComplexExpressions: */ true,
+		/** implicitCalls: */ true,
+	);
+	if (parsedDirectiveCondition === undefined) return;
+	const directives = parsedDirectiveCondition.directives;
+
+	// console.log({
+	// 	directives: parsedDirectiveCondition.directives,
+	// 	text: expression.getText(),
+	// 	isComplexDirectiveCheck: parsedDirectiveCondition.isComplexDirectiveCheck,
+	// 	hasUpdatedExpr: parsedDirectiveCondition.updatedExpression !== undefined,
+	// });
+
+	if (
+		(directives.includes(CompilerDirective.SERVER) && directives.includes(CompilerDirective.CLIENT)) ||
+		(directives.includes(CompilerDirective.NOT_SERVER) && directives.includes(CompilerDirective.NOT_CLIENT))
+	) {
+		// Invalid use
+		DiagnosticService.addDiagnostic(warnings.directiveIsAlwaysFalse(expression));
+		if (!state.isSharedContext) return transformElseStatement(state, ifStatement);
+	}
+
+	if (!state.isSharedContext) {
+		const isServerGuard =
+			directives.includes(CompilerDirective.SERVER) || directives.includes(CompilerDirective.NOT_CLIENT);
+
+		const isClientGuard =
+			directives.includes(CompilerDirective.CLIENT) || directives.includes(CompilerDirective.NOT_SERVER);
+
+		if (directives.includes(CompilerDirective.SERVER) && directives.includes(CompilerDirective.NOT_CLIENT)) {
+			return transformDirectiveIfStatementInner(
+				state,
+				ifStatement,
+				state.isServerContext,
+				parsedDirectiveCondition.updatedExpression,
+			);
+		} else if (directives.includes(CompilerDirective.CLIENT) && directives.includes(CompilerDirective.NOT_SERVER)) {
+			return transformDirectiveIfStatementInner(
+				state,
+				ifStatement,
+				state.isClientContext,
+				parsedDirectiveCondition.updatedExpression,
+			);
+		} else if (isClientGuard) {
+			return transformDirectiveIfStatementInner(
+				state,
+				ifStatement,
+				state.isClientContext,
+				parsedDirectiveCondition.updatedExpression,
+			);
+		} else if (isServerGuard) {
+			return transformDirectiveIfStatementInner(
+				state,
+				ifStatement,
+				state.isServerContext,
+				parsedDirectiveCondition.updatedExpression,
+			);
 		}
 	}
+	//}
 }

@@ -6,7 +6,7 @@ import {
 	isInverseGuardClause,
 	isServerIfDirective,
 	transformDirectiveIfStatement,
-} from "TSTransformer/macros/transformDirectives";
+} from "TSTransformer/macros/directives";
 import { transformStatement } from "TSTransformer/nodes/statements/transformStatement";
 import { createHoistDeclaration } from "TSTransformer/util/createHoistDeclaration";
 import ts from "typescript";

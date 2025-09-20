@@ -413,4 +413,6 @@ export const warnings = {
 	flameworkDependencyRaceCondition: warning(
 		"The Dependency macro should not be used outside of a function as this may introduce race conditions.",
 	),
+
+	directiveIsAlwaysFalse: warning("This expression will always be false"),
 };

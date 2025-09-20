@@ -63,7 +63,7 @@ function identifierMetadata(state: TransformState, node: ClassLikeDeclaration): 
 	assert(node.name);
 	assert(state.flamework);
 
-	const flameworkImportId = state.addFileImport(state.flamework!.flameworkRootDir + "/index", "Reflect");
+	const flameworkImportId = state.getOrAddFileImport(state.flamework!.flameworkRootDir + "/index", "Reflect");
 	const Reflect_defineMetadata = luau.property(flameworkImportId, "defineMetadata");
 
 	return luau.create(luau.SyntaxKind.CallStatement, {
@@ -90,7 +90,7 @@ function decorate(
 	decorator: luau.AnyIdentifier,
 	args: luau.Array,
 ) {
-	const flameworkImportId = state.addFileImport(state.flamework!.flameworkRootDir + "/index", "Reflect");
+	const flameworkImportId = state.getOrAddFileImport(state.flamework!.flameworkRootDir + "/index", "Reflect");
 	const Reflect_decorate = luau.property(flameworkImportId, "decorate");
 
 	return luau.create(luau.SyntaxKind.CallStatement, {
@@ -140,7 +140,7 @@ function generateDecoratorMetadata(state: TransformState, node: ClassLikeDeclara
 }
 
 function implementsClauses(state: TransformState, node: ClassLikeDeclaration, list: ReadonlyArray<string>) {
-	const flameworkImportId = state.addFileImport(state.flamework!.flameworkRootDir + "/index", "Reflect");
+	const flameworkImportId = state.getOrAddFileImport(state.flamework!.flameworkRootDir + "/index", "Reflect");
 	const Reflect_defineMetadata = luau.property(flameworkImportId, "defineMetadata");
 
 	return luau.create(luau.SyntaxKind.CallStatement, {
@@ -153,7 +153,7 @@ function implementsClauses(state: TransformState, node: ClassLikeDeclaration, li
 }
 
 function generateMethodMetadata(state: TransformState, method: ts.FunctionLikeDeclaration): luau.List<luau.Statement> {
-	const flameworkImportId = state.addFileImport(state.flamework!.flameworkRootDir + "/index", "Reflect");
+	const flameworkImportId = state.getOrAddFileImport(state.flamework!.flameworkRootDir + "/index", "Reflect");
 	const Reflect_defineMetadata = luau.property(flameworkImportId, "defineMetadata");
 
 	const list = luau.list.make<luau.Statement>();

@@ -41,7 +41,7 @@ const AIRSHIP_SERIALIZE_TYPES = {
 
 export const AIRSHIP_SINGLETON_MACROS = {
 	Get: (state, node) => {
-		const importId = state.addFileImport(SINGLETON_FILE_IMPORT, "SingletonRegistry");
+		const importId = state.getOrAddFileImport(SINGLETON_FILE_IMPORT, "SingletonRegistry");
 		const Singletons_Resolve = luau.property(importId, "Resolve");
 
 		const functionType = state.typeChecker.getTypeAtLocation(node);

@@ -20,7 +20,7 @@ function validateDirective(state: TransformState, node: ts.Identifier, directive
 		return false;
 	}
 
-	if (!isValidDirectiveParent(node.parent) /* && !state.isSharedContext */) {
+	if (!isValidDirectiveParent(node.parent) && !state.isSharedContext) {
 		if (ts.isBinaryExpression(node.parent)) {
 			DiagnosticService.addDiagnostic(
 				errors.invalidDirectiveUsageWithBinaryExpression(node, directive, node.parent),
@@ -64,7 +64,7 @@ export const IDENTIFIER_MACROS: MacroList<IdentifierMacro> = {
 		} else if (state.isClientContext) {
 			return luau.bool(false);
 		} else {
-			const id = state.addFileImport("AirshipPackages/@Easy/Core/Shared/Game", "Game");
+			const id = state.getGameImport();
 			return luau.create(luau.SyntaxKind.MethodCallExpression, {
 				expression: id,
 				name: "IsServer",
@@ -82,7 +82,7 @@ export const IDENTIFIER_MACROS: MacroList<IdentifierMacro> = {
 		} else if (state.isServerContext) {
 			return luau.bool(false);
 		} else {
-			const id = state.addFileImport("AirshipPackages/@Easy/Core/Shared/Game", "Game");
+			const id = state.getGameImport();
 			return luau.create(luau.SyntaxKind.MethodCallExpression, {
 				expression: id,
 				name: "IsClient",

@@ -1,6 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
-import { transformDirectiveIfStatement as tryTransformContextDirectives } from "TSTransformer/macros/transformDirectives";
+import { transformDirectiveIfStatement as tryTransformContextDirectives } from "TSTransformer/macros/directives/transformDirectives";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformStatement } from "TSTransformer/nodes/statements/transformStatement";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";

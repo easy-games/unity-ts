@@ -3,7 +3,7 @@ import { TransformState } from "TSTransformer";
 import {
 	containsDirectiveLikeExpression,
 	transformDirectiveConditionalExpression,
-} from "TSTransformer/macros/transformDirectives";
+} from "TSTransformer/macros/directives/transformDirectives";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";

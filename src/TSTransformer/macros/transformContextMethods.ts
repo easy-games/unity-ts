@@ -98,7 +98,7 @@ export function createStripReturn(
 		);
 	}
 
-	const id = state.addFileImport("AirshipPackages/@Easy/Core/Shared/Game", "Game");
+	const id = state.getOrAddFileImport("AirshipPackages/@Easy/Core/Shared/Game", "Game");
 	luau.list.push(
 		statements,
 		luau.create(luau.SyntaxKind.IfStatement, {
