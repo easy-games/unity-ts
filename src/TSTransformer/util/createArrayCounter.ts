@@ -32,11 +32,11 @@ export function createArrayCountExpression(
 				expression,
 				luau.list.make(
 					createLuauIfStatement(
-						luau.binary(
-							luau.binary(luau.call(luau.globals.typeof, [tempId]), "==", luau.string("number")),
-							"and",
-							luau.binary(tempId, ">", counterId),
-						),
+						// luau.binary(
+						// 	luau.binary(luau.call(luau.globals.typeof, [tempId]), "==", luau.string("number")),
+						// 	"and",
+						luau.binary(tempId, ">", counterId),
+						// ),
 						luau.list.make<luau.Statement>(
 							luau.create(luau.SyntaxKind.Assignment, {
 								left: counterId,
