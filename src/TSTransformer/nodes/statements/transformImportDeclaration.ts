@@ -5,13 +5,7 @@ import { TransformState } from "TSTransformer";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { cleanModuleName } from "TSTransformer/util/cleanModuleName";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
-import {
-	isAirshipSingletonClass,
-	isAirshipSingletonType,
-	isClassInheritingSymbol,
-	isRootAirshipSingletonClass,
-	SingletonQueryType,
-} from "TSTransformer/util/extendsAirshipBehaviour";
+import { isAirshipSingletonType, isClassInheritingSymbol } from "TSTransformer/util/extendsAirshipBehaviour";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
@@ -82,7 +76,7 @@ function shouldSkipSingletonImport(
 	symbol: ts.Symbol,
 ) {
 	const linkedModuleSingletonIds = state.airshipBuildState.singletonTypes.get(module.fileName);
-	if (!linkedModuleSingletonIds) {
+	if (state.isPublish() && !linkedModuleSingletonIds) {
 		return false;
 	}
 
@@ -98,8 +92,8 @@ function shouldSkipSingletonImport(
 
 	const typeUniqueId = state.airshipBuildState.getUniqueIdForType(state, valueType, module);
 
-	// Need to ensure we keep the import or strip it... Don't like this TBH
-	if (!linkedModuleSingletonIds.has(typeUniqueId)) {
+	if (state.isPublish() && !linkedModuleSingletonIds!.has(typeUniqueId)) {
+		// Need to ensure we keep the import or strip it... Don't like this TBH
 		return false;
 	}
 

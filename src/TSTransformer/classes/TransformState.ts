@@ -92,7 +92,7 @@ export class TransformState {
 		return this._context === CompliationContext.Shared;
 	}
 
-	public get isPublish() {
+	public isPublish() {
 		return this.data.isPublishing;
 	}
 

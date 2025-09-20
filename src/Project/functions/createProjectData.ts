@@ -40,6 +40,7 @@ export function createProjectData(
 	const projectData: ProjectData = {
 		tsConfigPath,
 		includePath,
+		isSkippingPackages: projectOptions.skipPackages,
 		isPackage,
 		isPublishing: projectOptions.publish,
 		logTruthyChanges,
