@@ -6,6 +6,22 @@ import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import ts from "typescript";
 
+export function isRootAirshipBehaviourClassNoState(
+	singletonSymbol: ts.Symbol,
+	typeChecker: ts.TypeChecker,
+	node: ts.ClassLikeDeclaration,
+) {
+	const extendsNode = getExtendsNode(node);
+	if (extendsNode) {
+		const symbol = getOriginalSymbolOfNode(typeChecker, extendsNode.expression);
+		if (symbol === singletonSymbol) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 export function isRootAirshipBehaviourClass(state: TransformState, node: ts.ClassLikeDeclaration) {
 	const extendsNode = getExtendsNode(node);
 	if (extendsNode) {
@@ -25,10 +41,11 @@ export function isRootAirshipSingletonClass(state: TransformState, node: ts.Clas
 	if (extendsNode) {
 		const airshipSingletonSymbol = state.services.airshipSymbolManager.getAirshipSingletonSymbolOrThrow();
 
-		const symbol = getOriginalSymbolOfNode(state.typeChecker, extendsNode.expression);
-		if (symbol === airshipSingletonSymbol) {
-			return true;
-		}
+		return isRootAirshipBehaviourClassNoState(airshipSingletonSymbol, state.typeChecker, node);
+		// const symbol = getOriginalSymbolOfNode(state.typeChecker, extendsNode.expression);
+		// if (symbol === airshipSingletonSymbol) {
+		// 	return true;
+		// }
 	}
 
 	return false;
@@ -86,7 +103,7 @@ export function isAirshipSingletonClassNoState(
 		}
 
 		// Get the root inheriting symbol (Should match AirshipBehaviour for this to be "extending" AirshipBehaviour)
-		const baseTypeDeclaration = inheritance[inheritance.length - 1];
+		const baseTypeDeclaration = inheritance[inheritance.length - 2] ?? inheritance[inheritance.length - 1];
 		if (baseTypeDeclaration !== undefined) {
 			return baseTypeDeclaration === airshipBehaviourSymbol;
 		}
@@ -102,6 +119,7 @@ export function isAirshipSingletonClass(state: TransformState, node: ts.ClassLik
 
 		// check if the immediate extends is AirshipBehaviour
 		let type = state.typeChecker.getTypeAtLocation(node);
+
 		if (type.isNullableType()) {
 			type = type.getNonNullableType();
 		}
@@ -111,17 +129,11 @@ export function isAirshipSingletonClass(state: TransformState, node: ts.ClassLik
 			return true;
 		}
 
-		// Get the inheritance tree, otherwise
-		const inheritance = getAncestorTypeSymbols(type, state.typeChecker);
-		if (inheritance.length === 0) {
-			return false;
-		}
+		const extendsClasses = getTypesOfClasses(state.typeChecker, getExtendsClasses(state.typeChecker, node));
+		if (extendsClasses.length === 0) return false;
 
-		// Get the root inheriting symbol (Should match AirshipBehaviour for this to be "extending" AirshipBehaviour)
-		const baseTypeDeclaration = inheritance[inheritance.length - 1];
-		if (baseTypeDeclaration !== undefined) {
-			return baseTypeDeclaration === airshipBehaviourSymbol;
-		}
+		const baseClass = extendsClasses[extendsClasses.length - 2] ?? extendsClasses[extendsClasses.length - 1];
+		return baseClass.symbol === airshipBehaviourSymbol;
 	}
 
 	return false;
@@ -167,8 +179,13 @@ export function isAirshipBehaviourType(state: TransformState, type: ts.Type) {
 	}
 }
 
-export function isAirshipSingletonType(state: TransformState, type: ts.Type) {
-	const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipSingletonSymbolOrThrow();
+export const enum SingletonQueryType {
+	IsRootSingleton,
+	IsAnySingleton,
+}
+
+export function isClassInheritingSymbol(state: TransformState, node: ts.ClassLikeDeclaration, symbol: ts.Symbol) {
+	const type = state.typeChecker.getTypeAtLocation(node);
 
 	// Get the inheritance tree, otherwise
 	const inheritance = getAncestorTypeSymbols(type, state.typeChecker);
@@ -176,10 +193,34 @@ export function isAirshipSingletonType(state: TransformState, type: ts.Type) {
 		return false;
 	}
 
-	// Get the root inheriting symbol (Should match AirshipBehaviour for this to be "extending" AirshipBehaviour)
-	const baseTypeDeclaration = inheritance[inheritance.length - 2];
-	if (baseTypeDeclaration !== undefined) {
-		return baseTypeDeclaration === airshipBehaviourSymbol;
+	return inheritance.some(value => value === symbol);
+}
+
+export function isAirshipSingletonType(
+	state: TransformState,
+	type: ts.Type,
+	queryType = SingletonQueryType.IsAnySingleton,
+) {
+	const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipSingletonSymbolOrThrow();
+
+	const inheritance = getAncestorTypeSymbols(type, state.typeChecker);
+	if (inheritance.length === 0) {
+		return false;
+	}
+
+	if (queryType === SingletonQueryType.IsRootSingleton) {
+		const baseTypeDeclaration = inheritance[inheritance.length - 2];
+		if (baseTypeDeclaration !== undefined) {
+			return baseTypeDeclaration === airshipBehaviourSymbol && inheritance.length === 1;
+		}
+	} else {
+		// Get the inheritance tree, otherwise
+
+		// Get the root inheriting symbol (Should match AirshipBehaviour for this to be "extending" AirshipBehaviour)
+		const baseTypeDeclaration = inheritance[inheritance.length - 2];
+		if (baseTypeDeclaration !== undefined) {
+			return baseTypeDeclaration === airshipBehaviourSymbol;
+		}
 	}
 
 	return false;

@@ -5,7 +5,13 @@ import { TransformState } from "TSTransformer";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { cleanModuleName } from "TSTransformer/util/cleanModuleName";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
-import { isAirshipSingletonType } from "TSTransformer/util/extendsAirshipBehaviour";
+import {
+	isAirshipSingletonClass,
+	isAirshipSingletonType,
+	isClassInheritingSymbol,
+	isRootAirshipSingletonClass,
+	SingletonQueryType,
+} from "TSTransformer/util/extendsAirshipBehaviour";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
@@ -80,10 +86,11 @@ function shouldSkipSingletonImport(
 		return false;
 	}
 
-	if (!symbol.valueDeclaration) return false;
+	const valueDeclaration = symbol.valueDeclaration;
+	if (!valueDeclaration) return false;
 
 	// get the value type of the import
-	const valueType = state.typeChecker.getTypeAtLocation(symbol!.valueDeclaration!);
+	const valueType = state.typeChecker.getTypeAtLocation(valueDeclaration);
 
 	if (!valueType) {
 		return false;
@@ -101,6 +108,13 @@ function shouldSkipSingletonImport(
 	// Ensure we're only using only a macro on the singleton
 	let shouldSkip = true;
 	ts.forEachChildRecursively(importDeclaration.getSourceFile(), node => {
+		// If we have an inheriting singleton, we need to call the constructor of the base singleton
+		if (ts.isClassLike(node) && isClassInheritingSymbol(state, node, symbol)) {
+			shouldSkip = false;
+			return "skip";
+		}
+
+		// Any static accesses of singletons
 		if (ts.isPropertyAccessExpression(node) && isStaticAirshipSingletonPropertyAccess(state, node, typeName)) {
 			shouldSkip = false;
 			return "skip";
