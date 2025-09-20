@@ -39,6 +39,7 @@ export interface ProjectOptions {
 
 export interface ProjectData {
 	includePath: string;
+	isSkippingPackages: boolean;
 	isPackage: boolean;
 	isPublishing: boolean;
 	logTruthyChanges: boolean;
