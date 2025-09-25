@@ -11,8 +11,11 @@ import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatem
 import ts from "typescript";
 
 export function transformConditionalExpression(state: TransformState, node: ts.ConditionalExpression) {
-	if (!state.isSharedContext && containsDirectiveLikeExpression(state, node.condition)) {
-		return transformDirectiveConditionalExpression(state, node);
+	if (
+		!state.isSharedContext &&
+		containsDirectiveLikeExpression(state, node.condition, state.data.stripImplicitContextCalls)
+	) {
+		return transformDirectiveConditionalExpression(state, node, state.data.stripImplicitContextCalls);
 	}
 
 	const condition = transformExpression(state, node.condition);

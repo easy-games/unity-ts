@@ -42,21 +42,22 @@ function isThrowing(state: TransformState, statement: ts.Statement) {
 function hasAnyExpression(
 	state: TransformState,
 	node: ts.Expression,
-	check: (state: TransformState, value: ts.Expression) => boolean,
+	check: (state: TransformState, value: ts.Expression, includeImplicitCalls: boolean) => boolean,
+	includeImplicitCalls: boolean,
 ) {
 	if (ts.isBinaryExpression(node)) {
-		return check(state, node.left) || check(state, node.right);
+		return check(state, node.left, includeImplicitCalls) || check(state, node.right, includeImplicitCalls);
 	}
 
 	return false;
 }
 
 // if returns or throws early
-export function isGuardClause(state: TransformState, node: ts.IfStatement) {
+export function isGuardClause(state: TransformState, node: ts.IfStatement, includeImplicitCalls: boolean) {
 	if (
-		(containsDirectiveLikeExpression(state, node.expression) ||
-			containsDirectiveLikeExpression(state, node.expression) ||
-			hasAnyExpression(state, node.expression, containsDirectiveLikeExpression)) &&
+		(containsDirectiveLikeExpression(state, node.expression, includeImplicitCalls) ||
+			containsDirectiveLikeExpression(state, node.expression, includeImplicitCalls) ||
+			hasAnyExpression(state, node.expression, containsDirectiveLikeExpression, includeImplicitCalls)) &&
 		(isReturning(state, node.thenStatement) || isThrowing(state, node.thenStatement))
 	) {
 		return true;
@@ -77,15 +78,21 @@ export function isInverseGuardClause(state: TransformState, node: ts.IfStatement
 	return false;
 }
 
-function transformThenStatement(state: TransformState, node: ts.IfStatement) {
+function transformThenStatement(state: TransformState, node: ts.IfStatement, includeImplicitCalls: boolean) {
 	if (ts.isBinaryExpression(node.expression)) {
 		// E.g. $SERVER && $CLIENT (Host only)
-		if (isServerDirective(state, node.expression.left) && isClientDirective(state, node.expression.right)) {
+		if (
+			isServerDirective(state, node.expression.left, includeImplicitCalls) &&
+			isClientDirective(state, node.expression.right, includeImplicitCalls)
+		) {
 			return node.elseStatement ?? false;
 		}
 
 		// e.g. $SERVER && !$CLIENT (Dedicated server)
-		if (isServerDirective(state, node.expression.left) && isServerDirective(state, node.expression.right)) {
+		if (
+			isServerDirective(state, node.expression.left, includeImplicitCalls) &&
+			isServerDirective(state, node.expression.right, includeImplicitCalls)
+		) {
 			return state.isServerContext ? node.thenStatement : node.elseStatement ?? false;
 		}
 	}
@@ -97,22 +104,33 @@ function transformElseStatement(state: TransformState, node: ts.IfStatement) {
 	return node.elseStatement ?? false;
 }
 
-export function containsDirectiveLikeExpression(state: TransformState, expression: ts.Expression) {
+export function containsDirectiveLikeExpression(
+	state: TransformState,
+	expression: ts.Expression,
+	includeImplicitCalls: boolean,
+) {
 	if (ts.isPrefixUnaryExpression(expression) && expression.operator === ts.SyntaxKind.ExclamationToken) {
 		expression = expression.operand; // skip !
 	}
 
 	if (ts.isIdentifier(expression) || ts.isCallExpression(expression)) {
-		return isServerDirective(state, expression) || isClientDirective(state, expression);
+		return (
+			isServerDirective(state, expression, includeImplicitCalls) ||
+			isClientDirective(state, expression, includeImplicitCalls)
+		);
 	}
 
 	return false;
 }
 
-export function transformDirectiveConditionalExpression(state: TransformState, conditional: ts.ConditionalExpression) {
+export function transformDirectiveConditionalExpression(
+	state: TransformState,
+	conditional: ts.ConditionalExpression,
+	includeImplicitCalls: boolean,
+) {
 	const condition = conditional.condition;
 
-	if (isServerDirective(state, condition)) {
+	if (isServerDirective(state, condition, includeImplicitCalls)) {
 		if (state.isServerContext) {
 			return transformExpression(state, conditional.whenTrue);
 		} else {
@@ -120,7 +138,7 @@ export function transformDirectiveConditionalExpression(state: TransformState, c
 		}
 	}
 
-	if (isClientDirective(state, condition)) {
+	if (isClientDirective(state, condition, includeImplicitCalls)) {
 		if (state.isClientContext) {
 			return transformExpression(state, conditional.whenTrue);
 		} else {
@@ -131,20 +149,21 @@ export function transformDirectiveConditionalExpression(state: TransformState, c
 	assert(false);
 }
 
-function transformDirectiveIfStatementInner(
+export function transformDirectiveIfStatementInner(
 	state: TransformState,
 	ifStatement: ts.IfStatement,
 	condition: boolean,
 	conditionLikeExpression: ts.Expression | undefined,
+	includeImplicitCalls: boolean,
 ) {
 	if (condition) {
 		if (conditionLikeExpression) {
-			const result = transformThenStatement(state, ifStatement);
+			const result = transformThenStatement(state, ifStatement, includeImplicitCalls);
 			if (!result) return false;
 
 			return factory.createIfStatement(conditionLikeExpression, result);
 		} else {
-			return transformThenStatement(state, ifStatement);
+			return transformThenStatement(state, ifStatement, includeImplicitCalls);
 		}
 	} else {
 		return transformElseStatement(state, ifStatement);
@@ -157,11 +176,12 @@ export function transformDirectiveIfStatement(
 ): ts.Statement | false | undefined {
 	const expression = ifStatement.expression;
 
+	const implicitCalls = state.data.stripImplicitContextCalls;
 	const parsedDirectiveCondition = parseDirectives(
 		state,
 		expression,
 		/** allowComplexExpressions: */ true,
-		/** implicitCalls: */ true,
+		/** implicitCalls: */ implicitCalls,
 	);
 	if (parsedDirectiveCondition === undefined) return;
 	const directives = parsedDirectiveCondition.directives;
@@ -188,6 +208,7 @@ export function transformDirectiveIfStatement(
 				ifStatement,
 				state.isServerContext,
 				parsedDirectiveCondition.updatedExpression,
+				implicitCalls,
 			);
 		} else if (directives.includes(CompilerDirective.CLIENT) && directives.includes(CompilerDirective.NOT_SERVER)) {
 			return transformDirectiveIfStatementInner(
@@ -195,6 +216,7 @@ export function transformDirectiveIfStatement(
 				ifStatement,
 				state.isClientContext,
 				parsedDirectiveCondition.updatedExpression,
+				implicitCalls,
 			);
 		} else if (isClientGuard) {
 			return transformDirectiveIfStatementInner(
@@ -202,6 +224,7 @@ export function transformDirectiveIfStatement(
 				ifStatement,
 				state.isClientContext,
 				parsedDirectiveCondition.updatedExpression,
+				implicitCalls,
 			);
 		} else if (isServerGuard) {
 			return transformDirectiveIfStatementInner(
@@ -209,6 +232,7 @@ export function transformDirectiveIfStatement(
 				ifStatement,
 				state.isServerContext,
 				parsedDirectiveCondition.updatedExpression,
+				implicitCalls,
 			);
 		}
 	}

@@ -17,22 +17,37 @@ export function isIdentifierOrExclamationIdentifier(
 	);
 }
 
-function getDirective(state: TransformState, expression: ts.Expression): CompilerDirective | undefined {
-	if (!isIdentifierOrExclamationIdentifier(expression) && !ts.isCallExpression(expression)) return;
+export function isCallExpressionOrExclamationCallExpression(
+	expression: ts.Expression,
+): expression is ts.CallExpression | (ts.PrefixUnaryExpression & { operand: ts.CallExpression }) {
+	return (
+		ts.isCallExpression(expression) ||
+		(ts.isPrefixUnaryExpression(expression) && ts.isCallExpression(expression.operand))
+	);
+}
 
-	if (isServerDirective(state, expression)) {
+function getDirective(
+	state: TransformState,
+	expression: ts.Expression,
+	includeImplicitCalls: boolean,
+): CompilerDirective | undefined {
+	if (!isIdentifierOrExclamationIdentifier(expression) && !isCallExpressionOrExclamationCallExpression(expression)) {
+		return;
+	}
+
+	if (isServerDirective(state, expression, includeImplicitCalls)) {
 		return CompilerDirective.SERVER;
 	}
 
-	if (isClientDirective(state, expression)) {
+	if (isClientDirective(state, expression, includeImplicitCalls)) {
 		return CompilerDirective.CLIENT;
 	}
 
-	if (isNotClientDirective(state, expression)) {
+	if (isNotClientDirective(state, expression, includeImplicitCalls)) {
 		return CompilerDirective.NOT_CLIENT;
 	}
 
-	if (isNotServerDirective(state, expression)) {
+	if (isNotServerDirective(state, expression, includeImplicitCalls)) {
 		return CompilerDirective.NOT_SERVER;
 	}
 }
@@ -54,6 +69,9 @@ export interface DirectivesResult {
 	 * If the directive contains a complex check, this should contain a new expression for the conditional
 	 */
 	readonly updatedExpression: ts.Expression | undefined;
+
+	readonly isServer: boolean;
+	readonly isClient: boolean;
 }
 
 /**
@@ -71,13 +89,21 @@ export function parseDirectives(
 
 	if (
 		isIdentifierOrExclamationIdentifier(conditionLikeExpression) ||
-		(!state.isSharedContext && includeImplicitCalls && ts.isCallExpression(conditionLikeExpression))
+		(!state.isSharedContext &&
+			includeImplicitCalls &&
+			isCallExpressionOrExclamationCallExpression(conditionLikeExpression))
 	) {
 		// Simple directives here we can just translate directly
-		const directive = getDirective(state, conditionLikeExpression);
+		const directive = getDirective(state, conditionLikeExpression, includeImplicitCalls);
 		if (directive !== undefined) {
 			directives.push(directive);
-			return { directives, updatedExpression: undefined, isComplexDirectiveCheck: false };
+			return {
+				directives,
+				updatedExpression: undefined,
+				isComplexDirectiveCheck: false,
+				isServer: directive === CompilerDirective.SERVER || directive === CompilerDirective.NOT_CLIENT,
+				isClient: directive === CompilerDirective.CLIENT || directive === CompilerDirective.NOT_SERVER,
+			};
 		}
 	}
 
@@ -85,15 +111,16 @@ export function parseDirectives(
 		// eslint-disable-next-line no-autofix/prefer-const
 		let { left, right } = conditionLikeExpression;
 		const binaryExpressions = new Array<ts.Expression>();
-		let depth = 0;
 
 		if (isAndBinaryExpression(left)) {
 			do {
 				if (
 					isIdentifierOrExclamationIdentifier(left) ||
-					(!state.isSharedContext && includeImplicitCalls && ts.isCallExpression(left))
+					(!state.isSharedContext &&
+						includeImplicitCalls &&
+						isCallExpressionOrExclamationCallExpression(left))
 				) {
-					const directive = getDirective(state, left);
+					const directive = getDirective(state, left, includeImplicitCalls);
 
 					if (directive !== undefined) {
 						directives.push(directive);
@@ -111,9 +138,9 @@ export function parseDirectives(
 		} else {
 			if (
 				isIdentifierOrExclamationIdentifier(left) ||
-				(!state.isSharedContext && includeImplicitCalls && ts.isCallExpression(left))
+				(!state.isSharedContext && includeImplicitCalls && isCallExpressionOrExclamationCallExpression(left))
 			) {
-				const directive = getDirective(state, left);
+				const directive = getDirective(state, left, includeImplicitCalls);
 
 				if (directive !== undefined) {
 					directives.push(directive);
@@ -127,9 +154,9 @@ export function parseDirectives(
 
 		if (
 			isIdentifierOrExclamationIdentifier(right) ||
-			(!state.isSharedContext && includeImplicitCalls && ts.isCallExpression(right))
+			(!state.isSharedContext && includeImplicitCalls && isCallExpressionOrExclamationCallExpression(right))
 		) {
-			const directive = getDirective(state, right);
+			const directive = getDirective(state, right, includeImplicitCalls);
 
 			if (directive !== undefined) {
 				directives.push(directive);
@@ -141,11 +168,6 @@ export function parseDirectives(
 		}
 
 		if (directives.length > 0) {
-			// console.log(
-			// 	"got",
-			// 	binaryExpressions.map(v => v.getText()),
-			// );
-
 			let expr: ts.Expression | undefined;
 			for (let i = 0; i < binaryExpressions.length; ) {
 				const first = binaryExpressions[i];
@@ -163,7 +185,17 @@ export function parseDirectives(
 				}
 			}
 
-			return { directives, updatedExpression: expr, isComplexDirectiveCheck: binaryExpressions.length > 0 };
+			const result: DirectivesResult = {
+				directives,
+				updatedExpression: expr,
+				isComplexDirectiveCheck: binaryExpressions.length > 0,
+				isServer:
+					directives.includes(CompilerDirective.SERVER) || directives.includes(CompilerDirective.NOT_CLIENT),
+				isClient:
+					directives.includes(CompilerDirective.CLIENT) || directives.includes(CompilerDirective.NOT_SERVER),
+			};
+
+			return result;
 		}
 	}
 

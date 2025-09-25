@@ -35,6 +35,7 @@ export interface ProjectOptions {
 	nodePackageName: string;
 	copyNodeModules: boolean;
 	precompiled: Array<string>;
+	stripImplicitContextCalls: boolean;
 }
 
 export interface ProjectData {
@@ -51,6 +52,7 @@ export interface ProjectData {
 	tsConfigPath: string;
 	writeOnlyChanged: boolean;
 	optimizedLoops: boolean;
+	stripImplicitContextCalls: boolean;
 	watch: boolean;
 	transformerWatcher?: TransformerWatcher;
 }

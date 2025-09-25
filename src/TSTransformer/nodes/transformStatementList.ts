@@ -7,6 +7,8 @@ import {
 	isServerIfDirective,
 	transformDirectiveIfStatement,
 } from "TSTransformer/macros/directives";
+import { transformDirectiveIfStatementInner } from "TSTransformer/macros/directives/transformDirectives";
+import { parseDirectives } from "TSTransformer/macros/directives/transformGuardDirectives";
 import { transformStatement } from "TSTransformer/nodes/statements/transformStatement";
 import { createHoistDeclaration } from "TSTransformer/util/createHoistDeclaration";
 import ts from "typescript";
@@ -33,51 +35,108 @@ export function transformStatementList(
 		let shouldEarlyReturn = false;
 
 		if (!state.isSharedContext && ts.isIfStatement(statement)) {
-			if (isGuardClause(state, statement)) {
-				if (isServerIfDirective(state, statement)) {
-					const newStatement = transformDirectiveIfStatement(state, statement);
-					if (state.isServerContext && newStatement) {
-						statement = newStatement;
-						shouldEarlyReturn = true;
+			if (
+				isGuardClause(state, statement, state.data.stripImplicitContextCalls) ||
+				isInverseGuardClause(state, statement)
+			) {
+				const directives = parseDirectives(
+					state,
+					statement.expression,
+					true,
+					state.data.stripImplicitContextCalls,
+				);
+
+				if (directives?.isServer) {
+					const updatedStatement = transformDirectiveIfStatementInner(
+						state,
+						statement,
+						state.isServerContext,
+						directives.updatedExpression,
+						state.data.stripImplicitContextCalls,
+					);
+
+					if (updatedStatement) {
+						statement = updatedStatement;
+						shouldEarlyReturn = !directives.isComplexDirectiveCheck;
 					} else if (statement.elseStatement) {
 						statement = statement.elseStatement;
-					} else if (newStatement === false) {
+					} else if (updatedStatement === false) {
 						continue;
 					}
-				} else if (isClientIfDirective(state, statement)) {
-					const newStatement = transformDirectiveIfStatement(state, statement);
-					if (state.isClientContext && newStatement) {
-						shouldEarlyReturn = true;
-						statement = newStatement;
+				} else if (directives?.isClient) {
+					const updatedStatement = transformDirectiveIfStatementInner(
+						state,
+						statement,
+						state.isClientContext,
+						directives.updatedExpression,
+						state.data.stripImplicitContextCalls,
+					);
+
+					if (updatedStatement) {
+						statement = updatedStatement;
+						shouldEarlyReturn = !directives.isComplexDirectiveCheck;
 					} else if (statement.elseStatement) {
 						statement = statement.elseStatement;
-					} else if (newStatement === false) {
+					} else if (updatedStatement === false) {
 						continue;
 					}
-				} else {
-					continue;
-				}
-			} else if (isInverseGuardClause(state, statement)) {
-				if (state.isClientContext && isServerIfDirective(state, statement)) {
-					shouldEarlyReturn = true;
-					const newStatement = transformDirectiveIfStatement(state, statement);
-					if (newStatement) {
-						statement = newStatement;
-					} else if (newStatement === false) {
-						continue;
-					}
-				} else if (state.isServerContext && isClientIfDirective(state, statement)) {
-					shouldEarlyReturn = true;
-					const newStatement = transformDirectiveIfStatement(state, statement);
-					if (newStatement) {
-						statement = newStatement;
-					} else if (newStatement === false) {
-						continue;
-					}
-				} else {
-					continue;
 				}
 			}
+			// if (isServerIfDirective(state, statement) && !directives?.isComplexDirectiveCheck) {
+			// 	const newStatement = transformDirectiveIfStatement(state, statement);
+			// 	if (state.isServerContext && newStatement) {
+			// 		statement = newStatement;
+			// 		shouldEarlyReturn = true;
+			// 	} else if (statement.elseStatement) {
+			// 		statement = statement.elseStatement;
+			// 	} else if (newStatement === false) {
+			// 		continue;
+			// 	}
+			// } else if (isClientIfDirective(state, statement) && !directives?.isComplexDirectiveCheck) {
+			// 	const newStatement = transformDirectiveIfStatement(state, statement);
+			// 	if (state.isClientContext && newStatement) {
+			// 		shouldEarlyReturn = true;
+			// 		statement = newStatement;
+			// 	} else if (statement.elseStatement) {
+			// 		statement = statement.elseStatement;
+			// 	} else if (newStatement === false) {
+			// 		continue;
+			// 	}
+			// } else {
+			// 	continue;
+			// }
+
+			// } else if (isInverseGuardClause(state, statement)) {
+			// 	const directives = parseDirectives(state, statement.expression);
+
+			// 	if (
+			// 		state.isClientContext &&
+			// 		isServerIfDirective(state, statement) &&
+			// 		!directives?.isComplexDirectiveCheck
+			// 	) {
+			// 		shouldEarlyReturn = true;
+			// 		const newStatement = transformDirectiveIfStatement(state, statement);
+			// 		if (newStatement) {
+			// 			statement = newStatement;
+			// 		} else if (newStatement === false) {
+			// 			continue;
+			// 		}
+			// 	} else if (
+			// 		state.isServerContext &&
+			// 		isClientIfDirective(state, statement) &&
+			// 		!directives?.isComplexDirectiveCheck
+			// 	) {
+			// 		shouldEarlyReturn = true;
+			// 		const newStatement = transformDirectiveIfStatement(state, statement);
+			// 		if (newStatement) {
+			// 			statement = newStatement;
+			// 		} else if (newStatement === false) {
+			// 			continue;
+			// 		}
+			// 	} else {
+			// 		continue;
+			// 	}
+			// }
 		}
 
 		// capture prerequisite statements for the `ts.Statement`
