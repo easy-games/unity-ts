@@ -3,13 +3,8 @@ import { assert } from "Shared/util/assert";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { CompilerDirective } from "TSTransformer/macros/directives";
-import {
-	isClientDirective,
-	isClientIfDirective,
-	isServerDirective,
-	isServerIfDirective,
-} from "TSTransformer/macros/directives/checkDirectives";
-import { parseDirectives } from "TSTransformer/macros/directives/transformGuardDirectives";
+import { isClientDirective, isServerDirective } from "TSTransformer/macros/directives/checkDirectives";
+import { DirectivesResult, parseDirectives } from "TSTransformer/macros/directives/transformGuardDirectives";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import ts, { factory } from "typescript";
 
@@ -66,17 +61,17 @@ export function isGuardClause(state: TransformState, node: ts.IfStatement, inclu
 	return false;
 }
 
-export function isInverseGuardClause(state: TransformState, node: ts.IfStatement) {
-	if (
-		node.elseStatement &&
-		(isServerIfDirective(state, node) || isClientIfDirective(state, node)) &&
-		(isReturning(state, node.elseStatement) || isThrowing(state, node.elseStatement))
-	) {
-		return true;
-	}
+// export function isInverseGuardClause(state: TransformState, node: ts.IfStatement) {
+// 	if (
+// 		node.elseStatement &&
+// 		(isServerIfDirective(state, node) || isClientIfDirective(state, node)) &&
+// 		(isReturning(state, node.elseStatement) || isThrowing(state, node.elseStatement))
+// 	) {
+// 		return true;
+// 	}
 
-	return false;
-}
+// 	return false;
+// }
 
 function transformThenStatement(state: TransformState, node: ts.IfStatement, includeImplicitCalls: boolean) {
 	if (ts.isBinaryExpression(node.expression)) {
@@ -149,31 +144,74 @@ export function transformDirectiveConditionalExpression(
 	assert(false);
 }
 
+export enum DirectiveStatementKind {
+	Skip,
+	Then,
+	Else,
+}
+export function checkDirectiveIfStatement(
+	state: TransformState,
+	ifStatement: ts.IfStatement,
+	condition: boolean,
+	directives: DirectivesResult,
+	includeImplicitCalls: boolean,
+): DirectiveStatementKind {
+	if (condition) {
+		if (directives.updatedExpression) {
+			const result = transformThenStatement(state, ifStatement, includeImplicitCalls);
+			if (!result) return DirectiveStatementKind.Skip;
+			return DirectiveStatementKind.Then;
+		} else {
+			return DirectiveStatementKind.Then;
+		}
+	} else {
+		return DirectiveStatementKind.Else;
+	}
+}
+
+export const enum DirectiveIfBranch {
+	None,
+	IfTrue,
+	IfFalse,
+}
+export interface DirectiveIfTransformResult {
+	newStatement: ts.Statement | undefined;
+	branch: DirectiveIfBranch;
+	skipped?: boolean;
+}
+
 export function transformDirectiveIfStatementInner(
 	state: TransformState,
 	ifStatement: ts.IfStatement,
 	condition: boolean,
 	conditionLikeExpression: ts.Expression | undefined,
 	includeImplicitCalls: boolean,
-) {
+): DirectiveIfTransformResult {
 	if (condition) {
 		if (conditionLikeExpression) {
 			const result = transformThenStatement(state, ifStatement, includeImplicitCalls);
-			if (!result) return false;
+			if (!result) return { newStatement: undefined, skipped: true, branch: DirectiveIfBranch.None };
 
-			return factory.createIfStatement(conditionLikeExpression, result);
+			return {
+				newStatement: factory.createIfStatement(conditionLikeExpression, result),
+				branch: DirectiveIfBranch.IfTrue,
+			};
 		} else {
-			return transformThenStatement(state, ifStatement, includeImplicitCalls);
+			const result = transformThenStatement(state, ifStatement, includeImplicitCalls);
+			if (!result) return { newStatement: undefined, skipped: true, branch: DirectiveIfBranch.None };
+			return { newStatement: result, branch: DirectiveIfBranch.IfTrue };
 		}
 	} else {
-		return transformElseStatement(state, ifStatement);
+		const result = transformElseStatement(state, ifStatement);
+		if (!result) return { newStatement: undefined, skipped: true, branch: DirectiveIfBranch.None };
+		return { newStatement: result, branch: DirectiveIfBranch.IfFalse };
 	}
 }
 
 export function transformDirectiveIfStatement(
 	state: TransformState,
 	ifStatement: ts.IfStatement,
-): ts.Statement | false | undefined {
+): DirectiveIfTransformResult | undefined {
 	const expression = ifStatement.expression;
 
 	const implicitCalls = state.data.stripImplicitContextCalls;
@@ -192,7 +230,11 @@ export function transformDirectiveIfStatement(
 	) {
 		// Invalid use
 		DiagnosticService.addDiagnostic(warnings.directiveIsAlwaysFalse(expression));
-		if (!state.isSharedContext) return transformElseStatement(state, ifStatement);
+		if (!state.isSharedContext) {
+			const result = transformElseStatement(state, ifStatement);
+			if (!result) return { newStatement: undefined, skipped: true, branch: DirectiveIfBranch.None };
+			return { newStatement: result, branch: DirectiveIfBranch.IfFalse };
+		}
 	}
 
 	if (!state.isSharedContext) {

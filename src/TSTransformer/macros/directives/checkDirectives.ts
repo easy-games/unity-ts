@@ -85,36 +85,12 @@ export function isClientDirective(state: TransformState, expression: ts.Expressi
 	return false;
 }
 
-/**
- * @deprecated
- */
-export function isClientIfDirective(state: TransformState, node: ts.IfStatement) {
-	return isClientDirective(state, node.expression, true);
-}
-
-/**
- * @deprecated
- */
-export function isServerIfDirective(state: TransformState, node: ts.IfStatement) {
-	if (
-		ts.isBinaryExpression(node.expression) &&
-		node.expression.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken
-	) {
-		return (
-			isServerDirective(state, node.expression.left, true) ||
-			isServerDirective(state, node.expression.right, true)
-		);
-	}
-
-	return isServerDirective(state, node.expression, true);
-}
-
-export function isEditorIfDirective(state: TransformState, node: ts.IfStatement) {
+export function isEditorCheckExpression(state: TransformState, node: ts.Expression) {
 	const { isEditorSymbol } = state.services.macroManager;
 
 	if (!isEditorSymbol) return false;
-	if (ts.isCallExpression(node.expression)) {
-		const symbol = state.typeChecker.getSymbolAtLocation(node.expression.expression);
+	if (ts.isCallExpression(node)) {
+		const symbol = state.typeChecker.getSymbolAtLocation(node.expression);
 		if (!symbol) return false;
 		return isEditorSymbol === symbol;
 	}

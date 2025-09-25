@@ -1,7 +1,7 @@
-export { isClientIfDirective, isServerIfDirective } from "TSTransformer/macros/directives/checkDirectives";
+// export {} from "TSTransformer/macros/directives/checkDirectives";
 export {
 	isGuardClause,
-	isInverseGuardClause,
+	// isInverseGuardClause,
 	transformDirectiveIfStatement,
 } from "TSTransformer/macros/directives/transformDirectives";
 
@@ -10,4 +10,5 @@ export enum CompilerDirective {
 	NOT_SERVER,
 	CLIENT,
 	NOT_CLIENT,
+	EDITOR,
 }
