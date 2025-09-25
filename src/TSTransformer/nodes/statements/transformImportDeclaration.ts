@@ -75,10 +75,7 @@ function shouldSkipSingletonImport(
 	module: ts.SourceFile,
 	symbol: ts.Symbol,
 ) {
-	const linkedModuleSingletonIds = state.airshipBuildState.singletonTypes.get(module.fileName);
-	if (state.isPublish() && !linkedModuleSingletonIds) {
-		return false;
-	}
+	const linkedModuleSingletonIds = state.airshipBuildState.singletonTypes.get(module.fileName) ?? new Set();
 
 	const valueDeclaration = symbol.valueDeclaration;
 	if (!valueDeclaration) return false;
@@ -90,9 +87,14 @@ function shouldSkipSingletonImport(
 		return false;
 	}
 
+	// We don't care about non-class, or non-singleton class types
+	if (!valueType.isClass() || !isAirshipSingletonType(state, valueType)) {
+		return false;
+	}
+
 	const typeUniqueId = state.airshipBuildState.getUniqueIdForType(state, valueType, module);
 
-	if (state.isPublish() && !linkedModuleSingletonIds!.has(typeUniqueId)) {
+	if (state.isPublish() && !linkedModuleSingletonIds.has(typeUniqueId)) {
 		// Need to ensure we keep the import or strip it... Don't like this TBH
 		return false;
 	}
