@@ -1033,12 +1033,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 			}
 		}
 
-		if (
-			isBehaviourClass &&
-			!state.isSharedContext &&
-			isStrippableContextMethod(state, method) &&
-			!ts.getSelectedSyntacticModifierFlags(method, ts.ModifierFlags.Async)
-		) {
+		if (isBehaviourClass && !state.isSharedContext && isStrippableContextMethod(state, method)) {
 			luau.list.pushList(statementsInner, createStripMethod(state, method, internalName));
 			continue;
 		}

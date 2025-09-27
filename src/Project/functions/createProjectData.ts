@@ -52,6 +52,7 @@ export function createProjectData(
 		writeOnlyChanged,
 		optimizedLoops,
 		watch,
+		stripImplicitContextCalls: projectOptions.stripImplicitContextCalls,
 	};
 	return projectData;
 }

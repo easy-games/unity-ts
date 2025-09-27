@@ -318,11 +318,33 @@ export const errors = {
 		];
 	}),
 
-	directiveServerInvalid: error(
-		"$SERVER is a directive macro and can only be used as a top-level condition in an if statement - e.g. if ($SERVER)",
+	invalidDirectiveUsage: errorWithContext<[directive: "$SERVER" | "$CLIENT"]>(directive => {
+		return [`${directive} can only be used within an if statement, e.g. if (${directive})`];
+	}),
+
+	invalidDirectiveUsageWithConditionalExpression: errorWithContext<["$SERVER" | "$CLIENT", ts.ConditionalExpression]>(
+		directive => {
+			return [
+				`Conditional expressions only support using a single directive (e.g. ${directive} ? whenTrue : whenFalse)`,
+			];
+		},
 	),
-	directiveClientInvalid: error(
-		"$CLIENT is a directive macro and can only be used as a top-level condition in an if statement - e.g. if ($CLIENT)",
+
+	invalidDirectiveUsageWithBinaryExpression: errorWithContext<["$SERVER" | "$CLIENT", ts.BinaryExpression]>(
+		(directive, binaryExpression) => {
+			if (binaryExpression.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken) {
+				return [
+					`This conditional is too complex for usage with a ${directive} directive, you can only a one-level AND (&&) - e.g. if (${directive} && otherCondition)`,
+					suggestion(
+						`Wrap the non-directive conditional in a variable, and use it with ${directive}, e.g. if (${directive} && otherCondition), where otherCondition is the variable.`,
+					),
+				];
+			} else {
+				return [
+					`A conditional containing a directive can only be an AND (&&) expression, e.g. ${binaryExpression.left.getText()} && ${binaryExpression.right.getText()}`,
+				];
+			}
+		},
 	),
 
 	flameworkIdNoType: errorWithContext(() => {
@@ -391,4 +413,6 @@ export const warnings = {
 	flameworkDependencyRaceCondition: warning(
 		"The Dependency macro should not be used outside of a function as this may introduce race conditions.",
 	),
+
+	directiveIsAlwaysFalse: warning("This expression will always be false"),
 };

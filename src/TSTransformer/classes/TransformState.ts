@@ -255,7 +255,7 @@ export class TransformState {
 	}
 
 	public fileImports = new Map<string, Array<ImportInfo>>();
-	public addFileImport(importPath: string, name: string): luau.Identifier | luau.TemporaryIdentifier {
+	public getOrAddFileImport(importPath: string, name: string): luau.Identifier | luau.TemporaryIdentifier {
 		const file = this.sourceFile;
 
 		if (importPath === this.flamework?.flameworkRootDir + "/index") {
@@ -320,6 +320,10 @@ export class TransformState {
 		}
 
 		return identifier;
+	}
+
+	public getGameImport() {
+		return this.getOrAddFileImport("AirshipPackages/@Easy/Core/Shared/Game", "Game");
 	}
 
 	/**

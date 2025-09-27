@@ -62,4 +62,5 @@ export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	allowCommentDirectives: false,
 	nodePackageName: "",
 	copyNodeModules: false,
+	stripImplicitContextCalls: true,
 };

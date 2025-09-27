@@ -23,7 +23,7 @@ function createAirshipSingletonBoilerplate(
 	name: luau.AnyIdentifier,
 	statements: luau.List<luau.Statement>,
 ) {
-	const importId = state.addFileImport(SINGLETON_FILE_IMPORT, "SingletonRegistry");
+	const importId = state.getOrAddFileImport(SINGLETON_FILE_IMPORT, "SingletonRegistry");
 	const Singletons_Find = luau.property(importId, "Find");
 	const Singletons_Register = luau.property(importId, "Register");
 
