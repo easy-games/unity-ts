@@ -446,4 +446,9 @@ export const warnings = {
 	),
 
 	directiveIsAlwaysFalse: warning("This expression will always be false"),
+
+	multiDimensionalArrayProperty: warning(
+		"Multi-dimensional arrays are not supported as properties",
+		suggestion("to turn off this warning, put @NonSerialized() in front of this property"),
+	),
 };

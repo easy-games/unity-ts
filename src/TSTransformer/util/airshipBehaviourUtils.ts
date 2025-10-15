@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { assert } from "console";
+import { warnings } from "Shared/diagnostics";
 import {
 	AirshipBehaviourCallValue,
 	AirshipBehaviourMethodCallValue,
@@ -7,11 +8,10 @@ import {
 	EnumType,
 } from "Shared/types";
 import { TransformState } from "TSTransformer";
-import { isAirshipBehaviourProperty, isAirshipBehaviourType } from "TSTransformer/util/extendsAirshipBehaviour";
-import ts from "typescript";
-import { isParseablePropertyExpression, parsePropertyExpression } from "./propertyValueParser";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { warnings } from "Shared/diagnostics";
+import { isAirshipBehaviourProperty, isAirshipBehaviourType } from "TSTransformer/util/extendsAirshipBehaviour";
+import { isParseablePropertyExpression, parsePropertyExpression } from "TSTransformer/util/propertyValueParser";
+import ts from "typescript";
 
 export function isPublicWritablePropertyDeclaration(node: ts.PropertyDeclaration) {
 	// If no modifiers, then it's public by default anyway
@@ -224,16 +224,41 @@ export function getEnumMetadata(enumType: ts.Type, isFlagEnum = false): Readonly
 	return undefined;
 }
 
+function getArrayTypeInfo(state: TransformState, nodeType: ts.Type): { arrayType: ts.Type; depth: number } | undefined {
+	if (state.typeChecker.isArrayType(nodeType)) {
+		let depth = 0;
+		let type: ts.Type | undefined = nodeType;
+
+		do {
+			const innerArrayType = state.typeChecker.getElementTypeOfArrayType(type);
+			if (!innerArrayType) break;
+			depth += 1;
+			type = innerArrayType;
+		} while (true);
+
+		return { depth, arrayType: type };
+	} else {
+		return undefined;
+	}
+}
+
 export function isValidAirshipBehaviourExportType(state: TransformState, node: ts.PropertyDeclaration) {
 	const nodeType = state.getType(node);
 
-	if (state.typeChecker.isArrayType(nodeType)) {
-		const innerArrayType = state.typeChecker.getElementTypeOfArrayType(nodeType)!;
+	const arrayTypeInfo = getArrayTypeInfo(state, nodeType);
+
+	if (arrayTypeInfo) {
+		const { depth, arrayType } = arrayTypeInfo;
+		if (depth > 1) {
+			DiagnosticService.addDiagnostic(warnings.multiDimensionalArrayProperty(node));
+			return false;
+		}
+
 		return (
-			state.services.airshipSymbolManager.isTypeSerializable(innerArrayType) ||
-			isUnityObjectType(state, innerArrayType) ||
-			isEnumType(innerArrayType) ||
-			isAirshipBehaviourType(state, innerArrayType)
+			state.services.airshipSymbolManager.isTypeSerializable(arrayType) ||
+			isUnityObjectType(state, arrayType) ||
+			isEnumType(arrayType) ||
+			isAirshipBehaviourType(state, arrayType)
 		);
 	} else if (isEnumType(nodeType)) {
 		return true;
