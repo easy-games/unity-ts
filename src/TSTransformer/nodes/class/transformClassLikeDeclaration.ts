@@ -727,6 +727,26 @@ export function getClassDecorators(state: TransformState, classNode: ts.ClassLik
 	return items;
 }
 
+const onlyOneOf = ["AirshipComponentMenu", "AirshipComponentIcon"];
+function pushOrReplaceDecorator(
+	decorators: Array<AirshipBehaviourClassDecorator>,
+	decorator: AirshipBehaviourClassDecorator,
+) {
+	if (onlyOneOf.includes(decorator.name)) {
+		const existing = decorators.findIndex(f => f.name === decorator.name);
+		if (existing != -1) {
+			decorators[existing] = decorator;
+		} else {
+			decorators.push(decorator);
+		}
+	} else {
+		const decoratorId = AirshipBehaviourClassDecorator.getId(decorator);
+		if (!decorators.some(value => decoratorId === AirshipBehaviourClassDecorator.getId(value))) {
+			decorators.push(decorator);
+		}
+	}
+}
+
 function getPropertyDecorators(
 	state: TransformState,
 	propertyNode: ts.PropertyDeclaration,
@@ -840,6 +860,8 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 
 		// Inheritance
 		const inheritance = getAncestorTypeSymbols(classType, state.typeChecker);
+		const classDecorators = new Array<AirshipBehaviourClassDecorator>();
+
 		for (const inherited of inheritance.reverse()) {
 			const valueDeclaration = inherited.valueDeclaration;
 			if (!valueDeclaration) continue;
@@ -858,11 +880,20 @@ function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLi
 			}
 
 			inheritedBehaviourIds.push(name);
+
+			const inheritedClassDecorators = getClassDecorators(state, valueDeclaration);
+			for (const decorator of inheritedClassDecorators) {
+				pushOrReplaceDecorator(classDecorators, decorator);
+			}
+		}
+
+		for (const decorator of getClassDecorators(state, node)) {
+			pushOrReplaceDecorator(classDecorators, decorator);
 		}
 
 		pushPropertyMetadataForAirshipBehaviour(state, node, metadata);
 
-		const classDecorators = getClassDecorators(state, node);
+		// const classDecorators = getClassDecorators(state, node);
 		if (classDecorators.length > 0 && !state.data.isPublishing) metadata.decorators = classDecorators;
 
 		const sha1 = crypto.createHash("sha1");

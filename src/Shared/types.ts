@@ -1,5 +1,5 @@
 import { ProjectType } from "Shared/constants";
-import ts from "typescript";
+import ts, { convertToBase64 } from "typescript";
 
 export interface PackageJson {
 	name: string;
@@ -305,6 +305,25 @@ export interface AirshipBehaviourClassDecorator {
 	 */
 	readonly parameters: ReadonlyArray<AirshipBehaviourFieldDecoratorParameter> | undefined;
 }
+export const AirshipBehaviourClassDecorator = {
+	getId(this: void, value: AirshipBehaviourClassDecorator) {
+		if (value.parameters) {
+			return convertToBase64(
+				`${value.name}(${value.parameters
+					.map(v => {
+						if (v.type === "string") {
+							return `"${v.value}"`;
+						} else {
+							return v.value;
+						}
+					})
+					.join(", ")})`,
+			);
+		} else {
+			return `${value.name}`;
+		}
+	},
+};
 
 export interface AirshipBehaviourInfo {
 	readonly filePath: string;
