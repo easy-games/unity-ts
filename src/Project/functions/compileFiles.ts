@@ -282,10 +282,10 @@ export function compileFiles(
 			let scriptMetadata: Writable<AirshipScriptMetadata> = {};
 
 			if (serializables.length > 0) {
-				const types = (scriptMetadata.types ??= {});
+				const types = (scriptMetadata.types ??= []);
 
 				for (const serializable of serializables) {
-					types[serializable.name] = serializable;
+					types.push(serializable);
 				}
 			}
 

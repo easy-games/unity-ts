@@ -167,7 +167,7 @@ export interface AirshipSerializable {
 
 export interface AirshipScriptMetadata {
 	readonly component?: AirshipBehaviourJson;
-	readonly types?: { [P in string]: AirshipSerializable };
+	readonly types?: Array<AirshipSerializable>;
 }
 
 export interface AirshipBehaviourStaticMemberValue {

@@ -112,6 +112,15 @@ export function isUnityObjectType(state: TransformState, nodeType: ts.Type) {
 	return objectInheritanceTree.includes(objectSymbol);
 }
 
+export function isSerializableType(state: TransformState, nodeType: ts.Type) {
+	const obj = nodeType.getSymbol()?.valueDeclaration;
+	if (obj && ts.isClassLike(obj)) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
 export function isColorDataType(state: TransformState, nodeType: ts.Type) {
 	const objectSymbol = state.services.airshipSymbolManager.getSymbolOrThrow("Color");
 	return nodeType === state.typeChecker.getTypeOfSymbol(objectSymbol);
@@ -266,7 +275,8 @@ export function isValidAirshipBehaviourExportType(state: TransformState, node: t
 		return (
 			state.services.airshipSymbolManager.isTypeSerializable(nodeType) ||
 			isUnityObjectType(state, nodeType) ||
-			isAirshipBehaviourProperty(state, node)
+			isAirshipBehaviourProperty(state, node) ||
+			isSerializableType(state, nodeType)
 		);
 	}
 }

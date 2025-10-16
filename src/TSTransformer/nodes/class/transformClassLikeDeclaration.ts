@@ -36,6 +36,7 @@ import {
 	getUnityObjectInitializerDefaultValue,
 	isEnumType,
 	isPublicWritablePropertyDeclaration,
+	isSerializableType,
 	isUnityObjectType,
 	isValidAirshipBehaviourExportType,
 } from "TSTransformer/util/airshipBehaviourUtils";
@@ -594,6 +595,11 @@ function createAirshipProperty(
 				prop.default = enumKey;
 			}
 		}
+	} else if (isSerializableType(state, type)) {
+		if (type.isNullableType()) prop.nullable = true;
+		prop.type = "AirshipSerializableObject";
+		prop.fileRef = state.getOutputPathFromType(type);
+		prop.objectType = typeChecker.typeToString(type);
 	} else {
 		if (type.isNullableType()) prop.nullable = true;
 		prop.type = typeString;
