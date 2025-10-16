@@ -455,7 +455,7 @@ export const warnings = {
 	singletonGetPossibleYield: warningWithContext((text: string) => {
 		return [
 			`This singleton Get call ${text} may yield the containing thread and cause an error at runtime!`,
-			suggestion("The call to get the singleton should be inside a function or method body"),
+			suggestion("The call to get the singleton should be inside a class, function or method body"),
 		];
 	}),
 };
