@@ -13,6 +13,7 @@ import {
 	AirshipDocComment,
 	AirshipDocTag,
 	AirshipFieldDocs,
+	AirshipSerializable,
 	EnumType,
 } from "Shared/types";
 import { assert } from "Shared/util/assert";
@@ -791,7 +792,7 @@ function getPropertyDecorators(
 function pushPropertyMetadataForAirshipBehaviour(
 	state: TransformState,
 	node: ts.ClassLikeDeclaration,
-	metadata: AirshipBehaviourJson,
+	metadata: AirshipBehaviourJson | AirshipSerializable,
 ) {
 	// iter props
 	for (const classElement of node.members) {
@@ -824,6 +825,69 @@ function pushPropertyMetadataForAirshipBehaviour(
 
 		metadata.properties.push(property);
 	}
+}
+
+function generateMetaForSerializable(
+	state: TransformState,
+	node: ts.ClassLikeDeclaration,
+): AirshipSerializable | undefined {
+	const classType = state.typeChecker.getTypeAtLocation(node);
+
+	if (node.name === undefined) {
+		DiagnosticService.addDiagnostic(errors.airshipBehaviourNameRequired(node));
+		return;
+	}
+
+	const serializable: Writable<AirshipSerializable> = {
+		name: node.name.text ?? "<anonymous>",
+		id: "",
+		hash: "",
+		properties: [],
+	};
+
+	pushPropertyMetadataForAirshipBehaviour(state, node, serializable);
+
+	const sha1 = crypto.createHash("sha1");
+	const hash = sha1.update(JSON.stringify(serializable)).digest("hex");
+	serializable.hash = hash;
+
+	const inheritance = getAncestorTypeSymbols(classType, state.typeChecker);
+	const classDecorators = new Array<AirshipBehaviourClassDecorator>();
+
+	for (const inherited of inheritance.reverse()) {
+		const valueDeclaration = inherited.valueDeclaration;
+		if (!valueDeclaration) continue;
+		if (!ts.isClassLike(valueDeclaration)) continue;
+
+		pushPropertyMetadataForAirshipBehaviour(state, valueDeclaration, serializable);
+
+		let name = inherited.name;
+		if (name === "default") {
+			// not my favourite solution to this, but works...
+			const valueDecl = inherited.valueDeclaration;
+			if (valueDecl && ts.isClassDeclaration(valueDecl)) {
+				name = valueDecl.name?.text ?? name;
+			}
+		}
+
+		const inheritedClassDecorators = getClassDecorators(state, valueDeclaration);
+		for (const decorator of inheritedClassDecorators) {
+			pushOrReplaceDecorator(classDecorators, decorator);
+		}
+	}
+
+	const uniqueId = state.airshipBuildState.getUniqueIdForClassDeclaration(state, node);
+	const id =
+		uniqueId ??
+		path
+			.relative(state.pathTranslator.outDir, state.pathTranslator.getOutputPath(node.getSourceFile().fileName))
+			.replace(".lua", "") +
+			"@" +
+			node.name;
+
+	serializable.id = id;
+
+	return serializable;
 }
 
 function generateMetaForAirshipBehaviour(state: TransformState, node: ts.ClassLikeDeclaration) {
@@ -994,6 +1058,14 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		const isExport = (node.modifierFlagsCache & ModifierFlags.Export) !== 0;
 		if (isExport) {
 			generateMetaForAirshipBehaviour(state, node)!;
+		}
+	} else {
+		for (const decorator of getClassDecorators(state, node)) {
+			if (decorator.name === "Serializable") {
+				// woaah, serialization?!
+				const serialized = generateMetaForSerializable(state, node);
+				if (serialized) state.serializables.push(serialized);
+			}
 		}
 	}
 

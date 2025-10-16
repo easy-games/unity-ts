@@ -133,6 +133,8 @@ export interface AirshipBehaviourJson {
 	 * The AirshipBehaviour supported public serializable properties of the behaviour class
 	 */
 	readonly properties: Array<AirshipBehaviourFieldExport>;
+
+	readonly serializables?: Array<AirshipSerializable>;
 }
 
 export enum EnumType {
@@ -147,6 +149,25 @@ export interface AirshipBehaviour {
 
 	readonly extends: Array<string>;
 	readonly metadata: AirshipBehaviourJson | undefined;
+}
+
+export interface AirshipSerializable {
+	readonly name: string;
+	readonly id: string;
+
+	/**
+	 * The hash of this AirshipBehaviour
+	 */
+	readonly hash: string;
+	/**
+	 * The AirshipBehaviour supported public serializable properties of the behaviour class
+	 */
+	readonly properties: Array<AirshipBehaviourFieldExport>;
+}
+
+export interface AirshipScriptMetadata {
+	readonly component?: AirshipBehaviourJson;
+	readonly types?: { [P in string]: AirshipSerializable };
 }
 
 export interface AirshipBehaviourStaticMemberValue {

@@ -14,7 +14,7 @@ import { LogService } from "Shared/classes/LogService";
 import { PathHint, PathTranslator } from "Shared/classes/PathTranslator";
 import { ProjectType } from "Shared/constants";
 import { warnings } from "Shared/diagnostics";
-import { AirshipBuildFile, ProjectData } from "Shared/types";
+import { AirshipBuildFile, AirshipScriptMetadata, ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
 import {
@@ -56,6 +56,9 @@ interface FileWriteEntry {
 	source: string;
 	context?: CompliationContext;
 }
+
+/** Make all properties in T non-readonly. */
+type Writable<T> = { -readonly [P in keyof T]: T[P] };
 
 /**
  * 'transpiles' TypeScript project into a logically identical Luau project.
@@ -257,6 +260,7 @@ export function compileFiles(
 			}
 
 			const airshipBehaviours = transformState.airshipBehaviours;
+			const serializables = transformState.serializables;
 
 			// In watch mode we want to ensure entries are updated
 			if (watch && !incremental) {
@@ -275,15 +279,24 @@ export function compileFiles(
 				}
 			}
 
-			if (airshipBehaviours.length > 0) {
+			let scriptMetadata: Writable<AirshipScriptMetadata> = {};
+
+			if (serializables.length > 0) {
+				const types = (scriptMetadata.types ??= {});
+
+				for (const serializable of serializables) {
+					types[serializable.name] = serializable;
+				}
+			}
+
+			if (airshipBehaviours.length > 0 || serializables.length > 0) {
 				for (const behaviour of airshipBehaviours) {
 					const airshipBehaviourMetadata = behaviour.metadata;
 
-					if (airshipBehaviourMetadata) {
-						if (fileMetadataWriteQueue.has(sourceFile)) continue;
+					scriptMetadata.component = airshipBehaviourMetadata;
 
-						fileMetadataWriteQueue.set(sourceFile, JSON.stringify(airshipBehaviourMetadata, null, "\t"));
-					}
+					// Backwards compat. reasons
+					scriptMetadata = { ...scriptMetadata, ...scriptMetadata.component } as AirshipScriptMetadata;
 
 					const relativeFilePath = path.relative(
 						pathTranslator.outDir,
@@ -294,6 +307,13 @@ export function compileFiles(
 					buildState.registerBehaviour(behaviour, relativeFilePath);
 					buildState.linkBehaviourToFile(behaviour, sourceFile);
 				}
+			}
+
+			if (
+				(scriptMetadata && !fileMetadataWriteQueue.has(sourceFile) && scriptMetadata.component) ||
+				scriptMetadata.types
+			) {
+				fileMetadataWriteQueue.set(sourceFile, JSON.stringify(scriptMetadata, null, "\t"));
 			}
 
 			if (asJson) {
