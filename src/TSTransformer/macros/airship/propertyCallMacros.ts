@@ -1,6 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors, warnings } from "Shared/diagnostics";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { getGlobalSymbolByNameOrThrow } from "TSTransformer/classes/MacroManager";
 import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { isUnityObjectType } from "TSTransformer/util/airshipBehaviourUtils";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
@@ -152,6 +153,31 @@ export const UNITY_COMPONENT_METHODS: MacroList<PropertyCallMacro> = {
 export const UNITY_OBJECT_METHODS: MacroList<PropertyCallMacro> = {
 	IsA: makeTypeArgumentAsStringMacro("IsA"),
 };
+
+const createAssetLoadMacro: (name: string) => PropertyCallMacro = name => (state, node, expression, args) => {
+	const signature = state.typeChecker.getTypeAtLocation(node).getNonNullableType();
+	const symbol = signature.getSymbol();
+
+	const [path] = args;
+
+	// Handle sprite loading differently c:
+	if (symbol === getGlobalSymbolByNameOrThrow(state.typeChecker, "Sprite", ts.SymbolFlags.Interface)) {
+		if (luau.isStringLiteral(path) && !path.value.endsWith(".sprite")) {
+			path.value += ".sprite";
+		}
+	}
+
+	return luau.create(luau.SyntaxKind.MethodCallExpression, {
+		name: name,
+		expression: convertToIndexableExpression(expression),
+		args: luau.list.make(...args),
+	});
+};
+
+export const Asset = {
+	LoadAsset: createAssetLoadMacro("LoadAsset"),
+	LoadAssetIfExists: createAssetLoadMacro("LoadAssetIfExists"),
+} satisfies MacroList<PropertyCallMacro>;
 
 function getAirshipMacroAlternativeName(propertyMacro: PropertyCallMacro): string | undefined {
 	return ALTERNATIVE_NAMES.find(f => f[0] === propertyMacro)?.[1];
