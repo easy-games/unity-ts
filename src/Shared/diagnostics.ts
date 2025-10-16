@@ -451,4 +451,11 @@ export const warnings = {
 		"Multi-dimensional arrays are not supported as properties",
 		suggestion("to turn off this warning, put @NonSerialized() in front of this property"),
 	),
+
+	singletonGetPossibleYield: warningWithContext((text: string) => {
+		return [
+			`This singleton Get call ${text} may yield the containing thread and cause an error at runtime!`,
+			suggestion("The call to get the singleton should be inside a function or method body"),
+		];
+	}),
 };

@@ -6,7 +6,10 @@ import { SINGLETON_FILE_IMPORT } from "TSTransformer/classes/TransformState";
 import { PROPERTY_SETTERS } from "TSTransformer/macros/propertyMacros";
 import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { skipUpwards } from "TSTransformer/util/traversal";
+import { findAncestorNode } from "TSTransformer/util/visitParentNodes";
 import ts from "typescript";
+import { DiagnosticService } from "./DiagnosticService";
+import { warnings } from "Shared/diagnostics";
 
 function getType(typeChecker: ts.TypeChecker, node: ts.Node) {
 	return typeChecker.getTypeAtLocation(skipUpwards(node));
@@ -39,10 +42,28 @@ const AIRSHIP_SERIALIZE_TYPES = {
 	AnimationCurve: "AnimationCurve",
 } as const;
 
+function isValidSingletonFetchContext(value: ts.Node) {
+	// Essentially anything that isn't ran during script setup
+	return (
+		ts.isMethodDeclaration(value) ||
+		ts.isFunctionDeclaration(value) ||
+		ts.isConstructorDeclaration(value) ||
+		ts.isFunctionExpression(value) ||
+		ts.isArrowFunction(value) ||
+		ts.isPropertyDeclaration(value)
+	);
+}
+
 export const AIRSHIP_SINGLETON_MACROS = {
 	Get: (state, node) => {
 		const importId = state.getOrAddFileImport(SINGLETON_FILE_IMPORT, "SingletonRegistry");
 		const Singletons_Resolve = luau.property(importId, "Resolve");
+
+		const ancestor = findAncestorNode(node, isValidSingletonFetchContext);
+
+		if (ancestor === undefined) {
+			DiagnosticService.addDiagnostic(warnings.singletonGetPossibleYield(node, node.getText()));
+		}
 
 		const functionType = state.typeChecker.getTypeAtLocation(node);
 		if (functionType !== undefined) {
