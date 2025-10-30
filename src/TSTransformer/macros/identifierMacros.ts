@@ -1,12 +1,38 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { TransformState } from "TSTransformer/classes/TransformState";
 import { IdentifierMacro, MacroList } from "TSTransformer/macros/types";
 import { isAirshipBehaviourClass } from "TSTransformer/util/extendsAirshipBehaviour";
 import ts from "typescript";
 
 function isValidDirectiveParent(node: ts.Node) {
 	return ts.isIfStatement(node);
+}
+
+function validateDirective(state: TransformState, node: ts.Identifier, directive: "$SERVER" | "$CLIENT") {
+	if (DiagnosticService.hasErrors()) return false;
+
+	if (ts.isBinaryExpression(node.parent) && ts.isConditionalExpression(node.parent.parent)) {
+		DiagnosticService.addDiagnostic(
+			errors.invalidDirectiveUsageWithConditionalExpression(node.parent, directive, node.parent.parent),
+		);
+		return false;
+	}
+
+	if (!isValidDirectiveParent(node.parent) && !state.isSharedContext) {
+		if (ts.isBinaryExpression(node.parent)) {
+			DiagnosticService.addDiagnostic(
+				errors.invalidDirectiveUsageWithBinaryExpression(node, directive, node.parent),
+			);
+		} else {
+			DiagnosticService.addDiagnostic(errors.invalidDirectiveUsage(node, directive));
+		}
+
+		return false;
+	}
+
+	return true;
 }
 
 export const IDENTIFIER_MACROS: MacroList<IdentifierMacro> = {
@@ -31,16 +57,14 @@ export const IDENTIFIER_MACROS: MacroList<IdentifierMacro> = {
 	},
 
 	$SERVER: (state, node) => {
-		if (!isValidDirectiveParent(node.parent) && !state.isSharedContext) {
-			DiagnosticService.addDiagnostic(errors.directiveServerInvalid(node.parent));
-		}
+		if (!validateDirective(state, node, "$SERVER")) return luau.nil();
 
 		if (state.isServerContext) {
 			return luau.bool(true);
 		} else if (state.isClientContext) {
 			return luau.bool(false);
 		} else {
-			const id = state.addFileImport("AirshipPackages/@Easy/Core/Shared/Game", "Game");
+			const id = state.getGameImport();
 			return luau.create(luau.SyntaxKind.MethodCallExpression, {
 				expression: id,
 				name: "IsServer",
@@ -50,11 +74,7 @@ export const IDENTIFIER_MACROS: MacroList<IdentifierMacro> = {
 	},
 
 	$CLIENT: (state, node) => {
-		// DiagnosticService.addDiagnostic(errors.invalidServerMacroUse(node));
-
-		if (!isValidDirectiveParent(node.parent) && !state.isSharedContext) {
-			DiagnosticService.addDiagnostic(errors.directiveClientInvalid(node.parent));
-		}
+		if (!validateDirective(state, node, "$CLIENT")) return luau.nil();
 
 		// return state.isServer ? true : state.isClient ? false  ? luau.call(luau.property(luau.id("Game"), "IsServer");
 		if (state.isClientContext) {
@@ -62,7 +82,7 @@ export const IDENTIFIER_MACROS: MacroList<IdentifierMacro> = {
 		} else if (state.isServerContext) {
 			return luau.bool(false);
 		} else {
-			const id = state.addFileImport("AirshipPackages/@Easy/Core/Shared/Game", "Game");
+			const id = state.getGameImport();
 			return luau.create(luau.SyntaxKind.MethodCallExpression, {
 				expression: id,
 				name: "IsClient",

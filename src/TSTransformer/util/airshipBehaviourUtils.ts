@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { assert } from "console";
+import { warnings } from "Shared/diagnostics";
 import {
 	AirshipBehaviourCallValue,
 	AirshipBehaviourMethodCallValue,
@@ -7,7 +8,9 @@ import {
 	EnumType,
 } from "Shared/types";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { isAirshipBehaviourProperty, isAirshipBehaviourType } from "TSTransformer/util/extendsAirshipBehaviour";
+import { isParseablePropertyExpression, parsePropertyExpression } from "TSTransformer/util/propertyValueParser";
 import ts from "typescript";
 
 export function isPublicWritablePropertyDeclaration(node: ts.PropertyDeclaration) {
@@ -70,6 +73,8 @@ export function getAncestorTypeSymbols(nodeType: ts.Type, typeChecker: ts.TypeCh
 	if (nodeType.isNullableType()) {
 		nodeType = nodeType.getNonNullableType();
 	}
+
+	if (!nodeType.symbol) return [];
 
 	const baseTypes = nodeType.getBaseTypes();
 
@@ -219,16 +224,41 @@ export function getEnumMetadata(enumType: ts.Type, isFlagEnum = false): Readonly
 	return undefined;
 }
 
+function getArrayTypeInfo(state: TransformState, nodeType: ts.Type): { arrayType: ts.Type; depth: number } | undefined {
+	if (state.typeChecker.isArrayType(nodeType)) {
+		let depth = 0;
+		let type: ts.Type | undefined = nodeType;
+
+		do {
+			const innerArrayType = state.typeChecker.getElementTypeOfArrayType(type);
+			if (!innerArrayType) break;
+			depth += 1;
+			type = innerArrayType;
+		} while (true);
+
+		return { depth, arrayType: type };
+	} else {
+		return undefined;
+	}
+}
+
 export function isValidAirshipBehaviourExportType(state: TransformState, node: ts.PropertyDeclaration) {
 	const nodeType = state.getType(node);
 
-	if (state.typeChecker.isArrayType(nodeType)) {
-		const innerArrayType = state.typeChecker.getElementTypeOfArrayType(nodeType)!;
+	const arrayTypeInfo = getArrayTypeInfo(state, nodeType);
+
+	if (arrayTypeInfo) {
+		const { depth, arrayType } = arrayTypeInfo;
+		if (depth > 1) {
+			DiagnosticService.addDiagnostic(warnings.multiDimensionalArrayProperty(node));
+			return false;
+		}
+
 		return (
-			state.services.airshipSymbolManager.isTypeSerializable(innerArrayType) ||
-			isUnityObjectType(state, innerArrayType) ||
-			isEnumType(innerArrayType) ||
-			isAirshipBehaviourType(state, innerArrayType)
+			state.services.airshipSymbolManager.isTypeSerializable(arrayType) ||
+			isUnityObjectType(state, arrayType) ||
+			isEnumType(arrayType) ||
+			isAirshipBehaviourType(state, arrayType)
 		);
 	} else if (isEnumType(nodeType)) {
 		return true;
@@ -285,9 +315,8 @@ export function getUnityObjectInitializerDefaultValue(
 		const constructing = state.services.airshipSymbolManager.getTypeFromSymbol(constructableType);
 		if (!constructing) return undefined;
 
-		const allLiterals = initializer.arguments?.every(
-			(argument): argument is ts.StringLiteral | ts.NumericLiteral =>
-				ts.isStringOrNumericLiteralLike(argument) || isNumericLike(argument),
+		const allLiterals = initializer.arguments?.every((argument): argument is ts.StringLiteral | ts.NumericLiteral =>
+			isParseablePropertyExpression(argument),
 		);
 		if (!allLiterals) return undefined;
 
@@ -295,11 +324,7 @@ export function getUnityObjectInitializerDefaultValue(
 			target: "constructor",
 			type: state.typeChecker.typeToString(constructing),
 			arguments: initializer.arguments.map(v => {
-				if (isNumericLike(v)) {
-					return parseNumericNode(v);
-				} else if (ts.isStringLiteral(v)) {
-					return v.text;
-				}
+				return parsePropertyExpression(v);
 			}),
 		};
 	} else if (ts.isCallExpression(initializer)) {
@@ -316,9 +341,8 @@ export function getUnityObjectInitializerDefaultValue(
 
 		if (!constructorType) return undefined;
 
-		const allLiterals = initializer.arguments?.every(
-			(argument): argument is ts.StringLiteral | ts.NumericLiteral =>
-				ts.isStringOrNumericLiteralLike(argument) || isNumericLike(argument),
+		const allLiterals = initializer.arguments?.every((argument): argument is ts.StringLiteral | ts.NumericLiteral =>
+			isParseablePropertyExpression(argument),
 		);
 		if (!allLiterals) return undefined;
 
@@ -327,11 +351,7 @@ export function getUnityObjectInitializerDefaultValue(
 			method: methodName,
 			type: state.typeChecker.typeToString(constructorType),
 			arguments: initializer.arguments.map(v => {
-				if (isNumericLike(v)) {
-					return parseNumericNode(v);
-				} else if (ts.isStringLiteral(v)) {
-					return v.text;
-				}
+				return parsePropertyExpression(v);
 			}),
 		};
 	} else if (ts.isPropertyAccessExpression(initializer)) {
@@ -346,13 +366,15 @@ export function getUnityObjectInitializerDefaultValue(
 			type: state.typeChecker.typeToString(constructing),
 			member: initializer.name.text,
 		};
-	} else if (ts.isStringLiteral(initializer)) {
-		return initializer.text;
-	} else if (isNumericLike(initializer)) {
-		return parseNumericNode(initializer);
 	} else if (ts.isBooleanLiteral(initializer)) {
 		return initializer.kind === ts.SyntaxKind.TrueKeyword;
 	} else {
-		return undefined;
+		const defaultValue = parsePropertyExpression(initializer);
+		if (defaultValue === undefined) {
+			DiagnosticService.addSingleDiagnostic(warnings.invalidDefaultValueForProperty(initializer));
+			return undefined;
+		}
+
+		return defaultValue;
 	}
 }

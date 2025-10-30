@@ -21,7 +21,7 @@ export const FLAMEWORK_PROPERTY_CALL_MACROS = {
 		return luau.nil();
 	},
 	implements: (state, node: ts.CallExpression): luau.Expression => {
-		const flameworkImportId = state.addFileImport(state.flamework!.flameworkRootDir + "/index", "Flamework");
+		const flameworkImportId = state.getOrAddFileImport(state.flamework!.flameworkRootDir + "/index", "Flamework");
 		const Flamework_implements = luau.property(flameworkImportId, "_implements");
 
 		const firstArg = node.arguments[0];
@@ -75,7 +75,7 @@ export const FLAMEWORK_MODDING_PROPERTY_CALL_MACROS = {
 
 export const FLAMEWORK_CALL_MACROS = {
 	Dependency: (state, node: ts.CallExpression): luau.Expression => {
-		const flameworkImportId = state.addFileImport(state.flamework!.flameworkRootDir + "/index", "Flamework");
+		const flameworkImportId = state.getOrAddFileImport(state.flamework!.flameworkRootDir + "/index", "Flamework");
 		const Flamework_resolveDependency = luau.property(flameworkImportId, "resolveDependency");
 
 		const firstArg = node.arguments[0];

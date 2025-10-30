@@ -6,7 +6,10 @@ import { SINGLETON_FILE_IMPORT } from "TSTransformer/classes/TransformState";
 import { PROPERTY_SETTERS } from "TSTransformer/macros/propertyMacros";
 import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { skipUpwards } from "TSTransformer/util/traversal";
+import { findAncestorNode } from "TSTransformer/util/visitParentNodes";
 import ts from "typescript";
+import { DiagnosticService } from "./DiagnosticService";
+import { warnings } from "Shared/diagnostics";
 
 function getType(typeChecker: ts.TypeChecker, node: ts.Node) {
 	return typeChecker.getTypeAtLocation(skipUpwards(node));
@@ -39,10 +42,28 @@ const AIRSHIP_SERIALIZE_TYPES = {
 	AnimationCurve: "AnimationCurve",
 } as const;
 
+function isValidSingletonFetchContext(value: ts.Node) {
+	// Essentially anything that isn't ran during script setup
+	return (
+		ts.isMethodDeclaration(value) ||
+		ts.isFunctionDeclaration(value) ||
+		ts.isConstructorDeclaration(value) ||
+		ts.isFunctionExpression(value) ||
+		ts.isArrowFunction(value) ||
+		ts.isPropertyDeclaration(value)
+	);
+}
+
 export const AIRSHIP_SINGLETON_MACROS = {
 	Get: (state, node) => {
-		const importId = state.addFileImport(SINGLETON_FILE_IMPORT, "SingletonRegistry");
+		const importId = state.getOrAddFileImport(SINGLETON_FILE_IMPORT, "SingletonRegistry");
 		const Singletons_Resolve = luau.property(importId, "Resolve");
+
+		const ancestor = findAncestorNode(node, isValidSingletonFetchContext);
+
+		if (ancestor === undefined) {
+			DiagnosticService.addDiagnostic(warnings.singletonGetPossibleYield(node, node.getText()));
+		}
 
 		const functionType = state.typeChecker.getTypeAtLocation(node);
 		if (functionType !== undefined) {
@@ -61,6 +82,8 @@ export class AirshipSymbolManager {
 	private symbolsToType = new Map<ts.Symbol, ts.Type>();
 	private dataTypes = new Set<ts.Type>();
 	private serializedTypes = new Set<ts.Type>();
+
+	public readonly behaviourMethods: ReadonlyMap<string, ts.Symbol>;
 
 	constructor(private typeChecker: ts.TypeChecker, private macroManager: MacroManager) {
 		for (const symbolName of Object.values(AIRSHIP_SYMBOL_NAMES)) {
@@ -93,6 +116,8 @@ export class AirshipSymbolManager {
 
 		const behaviourSymbol = this.getAirshipBehaviourSymbolOrThrow();
 		const behaviourPropertyMap = new Map<string, ts.Symbol>();
+		const behaviourMethodMap = new Map<string, ts.Symbol>();
+
 		for (const declaration of behaviourSymbol.declarations ?? []) {
 			if (ts.isClassDeclaration(declaration)) {
 				for (const member of declaration.members) {
@@ -100,10 +125,16 @@ export class AirshipSymbolManager {
 						const symbol = typeChecker.getSymbolAtLocation(member.name);
 						assert(symbol, "No symbol for accessor");
 						behaviourPropertyMap.set(member.name.text, symbol);
+					} else if (ts.isMethodDeclaration(member) && ts.isIdentifier(member.name)) {
+						const symbol = typeChecker.getSymbolAtLocation(member.name);
+						assert(symbol, "No symbol for accessor");
+						behaviourMethodMap.set(member.name.text, symbol);
 					}
 				}
 			}
 		}
+
+		this.behaviourMethods = behaviourMethodMap;
 
 		// for (const [propertyName, macro] of Object.entries(AIRSHIP_PROPERTY_GET)) {
 		// }
@@ -208,6 +239,10 @@ export class AirshipSymbolManager {
 	public getAirshipBehaviourSymbolOrThrow() {
 		return this.getSymbolOrThrow(AIRSHIP_SYMBOL_NAMES.AirshipBehaviour);
 	}
+
+	// public getAirshipBehaviourMethodSymbols() {
+	// 	return this.getSymbolOrThrow(AIRSHIP_SYMBOL_NAMES.AirshipBehaviour).members;
+	// }
 
 	public getAirshipSingletonSymbolOrThrow() {
 		return this.getSymbolOrThrow(AIRSHIP_SYMBOL_NAMES.AirshipSingleton);

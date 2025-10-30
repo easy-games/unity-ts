@@ -1,12 +1,11 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
+import { isGuardClause } from "TSTransformer/macros/directives";
 import {
-	isClientIfDirective,
-	isGuardClause,
-	isInverseGuardClause,
-	isServerIfDirective,
-	transformDirectiveIfStatement,
-} from "TSTransformer/macros/transformDirectives";
+	DirectiveIfBranch,
+	transformDirectiveIfStatementInner,
+} from "TSTransformer/macros/directives/transformDirectives";
+import { parseDirectives } from "TSTransformer/macros/directives/transformGuardDirectives";
 import { transformStatement } from "TSTransformer/nodes/statements/transformStatement";
 import { createHoistDeclaration } from "TSTransformer/util/createHoistDeclaration";
 import ts from "typescript";
@@ -33,49 +32,54 @@ export function transformStatementList(
 		let shouldEarlyReturn = false;
 
 		if (!state.isSharedContext && ts.isIfStatement(statement)) {
-			if (isGuardClause(state, statement)) {
-				if (isServerIfDirective(state, statement)) {
-					const newStatement = transformDirectiveIfStatement(state, statement, true);
-					if (state.isServerContext && newStatement) {
-						statement = newStatement;
-						shouldEarlyReturn = true;
-					} else if (statement.elseStatement) {
-						statement = statement.elseStatement;
-					} else if (newStatement === false) {
+			// If it's a guard clause (early return) we can check to see if we can strip the rest of the statements
+			// One thing to note: if we have a complex directive expression - e.g. if ($SERVER && x > y) return; then we can't strip the rest.
+			// 		It will just be a regular early return with x > y on the server, in that case.
+			if (isGuardClause(state, statement, state.data.stripImplicitContextCalls)) {
+				const directives = parseDirectives(
+					state,
+					statement.expression,
+					true,
+					state.data.stripImplicitContextCalls,
+				);
+
+				// $SERVER or !$CLIENT
+				// if implicit, also Game.IsServer() and !Game.IsClient()
+				if (directives?.isServer) {
+					const transformResult = transformDirectiveIfStatementInner(
+						state,
+						statement,
+						state.isServerContext,
+						directives.updatedExpression,
+						state.data.stripImplicitContextCalls,
+					);
+
+					if (transformResult.newStatement) {
+						statement = transformResult.newStatement;
+						shouldEarlyReturn =
+							transformResult.branch === DirectiveIfBranch.IfTrue && !directives.isComplexDirectiveCheck;
+					} else if (transformResult.skipped) {
 						continue;
 					}
-				} else if (isClientIfDirective(state, statement)) {
-					const newStatement = transformDirectiveIfStatement(state, statement, true);
-					if (state.isClientContext && newStatement) {
-						shouldEarlyReturn = true;
-						statement = newStatement;
-					} else if (statement.elseStatement) {
-						statement = statement.elseStatement;
-					} else if (newStatement === false) {
-						continue;
-					}
-				} else {
-					continue;
 				}
-			} else if (isInverseGuardClause(state, statement)) {
-				if (state.isClientContext && isServerIfDirective(state, statement)) {
-					shouldEarlyReturn = true;
-					const newStatement = transformDirectiveIfStatement(state, statement, true);
-					if (newStatement) {
-						statement = newStatement;
-					} else if (newStatement === false) {
+				// $CLIENT or !$SERVER
+				// if implicit, also Game.IsClient() and !Game.IsServer()
+				else if (directives?.isClient) {
+					const transformResult = transformDirectiveIfStatementInner(
+						state,
+						statement,
+						state.isClientContext,
+						directives.updatedExpression,
+						state.data.stripImplicitContextCalls,
+					);
+
+					if (transformResult.newStatement) {
+						statement = transformResult.newStatement;
+						shouldEarlyReturn =
+							transformResult.branch === DirectiveIfBranch.IfTrue && !directives.isComplexDirectiveCheck;
+					} else if (transformResult.skipped) {
 						continue;
 					}
-				} else if (state.isServerContext && isClientIfDirective(state, statement)) {
-					shouldEarlyReturn = true;
-					const newStatement = transformDirectiveIfStatement(state, statement, true);
-					if (newStatement) {
-						statement = newStatement;
-					} else if (newStatement === false) {
-						continue;
-					}
-				} else {
-					continue;
 				}
 			}
 		}

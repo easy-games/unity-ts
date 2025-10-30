@@ -1,6 +1,8 @@
+import luau from "@roblox-ts/luau-ast";
 import path from "path";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
+import { Asset } from "TSTransformer/macros/airship/propertyCallMacros";
 import { CALL_MACROS } from "TSTransformer/macros/callMacros";
 import { CONSTRUCTOR_MACROS } from "TSTransformer/macros/constructorMacros";
 import { IDENTIFIER_MACROS } from "TSTransformer/macros/identifierMacros";
@@ -14,6 +16,7 @@ import {
 	PropertyGetMacro,
 	PropertySetMacro,
 } from "TSTransformer/macros/types";
+import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import ts, { MethodDeclaration } from "typescript";
 
@@ -86,7 +89,7 @@ function getFirstDeclarationOrThrow<T extends ts.Node>(symbol: ts.Symbol, check:
 	throw new ProjectError("");
 }
 
-function getGlobalSymbolByNameOrThrow(typeChecker: ts.TypeChecker, name: string, meaning: ts.SymbolFlags) {
+export function getGlobalSymbolByNameOrThrow(typeChecker: ts.TypeChecker, name: string, meaning: ts.SymbolFlags) {
 	const symbol = typeChecker.resolveName(name, undefined, meaning, false);
 	if (symbol) {
 		return symbol;
@@ -187,34 +190,15 @@ export class MacroManager {
 			}
 		}
 
-		/** Macros relating to Game */
-		const gameModuleDir = path.relative(process.cwd(), "AirshipPackages/@Easy/Core/Shared/Game.ts");
-		const gameModuleFile = program.getSourceFile(gameModuleDir);
-		if (gameModuleFile) {
-			const gameDeclaration = gameModuleFile.statements.find(
-				(f): f is ts.ClassDeclaration => ts.isClassDeclaration(f) && f.name?.text === "Game",
-			);
+		const gameSymbols = this.getClassSymbols("AirshipPackages/@Easy/Core/Shared/Game.ts", "Game", [
+			"IsServer",
+			"IsClient",
+			"IsEditor",
+		]);
 
-			if (gameDeclaration) {
-				const isServer = gameDeclaration.members.find(
-					(f): f is MethodDeclaration & { name: ts.Identifier } =>
-						ts.isMethodDeclaration(f) && ts.isIdentifier(f.name) && f.name.text === "IsServer",
-				);
-				if (isServer) this.isServerSymbol = typeChecker.getSymbolAtLocation(isServer.name);
-
-				const isClient = gameDeclaration.members.find(
-					(f): f is MethodDeclaration & { name: ts.Identifier } =>
-						ts.isMethodDeclaration(f) && ts.isIdentifier(f.name) && f.name.text === "IsClient",
-				);
-				if (isClient) this.isClientSymbol = typeChecker.getSymbolAtLocation(isClient.name);
-
-				const isEditor = gameDeclaration.members.find(
-					(f): f is MethodDeclaration & { name: ts.Identifier } =>
-						ts.isMethodDeclaration(f) && ts.isIdentifier(f.name) && f.name.text === "IsEditor",
-				);
-				if (isEditor) this.isEditorSymbol = typeChecker.getSymbolAtLocation(isEditor.name);
-			}
-		}
+		this.isServerSymbol = gameSymbols?.IsServer;
+		this.isClientSymbol = gameSymbols?.IsClient;
+		this.isEditorSymbol = gameSymbols?.IsEditor;
 
 		const luaTupleTypeDec = this.symbols
 			.get(SYMBOL_NAMES.LuaTuple)
@@ -230,6 +214,46 @@ export class MacroManager {
 
 		this.$SERVER = this.getSymbolOrThrow("$SERVER");
 		this.$CLIENT = this.getSymbolOrThrow("$CLIENT");
+
+		const assetSymbols = this.getClassSymbols<Array<keyof typeof Asset>>(
+			"AirshipPackages/@Easy/Core/Shared/Asset.ts",
+			"Asset",
+			["LoadAsset", "LoadAssetIfExists"],
+		);
+
+		if (assetSymbols) {
+			for (const [key, symbol] of Object.entries(assetSymbols)) {
+				this.propertyCallMacros.set(symbol, Asset[key as keyof typeof Asset]);
+			}
+		}
+
+		// if (assetSymbols?.LoadAsset && assetSymbols.LoadAssetIfExists) {
+		// 	this.propertyCallMacros.set(assetSymbols.LoadAsset, Asset.LoadAsset);
+		// 	this.propertyCallMacros.set(assetSymbols.LoadAssetIfExists, Asset.LoadAsset);
+		// }
+	}
+
+	public getClassSymbols<const K extends Array<string>>(file: string, className: string, names: K) {
+		const moduleFile = this.program.getSourceFile(file);
+		if (!moduleFile) return;
+
+		const symbols = {} as Record<string, ts.Symbol>;
+
+		const classDeclaration = moduleFile.statements.find(
+			(f): f is ts.ClassDeclaration => ts.isClassDeclaration(f) && f.name?.text === className,
+		);
+		if (!classDeclaration) return;
+
+		for (const statement of classDeclaration.members) {
+			if (ts.isMethodDeclaration(statement) && ts.isIdentifier(statement.name)) {
+				const symbol = this.typeChecker.getSymbolAtLocation(statement.name);
+				if (!symbol) continue;
+				if (!names.includes(statement.name.text)) continue;
+				symbols[statement.name.text] = symbol;
+			}
+		}
+
+		return symbols as { [P in K[number]]?: ts.Symbol };
 	}
 
 	public isMacroOnlySymbol(symbol: ts.Symbol) {

@@ -289,6 +289,32 @@ export const errors = {
 		];
 	}),
 
+	unityMacroExpectsAirshipComponentTypeArgument: errorWithContext(
+		(type: string, name: string, isUnityObjectType: boolean) => {
+			if (isUnityObjectType) {
+				return [
+					`${type} is a Unity Component, not an Airship Component`,
+					suggestion(`Change this call to ${name}<${type}>()`),
+				];
+			} else {
+				return [`${type} is not a derived type of AirshipBehaviour`];
+			}
+		},
+	),
+
+	unityMacroExpectsComponentTypeArgument: errorWithContext(
+		(type: string, name: string, isAirshipBehaviourType: boolean) => {
+			if (isAirshipBehaviourType) {
+				return [
+					`${type} is an Airship Component, not a Unity Component`,
+					suggestion(`Change this call to ${name}<${type}>()`),
+				];
+			} else {
+				return [`${type} is not a derived type of Component`];
+			}
+		},
+	),
+
 	decoratorParamsLiteralsOnly: error(
 		"Airship Behaviour decorators only accept literal `string`, `boolean` or `number` values. For RequireComponent, use `typeof(ComponentType)` syntax.",
 	),
@@ -318,11 +344,33 @@ export const errors = {
 		];
 	}),
 
-	directiveServerInvalid: error(
-		"$SERVER is a directive macro and can only be used as a top-level condition in an if statement - e.g. if ($SERVER)",
+	invalidDirectiveUsage: errorWithContext<[directive: "$SERVER" | "$CLIENT"]>(directive => {
+		return [`${directive} can only be used within an if statement, e.g. if (${directive})`];
+	}),
+
+	invalidDirectiveUsageWithConditionalExpression: errorWithContext<["$SERVER" | "$CLIENT", ts.ConditionalExpression]>(
+		directive => {
+			return [
+				`Conditional expressions only support using a single directive (e.g. ${directive} ? whenTrue : whenFalse)`,
+			];
+		},
 	),
-	directiveClientInvalid: error(
-		"$CLIENT is a directive macro and can only be used as a top-level condition in an if statement - e.g. if ($CLIENT)",
+
+	invalidDirectiveUsageWithBinaryExpression: errorWithContext<["$SERVER" | "$CLIENT", ts.BinaryExpression]>(
+		(directive, binaryExpression) => {
+			if (binaryExpression.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken) {
+				return [
+					`This conditional is too complex for usage with a ${directive} directive, you can only a one-level AND (&&) - e.g. if (${directive} && otherCondition)`,
+					suggestion(
+						`Wrap the non-directive conditional in a variable, and use it with ${directive}, e.g. if (${directive} && otherCondition), where otherCondition is the variable.`,
+					),
+				];
+			} else {
+				return [
+					`A conditional containing a directive can only be an AND (&&) expression, e.g. ${binaryExpression.left.getText()} && ${binaryExpression.right.getText()}`,
+				];
+			}
+		},
 	),
 
 	flameworkIdNoType: errorWithContext(() => {
@@ -368,6 +416,11 @@ export const warnings = {
 		];
 	}),
 
+	invalidDefaultValueForProperty: warning(
+		"Property is public, and has a default value set that will not be visible in editor",
+		"use @NonSerialized() if you do not intend for this property to be serialized.",
+	),
+
 	flameworkTransformer: {
 		file: undefined,
 		code: " unity-ts" as unknown as number,
@@ -379,7 +432,7 @@ export const warnings = {
 			"please remove this from the file as it will not be maintained in future.",
 	} satisfies ts.Diagnostic,
 
-	genericBehaviourRefernece: warningWithContext(() => {
+	genericBehaviourReference: warningWithContext(() => {
 		return [
 			"Generic AirshipBehaviours cannot be exposed to the inspector",
 			suggestion(
@@ -391,4 +444,18 @@ export const warnings = {
 	flameworkDependencyRaceCondition: warning(
 		"The Dependency macro should not be used outside of a function as this may introduce race conditions.",
 	),
+
+	directiveIsAlwaysFalse: warning("This expression will always be false"),
+
+	multiDimensionalArrayProperty: warning(
+		"Multi-dimensional arrays are not supported as properties",
+		suggestion("to turn off this warning, put @NonSerialized() in front of this property"),
+	),
+
+	singletonGetPossibleYield: warningWithContext((text: string) => {
+		return [
+			`This singleton Get call ${text} may yield the containing thread and cause an error at runtime!`,
+			suggestion("The call to get the singleton should be inside a class, function or method body"),
+		];
+	}),
 };
