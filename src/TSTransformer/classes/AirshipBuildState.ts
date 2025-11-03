@@ -2,7 +2,13 @@ import { existsSync, readFileSync } from "fs-extra";
 import path from "path";
 import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
-import { AirshipBehaviour, AirshipBehaviourInfo, AirshipBuildFile, FlameworkBuildInfo } from "Shared/types";
+import {
+	AirshipBehaviour,
+	AirshipBehaviourInfo,
+	AirshipBuildFile,
+	AirshipSerializable,
+	FlameworkBuildInfo,
+} from "Shared/types";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { FlameworkClassInfo } from "TSTransformer/flamework";
 import { getEnumMetadata } from "TSTransformer/util/airshipBehaviourUtils";
@@ -34,6 +40,8 @@ export class AirshipBuildState {
 		this.buildFile = buildFile ?? {
 			behaviours: {},
 			extends: {},
+			serializables: {},
+			scriptables: {},
 			flamework: {
 				version: 1,
 				identifiers: {},
@@ -70,9 +78,30 @@ export class AirshipBuildState {
 	public registerBehaviour(behaviour: AirshipBehaviour, relativeFilePath: string) {
 		this.buildFile.behaviours[behaviour.name] = {
 			component: behaviour.metadata !== undefined,
+			type: "AirshipBehaviour",
 			filePath: relativeFilePath,
 			extends: behaviour.extends,
 			singleton: behaviour.metadata?.singleton || false,
+		};
+	}
+
+	public registerScriptableObject(behaviour: AirshipBehaviour, relativeFilePath: string) {
+		this.buildFile.scriptables[behaviour.name] = {
+			component: behaviour.metadata !== undefined,
+			type: "AirshipScriptableObject",
+			filePath: relativeFilePath,
+			extends: behaviour.extends,
+			singleton: behaviour.metadata?.singleton || false,
+		};
+	}
+
+	public registerSerializable(serializable: AirshipSerializable, relativeFilePath: string) {
+		this.buildFile.serializables[serializable.name] = {
+			component: false,
+			type: "Serializable",
+			filePath: relativeFilePath,
+			extends: [],
+			singleton: false,
 		};
 	}
 

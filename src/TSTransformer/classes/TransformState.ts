@@ -36,6 +36,7 @@ export enum CompliationContext {
 export class TransformState {
 	private readonly sourceFileText: string;
 	public airshipBehaviours = new Array<AirshipBehaviour>();
+	public scriptableObjects = new Array<AirshipBehaviour>();
 	public serializables = new Array<AirshipSerializable>();
 	// public sourceFileBehaviourMetaJson: AirshipBehaviourJson | undefined;
 	public hasExportEquals = false;

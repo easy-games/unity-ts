@@ -260,6 +260,7 @@ export function compileFiles(
 			}
 
 			const airshipBehaviours = transformState.airshipBehaviours;
+			const scriptableObjects = transformState.scriptableObjects;
 			const serializables = transformState.serializables;
 
 			// In watch mode we want to ensure entries are updated
@@ -279,24 +280,52 @@ export function compileFiles(
 				}
 			}
 
-			let scriptMetadata: Writable<AirshipScriptMetadata> = {};
+			let scriptMetadata: Writable<AirshipScriptMetadata> = {
+				behaviour: undefined,
+				scriptable: undefined,
+				serializables: undefined,
+			};
 
 			if (serializables.length > 0) {
-				const types = (scriptMetadata.types ??= []);
+				const types = (scriptMetadata.serializables ??= []);
 
 				for (const serializable of serializables) {
+					const relativeFilePath = path.relative(
+						pathTranslator.outDir,
+						pathTranslator.getOutputPath(sourceFile.fileName),
+					);
+					buildState.registerSerializable(serializable, relativeFilePath);
+
 					types.push(serializable);
 				}
 			}
 
-			if (airshipBehaviours.length > 0 || serializables.length > 0) {
+			if (airshipBehaviours.length > 0 || serializables.length > 0 || scriptableObjects.length > 0) {
+				for (const scriptable of scriptableObjects) {
+					const airshipBehaviourMetadata = scriptable.metadata;
+
+					if (airshipBehaviourMetadata) scriptMetadata.scriptable = airshipBehaviourMetadata;
+
+					// Backwards compat. reasons
+					scriptMetadata = { ...scriptMetadata, ...scriptMetadata.behaviour } as AirshipScriptMetadata;
+
+					const relativeFilePath = path.relative(
+						pathTranslator.outDir,
+						pathTranslator.getOutputPath(sourceFile.fileName),
+					);
+
+					buildState.registerBehaviourInheritance(scriptable);
+					buildState.registerScriptableObject(scriptable, relativeFilePath);
+					buildState.linkBehaviourToFile(scriptable, sourceFile);
+				}
+
 				for (const behaviour of airshipBehaviours) {
 					const airshipBehaviourMetadata = behaviour.metadata;
 
-					scriptMetadata.component = airshipBehaviourMetadata;
+					if (airshipBehaviourMetadata) scriptMetadata.behaviour = airshipBehaviourMetadata;
 
 					// Backwards compat. reasons
-					scriptMetadata = { ...scriptMetadata, ...scriptMetadata.component } as AirshipScriptMetadata;
+					scriptMetadata = { ...scriptMetadata, ...scriptMetadata.behaviour } as AirshipScriptMetadata;
 
 					const relativeFilePath = path.relative(
 						pathTranslator.outDir,
@@ -310,8 +339,9 @@ export function compileFiles(
 			}
 
 			if (
-				(scriptMetadata && !fileMetadataWriteQueue.has(sourceFile) && scriptMetadata.component) ||
-				scriptMetadata.types
+				scriptMetadata &&
+				!fileMetadataWriteQueue.has(sourceFile) &&
+				(scriptMetadata.behaviour || scriptMetadata.serializables || scriptMetadata.scriptable)
 			) {
 				fileMetadataWriteQueue.set(sourceFile, JSON.stringify(scriptMetadata, null, "\t"));
 			}

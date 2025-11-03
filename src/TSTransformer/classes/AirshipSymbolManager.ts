@@ -1,6 +1,8 @@
 import luau from "@roblox-ts/luau-ast";
+import { warnings } from "Shared/diagnostics";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { MacroManager } from "TSTransformer/classes/MacroManager";
 import { SINGLETON_FILE_IMPORT } from "TSTransformer/classes/TransformState";
 import { PROPERTY_SETTERS } from "TSTransformer/macros/propertyMacros";
@@ -8,8 +10,6 @@ import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import { findAncestorNode } from "TSTransformer/util/visitParentNodes";
 import ts from "typescript";
-import { DiagnosticService } from "./DiagnosticService";
-import { warnings } from "Shared/diagnostics";
 
 function getType(typeChecker: ts.TypeChecker, node: ts.Node) {
 	return typeChecker.getTypeAtLocation(skipUpwards(node));
@@ -23,6 +23,7 @@ export const AIRSHIP_SYMBOL_NAMES = {
 	AirshipDecorator: "AirshipDecorator",
 	AirshipBehaviourFieldDecorator: "AirshipBehaviourFieldDecorator",
 	AirshipBehaviourClassDecorator: "AirshipBehaviourClassDecorator",
+	AirshipScriptableObject: "AirshipScriptableObject",
 } as const;
 
 export const UNITY_DATA_TYPES = ["Vector3", "Vector2", "Vector4", "Quaternion", "Matrix4x4", "Color", "Rect"];
@@ -238,6 +239,10 @@ export class AirshipSymbolManager {
 
 	public getAirshipBehaviourSymbolOrThrow() {
 		return this.getSymbolOrThrow(AIRSHIP_SYMBOL_NAMES.AirshipBehaviour);
+	}
+
+	public getAirshipScriptableObjectSymbolOrThrow() {
+		return this.getSymbolOrThrow(AIRSHIP_SYMBOL_NAMES.AirshipScriptableObject);
 	}
 
 	// public getAirshipBehaviourMethodSymbols() {

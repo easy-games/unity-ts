@@ -9,7 +9,11 @@ import {
 } from "Shared/types";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { isAirshipBehaviourProperty, isAirshipBehaviourType } from "TSTransformer/util/extendsAirshipBehaviour";
+import {
+	isAirshipBehaviourProperty,
+	isAirshipBehaviourType,
+	isAirshipScriptableObjectType,
+} from "TSTransformer/util/extendsAirshipBehaviour";
 import { isParseablePropertyExpression, parsePropertyExpression } from "TSTransformer/util/propertyValueParser";
 import ts from "typescript";
 
@@ -267,7 +271,8 @@ export function isValidAirshipBehaviourExportType(state: TransformState, node: t
 			state.services.airshipSymbolManager.isTypeSerializable(arrayType) ||
 			isUnityObjectType(state, arrayType) ||
 			isEnumType(arrayType) ||
-			isAirshipBehaviourType(state, arrayType)
+			isAirshipBehaviourType(state, arrayType) ||
+			isAirshipScriptableObjectType(state, arrayType)
 		);
 	} else if (isEnumType(nodeType)) {
 		return true;
@@ -276,7 +281,8 @@ export function isValidAirshipBehaviourExportType(state: TransformState, node: t
 			state.services.airshipSymbolManager.isTypeSerializable(nodeType) ||
 			isUnityObjectType(state, nodeType) ||
 			isAirshipBehaviourProperty(state, node) ||
-			isSerializableType(state, nodeType)
+			isSerializableType(state, nodeType) ||
+			isAirshipScriptableObjectType(state, nodeType)
 		);
 	}
 }
