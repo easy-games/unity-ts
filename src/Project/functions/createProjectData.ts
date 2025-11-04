@@ -40,7 +40,7 @@ export function createProjectData(
 	const projectData: ProjectData = {
 		tsConfigPath,
 		includePath,
-		isSkippingPackages: projectOptions.skipPackages,
+		isSkippingPackages: projectOptions.codePublish,
 		isPackage,
 		isPublishing: projectOptions.publish,
 		logTruthyChanges,
@@ -50,6 +50,7 @@ export function createProjectData(
 		projectPath: packageDir,
 		rojoConfigPath: undefined,
 		writeOnlyChanged,
+		codeOnlyPublish: projectOptions.codePublish,
 		optimizedLoops,
 		watch,
 		stripImplicitContextCalls: projectOptions.stripImplicitContextCalls,

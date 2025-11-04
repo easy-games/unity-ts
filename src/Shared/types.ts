@@ -28,7 +28,7 @@ export interface ProjectOptions {
 	watch: boolean;
 	json: boolean;
 	publish: boolean;
-	skipPackages: boolean;
+	codePublish: boolean;
 	writeOnlyChanged: boolean;
 	optimizedLoops: boolean;
 	allowCommentDirectives: boolean;
@@ -51,6 +51,7 @@ export interface ProjectData {
 	rojoConfigPath: string | undefined;
 	tsConfigPath: string;
 	writeOnlyChanged: boolean;
+	codeOnlyPublish: boolean;
 	optimizedLoops: boolean;
 	stripImplicitContextCalls: boolean;
 	watch: boolean;
