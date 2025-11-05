@@ -28,6 +28,12 @@ interface BuildFlags {
 	package: string | undefined;
 }
 
+const enum Group {
+	Deployment = "Publishing",
+	Project = "Project",
+	Compilation = "Compilation",
+}
+
 /**
  * Defines the behavior for the `rbxtsc build` command.
  */
@@ -42,14 +48,17 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 			alias: "p",
 			string: true,
 			default: ".",
-			describe: "project path",
+			describe: "The location of tsconfig.json",
+			group: Group.Project,
 		},
-		skipPackages: {
+		codePublish: {
 			type: "boolean",
-			alias: "P",
-			describe: "Compile only the game's code",
+			alias: ["P", "skipPackages"],
+			describe: "Only compile game code, and skip emitting metadata (code-only deploy, requires --publish)",
 			boolean: true,
 			default: false,
+			group: Group.Deployment,
+			implies: ["publish"],
 		},
 		json: {
 			hidden: true,
@@ -58,13 +67,15 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 		},
 		publish: {
 			alias: "D",
-			hidden: true,
 			boolean: true,
 			default: false,
+			describe: "Run the compiler in deploy mode",
+			group: Group.Deployment,
 		},
 		package: {
 			string: true,
 			describe: "The location of package.json",
+			group: Group.Project,
 		},
 		verbose: {
 			boolean: true,
@@ -74,17 +85,20 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 			alias: "w",
 			boolean: true,
 			describe: "enable watch mode",
+			group: Group.Compilation,
 		},
 		incremental: {
 			alias: "i",
 			boolean: true,
 			describe: "Build with incremental mode",
 			default: undefined,
+			group: Group.Compilation,
 		},
 		writeOnlyChanged: {
 			alias: "writeOnlyChanged",
 			boolean: true,
 			describe: "enable to only write changed files",
+			group: Group.Compilation,
 		},
 	},
 
@@ -115,16 +129,9 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 				throw new ProjectError("You are trying to compile an invalid Typescript project");
 			}
 
-			// const compilerTsVersion = new ts.Version(ts.version);
-			// const projectTsVersionRange = new ts.VersionRange(packageJson.devDependencies["typescript"]);
-
-			// if (
-			// 	!projectTsVersionRange.test(compilerTsVersion)
-			// ) {
-			// 	throw new ProjectError(
-			// 		`Project TypeScript version range is ${projectTsVersionRange.toString()} - compiler ts version is ${compilerTsVersion}`,
-			// 	);
-			// }
+			if (projectOptions.codePublish && !projectOptions.publish) {
+				throw new ProjectError("codePublish must be used in conjunction with publish");
+			}
 
 			projectOptions.nodePackageName = packageJson.name;
 			const data = createProjectData(tsConfigPath, packageJsonDir, projectOptions);
@@ -160,7 +167,7 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 
 				let sourceFiles = getChangedSourceFiles(program);
 
-				if (projectOptions.skipPackages) {
+				if (projectOptions.codePublish) {
 					LogService.writeIfVerbose("Filtering out packages from compile");
 					sourceFiles = sourceFiles.filter(
 						sourceFile => !isPackage(path.relative(process.cwd(), sourceFile.fileName)),
