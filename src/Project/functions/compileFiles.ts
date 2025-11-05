@@ -77,6 +77,7 @@ export function compileFiles(
 
 	const watch = compilerOptions.watch ?? false;
 	const incremental = compilerOptions.incremental ?? false;
+	const emitBuildInfo = !data.codeOnlyPublish;
 
 	if (incremental) {
 		buildState.cleanup(pathTranslator);
@@ -259,91 +260,93 @@ export function compileFiles(
 				fileWriteQueue.push({ sourceFile, source });
 			}
 
-			const airshipBehaviours = transformState.airshipBehaviours;
-			const scriptableObjects = transformState.scriptableObjects;
-			const serializables = transformState.serializables;
+			if (emitBuildInfo) {
+				const airshipBehaviours = transformState.airshipBehaviours;
+				const scriptableObjects = transformState.scriptableObjects;
+				const serializables = transformState.serializables;
 
-			// In watch mode we want to ensure entries are updated
-			if (watch && !incremental) {
-				const fileMap = (buildState.fileComponentMap[sourceFile.fileName] ??= []);
-				for (const entry of fileMap) {
-					const matchingBehaviour = airshipBehaviours.find(f => f.name === entry);
+				// In watch mode we want to ensure entries are updated
+				if (watch && !incremental) {
+					const fileMap = (buildState.fileComponentMap[sourceFile.fileName] ??= []);
+					for (const entry of fileMap) {
+						const matchingBehaviour = airshipBehaviours.find(f => f.name === entry);
 
-					for (const [, extensions] of Object.entries(buildFile.extends)) {
-						if (!extensions.includes(entry)) continue;
-						extensions.splice(extensions.indexOf(entry), 1);
+						for (const [, extensions] of Object.entries(buildFile.extends)) {
+							if (!extensions.includes(entry)) continue;
+							extensions.splice(extensions.indexOf(entry), 1);
+						}
+
+						if (!matchingBehaviour) {
+							delete buildFile.behaviours[entry];
+						}
+					}
+				}
+
+				let scriptMetadata: Writable<AirshipScriptMetadata> = {
+					behaviour: undefined,
+					scriptable: undefined,
+					serializables: undefined,
+				};
+
+				if (serializables.length > 0) {
+					const types = (scriptMetadata.serializables ??= []);
+
+					for (const serializable of serializables) {
+						const relativeFilePath = path.relative(
+							pathTranslator.outDir,
+							pathTranslator.getOutputPath(sourceFile.fileName),
+						);
+						buildState.registerSerializable(serializable, relativeFilePath);
+
+						types.push(serializable);
+					}
+				}
+
+				if (airshipBehaviours.length > 0 || serializables.length > 0 || scriptableObjects.length > 0) {
+					for (const scriptable of scriptableObjects) {
+						const airshipBehaviourMetadata = scriptable.metadata;
+
+						if (airshipBehaviourMetadata) scriptMetadata.scriptable = airshipBehaviourMetadata;
+
+						// Backwards compat. reasons
+						scriptMetadata = { ...scriptMetadata, ...scriptMetadata.behaviour } as AirshipScriptMetadata;
+
+						const relativeFilePath = path.relative(
+							pathTranslator.outDir,
+							pathTranslator.getOutputPath(sourceFile.fileName),
+						);
+
+						buildState.registerBehaviourInheritance(scriptable);
+						buildState.registerScriptableObject(scriptable, relativeFilePath);
+						buildState.linkBehaviourToFile(scriptable, sourceFile);
 					}
 
-					if (!matchingBehaviour) {
-						delete buildFile.behaviours[entry];
+					for (const behaviour of airshipBehaviours) {
+						const airshipBehaviourMetadata = behaviour.metadata;
+
+						if (airshipBehaviourMetadata) scriptMetadata.behaviour = airshipBehaviourMetadata;
+
+						// Backwards compat. reasons
+						scriptMetadata = { ...scriptMetadata, ...scriptMetadata.behaviour } as AirshipScriptMetadata;
+
+						const relativeFilePath = path.relative(
+							pathTranslator.outDir,
+							pathTranslator.getOutputPath(sourceFile.fileName),
+						);
+
+						buildState.registerBehaviourInheritance(behaviour);
+						buildState.registerBehaviour(behaviour, relativeFilePath);
+						buildState.linkBehaviourToFile(behaviour, sourceFile);
 					}
 				}
-			}
 
-			let scriptMetadata: Writable<AirshipScriptMetadata> = {
-				behaviour: undefined,
-				scriptable: undefined,
-				serializables: undefined,
-			};
-
-			if (serializables.length > 0) {
-				const types = (scriptMetadata.serializables ??= []);
-
-				for (const serializable of serializables) {
-					const relativeFilePath = path.relative(
-						pathTranslator.outDir,
-						pathTranslator.getOutputPath(sourceFile.fileName),
-					);
-					buildState.registerSerializable(serializable, relativeFilePath);
-
-					types.push(serializable);
+				if (
+					scriptMetadata &&
+					!fileMetadataWriteQueue.has(sourceFile) &&
+					(scriptMetadata.behaviour || scriptMetadata.serializables || scriptMetadata.scriptable)
+				) {
+					fileMetadataWriteQueue.set(sourceFile, JSON.stringify(scriptMetadata, null, "\t"));
 				}
-			}
-
-			if (airshipBehaviours.length > 0 || serializables.length > 0 || scriptableObjects.length > 0) {
-				for (const scriptable of scriptableObjects) {
-					const airshipBehaviourMetadata = scriptable.metadata;
-
-					if (airshipBehaviourMetadata) scriptMetadata.scriptable = airshipBehaviourMetadata;
-
-					// Backwards compat. reasons
-					scriptMetadata = { ...scriptMetadata, ...scriptMetadata.behaviour } as AirshipScriptMetadata;
-
-					const relativeFilePath = path.relative(
-						pathTranslator.outDir,
-						pathTranslator.getOutputPath(sourceFile.fileName),
-					);
-
-					buildState.registerBehaviourInheritance(scriptable);
-					buildState.registerScriptableObject(scriptable, relativeFilePath);
-					buildState.linkBehaviourToFile(scriptable, sourceFile);
-				}
-
-				for (const behaviour of airshipBehaviours) {
-					const airshipBehaviourMetadata = behaviour.metadata;
-
-					if (airshipBehaviourMetadata) scriptMetadata.behaviour = airshipBehaviourMetadata;
-
-					// Backwards compat. reasons
-					scriptMetadata = { ...scriptMetadata, ...scriptMetadata.behaviour } as AirshipScriptMetadata;
-
-					const relativeFilePath = path.relative(
-						pathTranslator.outDir,
-						pathTranslator.getOutputPath(sourceFile.fileName),
-					);
-
-					buildState.registerBehaviourInheritance(behaviour);
-					buildState.registerBehaviour(behaviour, relativeFilePath);
-					buildState.linkBehaviourToFile(behaviour, sourceFile);
-				}
-			}
-
-			if (
-				scriptMetadata &&
-				!fileMetadataWriteQueue.has(sourceFile) &&
-				(scriptMetadata.behaviour || scriptMetadata.serializables || scriptMetadata.scriptable)
-			) {
-				fileMetadataWriteQueue.set(sourceFile, JSON.stringify(scriptMetadata, null, "\t"));
 			}
 
 			if (asJson) {
@@ -430,13 +433,15 @@ export function compileFiles(
 					});
 				}
 
-				if (hasMetadata) {
-					const source = fileMetadataWriteQueue.get(sourceFile);
-					fs.outputFileSync(metadataPathOutPath, source);
-					metadataCount++;
-				} else if (fs.existsSync(metadataPathOutPath)) {
-					// Remove metadata path if no longer applicable
-					fs.removeSync(metadataPathOutPath);
+				if (emitBuildInfo) {
+					if (hasMetadata) {
+						const source = fileMetadataWriteQueue.get(sourceFile);
+						fs.outputFileSync(metadataPathOutPath, source);
+						metadataCount++;
+					} else if (fs.existsSync(metadataPathOutPath)) {
+						// Remove metadata path if no longer applicable
+						fs.removeSync(metadataPathOutPath);
+					}
 				}
 			}
 
@@ -456,29 +461,31 @@ export function compileFiles(
 		});
 	}
 
-	const typescriptDir = path.dirname(data.tsConfigPath);
-	let editorMetadataPath: string;
-	{
-		editorMetadataPath = path.join(typescriptDir, EDITOR_FILE);
+	if (emitBuildInfo) {
+		const typescriptDir = path.dirname(data.tsConfigPath);
+		let editorMetadataPath: string;
+		{
+			editorMetadataPath = path.join(typescriptDir, EDITOR_FILE);
 
-		const oldBuildFileSource = fs.existsSync(editorMetadataPath)
-			? fs.readFileSync(editorMetadataPath).toString()
-			: "";
+			const oldBuildFileSource = fs.existsSync(editorMetadataPath)
+				? fs.readFileSync(editorMetadataPath).toString()
+				: "";
 
-		const newBuildFileSource = JSON.stringify(editorFile, null, "\t");
+			const newBuildFileSource = JSON.stringify(editorFile, null, "\t");
 
-		if (oldBuildFileSource !== newBuildFileSource) {
-			fs.outputFileSync(editorMetadataPath, newBuildFileSource);
+			if (oldBuildFileSource !== newBuildFileSource) {
+				fs.outputFileSync(editorMetadataPath, newBuildFileSource);
+			}
 		}
-	}
 
-	const buildFilePath = path.join(typescriptDir, BUILD_FILE);
-	{
-		const oldBuildFileSource = fs.existsSync(buildFilePath) ? fs.readFileSync(buildFilePath).toString() : "";
-		const newBuildFileSource = JSON.stringify(buildFile, null, "\t");
+		const buildFilePath = path.join(typescriptDir, BUILD_FILE);
+		{
+			const oldBuildFileSource = fs.existsSync(buildFilePath) ? fs.readFileSync(buildFilePath).toString() : "";
+			const newBuildFileSource = JSON.stringify(buildFile, null, "\t");
 
-		if (oldBuildFileSource !== newBuildFileSource) {
-			fs.outputFileSync(buildFilePath, newBuildFileSource);
+			if (oldBuildFileSource !== newBuildFileSource) {
+				fs.outputFileSync(buildFilePath, newBuildFileSource);
+			}
 		}
 	}
 

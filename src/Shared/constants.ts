@@ -52,7 +52,6 @@ export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	usePolling: false,
 	json: false,
 	verbose: false,
-	skipPackages: false,
 	noInclude: false,
 	logTruthyChanges: false,
 	incremental: undefined,
@@ -63,4 +62,5 @@ export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	nodePackageName: "",
 	copyNodeModules: false,
 	stripImplicitContextCalls: true,
+	codePublish: false,
 };
