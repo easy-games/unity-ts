@@ -32,6 +32,7 @@ import {
 	isAirshipBehaviourProperty,
 	isAirshipBehaviourType,
 	isAirshipScriptableObjectProperty,
+	isAirshipScriptableObjectType,
 	isAirshipSingletonClass,
 } from "TSTransformer/util/extendsAirshipBehaviour";
 import { getLiteralFromNode } from "TSTransformer/util/getLiteral";
@@ -326,6 +327,15 @@ function createAirshipProperty(
 
 			prop.items = {
 				type: "AirshipBehaviour",
+				objectType: typeString,
+			};
+
+			prop.fileRef = fileRef;
+		} else if (isAirshipScriptableObjectType(state, arrayItemType)) {
+			const fileRef = state.getOutputPathFromType(arrayItemType);
+
+			prop.items = {
+				type: "AirshipScriptableObject",
 				objectType: typeString,
 			};
 
