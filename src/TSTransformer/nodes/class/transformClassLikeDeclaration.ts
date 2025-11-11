@@ -23,6 +23,7 @@ import {
 	isAirshipScriptableObjectClass,
 	isRootAirshipBehaviourClass,
 	isRootAirshipSingletonClass,
+	isRootScriptableObjectClass,
 } from "TSTransformer/util/extendsAirshipBehaviour";
 import { getFlameworkNodeUid } from "TSTransformer/util/flameworkId";
 import { generateFlameworkMetadataForClass, isFlameworkSingleton } from "TSTransformer/util/flameworkSingleton";
@@ -106,7 +107,8 @@ function createBoilerplate(
 
 		const isAirshipBehaviour = isRootAirshipBehaviourClass(state, node);
 		const isAirshipSingleton = isRootAirshipSingletonClass(state, node);
-		const isNotAirshipSpecialClass = !isAirshipBehaviour && !isAirshipSingleton;
+		const isAirshipScriptableObject = isRootScriptableObjectClass(state, node);
+		const isNotAirshipSpecialClass = !isAirshipBehaviour && !isAirshipSingleton && !isAirshipScriptableObject;
 
 		if (extendsNode && isNotAirshipSpecialClass) {
 			const [extendsExp, extendsExpPrereqs] = state.capture(() =>
