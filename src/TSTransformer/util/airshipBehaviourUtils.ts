@@ -144,8 +144,16 @@ export function createIsDestroyedLuauMethodCall(expression: luau.IndexableExpres
 	});
 }
 
-export function isEnumType(type: ts.Type) {
+export function isEnumType(type: ts.Type): type is ts.EnumType {
 	return (type.flags & ts.TypeFlags.EnumLike) !== 0;
+}
+
+export function isNumericEnumValueType(type: ts.Type): type is ts.NumberLiteralType {
+	return (type.flags & ts.TypeFlags.NumberLiteral) !== 0;
+}
+
+export function isStringEnumValueType(type: ts.Type): type is ts.StringLiteralType {
+	return (type.flags & ts.TypeFlags.StringLiteral) !== 0;
 }
 
 export function getEnumValue(state: TransformState, value: ts.PropertyAccessExpression) {

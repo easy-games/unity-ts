@@ -50,7 +50,7 @@ import { getFlameworkNodeUid } from "TSTransformer/util/flameworkId";
 import { generateFlameworkMetadataForClass, isFlameworkSingleton } from "TSTransformer/util/flameworkSingleton";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getKindName } from "TSTransformer/util/getKindName";
-import { getLiteralFromNode } from "TSTransformer/util/getLiteral";
+import { getMetadataValueFromNode } from "TSTransformer/util/getMetadataValueFromNode";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
@@ -680,7 +680,7 @@ function processGenericDecorator(
 			return state.typeChecker.typeToString(state.typeChecker.getTypeFromTypeNode(typeNode));
 		}),
 		parameters: expression.arguments.map((argument, i): AirshipBehaviourFieldDecoratorParameter => {
-			const value = getLiteralFromNode(state, argument);
+			const value = getMetadataValueFromNode(state, argument, false);
 
 			if (value) {
 				return value;
@@ -768,7 +768,7 @@ function getPropertyDecorators(
 				items.push({
 					name: expression.expression.getText(),
 					parameters: expression.arguments.map((argument, i): AirshipBehaviourFieldDecoratorParameter => {
-						const value = getLiteralFromNode(state, argument);
+						const value = getMetadataValueFromNode(state, argument, false);
 						if (value) {
 							return value;
 						} else {

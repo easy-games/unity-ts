@@ -315,9 +315,7 @@ export const errors = {
 		},
 	),
 
-	decoratorParamsLiteralsOnly: error(
-		"Airship Behaviour decorators only accept literal `string`, `boolean` or `number` values. For RequireComponent, use `typeof(ComponentType)` syntax.",
-	),
+	decoratorParamsLiteralsOnly: error("Airship Behaviour decorators only accepts constants as property values"),
 
 	// files
 	noRojoData: errorWithContext((path: string, isPackage: boolean) => [
