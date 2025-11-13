@@ -148,6 +148,12 @@ export function isEnumType(type: ts.Type): type is ts.EnumType {
 	return (type.flags & ts.TypeFlags.EnumLike) !== 0;
 }
 
+export function isLiteralUnionType(
+	type: ts.Type,
+): type is ts.UnionType & { types: ts.StringLiteralType | ts.NumberLiteralType } {
+	return type.isUnion() && type.types.every(type => isNumericEnumValueType(type) || isStringEnumValueType(type));
+}
+
 export function isNumericEnumValueType(type: ts.Type): type is ts.NumberLiteralType {
 	return (type.flags & ts.TypeFlags.NumberLiteral) !== 0;
 }
@@ -182,13 +188,18 @@ function appendEnumMember(member: ts.EnumMember, state: EnumMetadata, isFlags: b
 		return;
 	}
 
+	const doc = ts.getJSDocTags(member);
+	const inspectorName = doc.find(f => f.tagName.text.toLowerCase() === "inspectorname")?.comment as
+		| string
+		| undefined;
+
 	if (member.initializer) {
 		if (ts.isStringLiteral(member.initializer)) {
-			state.record[member.name.text] = member.initializer.text;
+			state.record[inspectorName ?? member.name.text] = member.initializer.text;
 			state.enumType = EnumType.StringEnum;
 		} else if (isNumericLike(member.initializer)) {
 			state.index = parseNumericNode(member.initializer) ?? 0;
-			state.record[member.name.text] = state.index;
+			state.record[inspectorName ?? member.name.text] = state.index;
 			state.index++;
 		} else if (
 			ts.isBinaryExpression(member.initializer) &&
@@ -199,11 +210,13 @@ function appendEnumMember(member: ts.EnumMember, state: EnumMetadata, isFlags: b
 			state.enumType = EnumType.FlagEnum;
 			const value = parseInt(member.initializer.left.text) << parseInt(member.initializer.right.text);
 
-			state.record[member.name.text] = value;
+			state.record[inspectorName ?? member.name.text] = value;
 			state.index = value + 1;
 		}
 	} else {
-		if (state.enumType !== EnumType.FlagEnum) state.record[member.name.text] = state.index++;
+		if (state.enumType !== EnumType.FlagEnum) {
+			state.record[inspectorName ?? member.name.text] = state.index++;
+		}
 	}
 }
 
@@ -268,7 +281,7 @@ export function isValidAirshipBehaviourExportType(state: TransformState, node: t
 			isEnumType(arrayType) ||
 			isAirshipBehaviourType(state, arrayType)
 		);
-	} else if (isEnumType(nodeType)) {
+	} else if (isEnumType(nodeType) || isLiteralUnionType(nodeType)) {
 		return true;
 	} else {
 		return (
