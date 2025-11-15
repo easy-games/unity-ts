@@ -282,8 +282,10 @@ export function isClassInheritingSymbol(state: TransformState, node: ts.ClassLik
 	return inheritance.some(value => value === symbol);
 }
 
-export function isAirshipSingletonType(state: TransformState, type: ts.Type) {
+export function isAirshipSingletonType(state: TransformState, type: ts.Type, includeBaseType = false) {
 	const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipSingletonSymbolOrThrow();
+
+	if (includeBaseType && airshipBehaviourSymbol === type.symbol) return true;
 
 	// Get the inheritance tree, otherwise
 	const inheritance = getAncestorTypeSymbols(type, state.typeChecker);

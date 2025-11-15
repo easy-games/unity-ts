@@ -1,5 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
-import { warnings } from "Shared/diagnostics";
+import { errors, warnings } from "Shared/diagnostics";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
@@ -7,6 +7,7 @@ import { MacroManager } from "TSTransformer/classes/MacroManager";
 import { SINGLETON_FILE_IMPORT } from "TSTransformer/classes/TransformState";
 import { PROPERTY_SETTERS } from "TSTransformer/macros/propertyMacros";
 import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
+import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import { findAncestorNode } from "TSTransformer/util/visitParentNodes";
 import ts from "typescript";
@@ -75,6 +76,27 @@ export const AIRSHIP_SINGLETON_MACROS = {
 	},
 } satisfies MacroList<PropertyCallMacro>;
 
+export const AIRSHIP_SCRIPTABLE_MACROS = {
+	CreateInstance: (state, node, expression) => {
+		if (node.typeArguments !== undefined) {
+			const [arg0] = node.typeArguments;
+
+			const type = state.typeChecker.getTypeAtLocation(arg0);
+
+			const requirePath = state.airshipBuildState.getRequirePathOfType(state, type);
+
+			return luau.create(luau.SyntaxKind.MethodCallExpression, {
+				expression: convertToIndexableExpression(expression),
+				name: "CreateInstance",
+				args: luau.list.make(luau.string(requirePath)),
+			});
+		} else {
+			DiagnosticService.addSingleDiagnostic(errors.unityMacroTypeArgumentRequired(node, "CreateInstance"));
+			return luau.nil();
+		}
+	},
+} satisfies MacroList<PropertyCallMacro>;
+
 /**
  * Manages the macros of the ts.
  */
@@ -110,6 +132,21 @@ export class AirshipSymbolManager {
 						const symbol = getType(typeChecker, member).symbol;
 						assert(symbol);
 						singletonMethodMap.set(member.name.text, symbol);
+					}
+				}
+			}
+		}
+
+		const scriptableObjectSymbol = this.getAirshipScriptableObjectSymbolOrThrow();
+		const scriptableObjectMap = new Map<string, ts.Symbol>();
+		for (const declaration of scriptableObjectSymbol.declarations ?? []) {
+			if (ts.isClassDeclaration(declaration)) {
+				for (const member of declaration.members) {
+					if (ts.isMethodDeclaration(member) && ts.isIdentifier(member.name)) {
+						const symbol = getType(typeChecker, member).symbol;
+						if (!symbol) continue;
+
+						scriptableObjectMap.set(member.name.text, symbol);
 					}
 				}
 			}
@@ -156,6 +193,16 @@ export class AirshipSymbolManager {
 			if (!methodSymbol) {
 				throw new ProjectError(
 					`The types for method AirshipSingleton.${methodName} could not be found` + TYPES_NOTICE,
+				);
+			}
+			macroManager.addPropertyCallMacro(methodSymbol, macro);
+		}
+
+		for (const [methodName, macro] of Object.entries(AIRSHIP_SCRIPTABLE_MACROS)) {
+			const methodSymbol = scriptableObjectMap.get(methodName);
+			if (!methodSymbol) {
+				throw new ProjectError(
+					`The types for method AirshipScriptableObject.${methodName} could not be found` + TYPES_NOTICE,
 				);
 			}
 			macroManager.addPropertyCallMacro(methodSymbol, macro);

@@ -1,3 +1,4 @@
+import assert from "assert";
 import { existsSync, readFileSync } from "fs-extra";
 import path from "path";
 import { LogService } from "Shared/classes/LogService";
@@ -12,7 +13,7 @@ import {
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { FlameworkClassInfo } from "TSTransformer/flamework";
 import { getEnumMetadata } from "TSTransformer/util/airshipBehaviourUtils";
-import ts from "typescript";
+import ts, { setValueDeclaration } from "typescript";
 
 export type EnumRecord = Record<string, string | number>;
 
@@ -195,6 +196,28 @@ export class AirshipBuildState {
 		this.idLookup.set(internalId, id);
 	}
 
+	public getRequirePathOfTypeNoState(pathTranslator: PathTranslator, typeChecker: ts.TypeChecker, type: ts.Type) {
+		const typeName = typeChecker.typeToString(type);
+		const valueDeclaration = type.getSymbol()?.valueDeclaration;
+		if (valueDeclaration !== undefined) {
+			const sourceFile = valueDeclaration.getSourceFile();
+
+			const parsePath = path.parse(
+				path
+					.relative(pathTranslator.outDir, pathTranslator.getOutputPath(sourceFile.fileName))
+					.replace("../../Bundles/Types~/", ""),
+			);
+
+			return parsePath.dir.replace("\\", "/") + "/" + parsePath.name;
+		}
+
+		return typeName;
+	}
+
+	public getRequirePathOfType(state: TransformState, type: ts.Type) {
+		return this.getRequirePathOfTypeNoState(state.pathTranslator, state.typeChecker, type);
+	}
+
 	public getUniqueIdForTypeNoState(
 		pathTranslator: PathTranslator,
 		typeChecker: ts.TypeChecker,
@@ -221,7 +244,10 @@ export class AirshipBuildState {
 	}
 
 	private typeIdCache = new Map<string, string>();
-	public getUniqueIdForType(transformState: TransformState, type: ts.Type, sourceFile: ts.SourceFile) {
+	public getUniqueIdForType(transformState: TransformState, type: ts.Type, sourceFile?: ts.SourceFile) {
+		sourceFile ??= type.symbol.valueDeclaration?.getSourceFile();
+		assert(sourceFile);
+
 		return this.getUniqueIdForTypeNoState(
 			transformState.pathTranslator,
 			transformState.typeChecker,
