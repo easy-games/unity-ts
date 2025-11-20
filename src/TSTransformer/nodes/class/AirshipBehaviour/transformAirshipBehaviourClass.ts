@@ -12,17 +12,20 @@ import {
 	AirshipDocTag,
 	AirshipFieldDocs,
 	AirshipSerializable,
-	EnumType,
 } from "Shared/types";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import {
-	EnumMetadata,
+	writeEnumInfo,
+	writeLiteralUnionInfo,
+} from "TSTransformer/nodes/class/AirshipBehaviour/transformAirshipPropertyEnums";
+import {
 	getAncestorTypeSymbols,
 	getEnumMetadata,
 	getEnumValue,
 	getUnityObjectInitializerDefaultValue,
 	isEnumType,
+	isLiteralUnionType,
 	isPublicWritablePropertyDeclaration,
 	isSerializableType,
 	isUnityObjectType,
@@ -35,33 +38,8 @@ import {
 	isAirshipScriptableObjectType,
 	isAirshipSingletonClass,
 } from "TSTransformer/util/extendsAirshipBehaviour";
-import { getLiteralFromNode } from "TSTransformer/util/getLiteral";
+import { getMetadataValueFromNode } from "TSTransformer/util/getMetadataValueFromNode";
 import ts, { JSDoc, JSDocComment, JSDocTag, ModifierFlags } from "typescript";
-
-interface EnumWriteInfo {
-	readonly enumTypeString: string;
-	readonly enumRef: string;
-}
-
-function writeEnumInfo(
-	state: TransformState,
-	type: ts.Type,
-	sourceFile: ts.SourceFile,
-	enumInfo: EnumMetadata,
-): EnumWriteInfo {
-	const { record, enumType } = enumInfo;
-
-	const enumName = state.airshipBuildState.getUniqueIdForType(state, type, sourceFile);
-	const mts = state.airshipBuildState;
-	if (mts.editorInfo.enum[enumName] === undefined) {
-		mts.editorInfo.enum[enumName] = record;
-	}
-
-	return {
-		enumTypeString: EnumType[enumType],
-		enumRef: enumName,
-	};
-}
 
 function formatAsUnityString(nodes: Array<MarkdownNode>): string {
 	const str = new Array<string>();
@@ -359,6 +337,14 @@ function createAirshipProperty(
 
 		prop.objectType = typeChecker.typeToString(type);
 		prop.fileRef = state.getOutputPathFromType(type);
+	} else if (isLiteralUnionType(type)) {
+		if (type.isNullableType()) prop.nullable = true;
+
+		const results = writeLiteralUnionInfo(state, type);
+		if (results) {
+			prop.type = results.enumTypeString;
+			prop.ref = results.enumRef;
+		}
 	} else if (isEnum) {
 		if (type.isNullableType()) prop.nullable = true;
 		prop.type = "enum";
@@ -473,7 +459,7 @@ function processGenericDecorator(
 			return state.typeChecker.typeToString(state.typeChecker.getTypeFromTypeNode(typeNode));
 		}),
 		parameters: expression.arguments.map((argument, i): AirshipBehaviourFieldDecoratorParameter => {
-			const value = getLiteralFromNode(state, argument);
+			const value = getMetadataValueFromNode(state, argument, false);
 
 			if (value) {
 				return value;
@@ -561,7 +547,7 @@ function getPropertyDecorators(
 				items.push({
 					name: expression.expression.getText(),
 					parameters: expression.arguments.map((argument, i): AirshipBehaviourFieldDecoratorParameter => {
-						const value = getLiteralFromNode(state, argument);
+						const value = getMetadataValueFromNode(state, argument, true);
 						if (value) {
 							return value;
 						} else {
