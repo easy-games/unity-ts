@@ -3,7 +3,9 @@ import { TransformState } from "TSTransformer/classes/TransformState";
 import { CompilerDirective } from "TSTransformer/macros/directives";
 import {
 	isClientDirective,
+	isEditorDirective,
 	isNotClientDirective,
+	isNotEditorDirective,
 	isNotServerDirective,
 	isServerDirective,
 } from "TSTransformer/macros/directives/checkDirectives";
@@ -50,6 +52,14 @@ function getDirective(
 	if (isNotServerDirective(state, expression, includeImplicitCalls)) {
 		return CompilerDirective.NOT_SERVER;
 	}
+
+	if (isEditorDirective(state, expression, includeImplicitCalls)) {
+		return CompilerDirective.EDITOR;
+	}
+
+	if (isNotEditorDirective(state, expression, includeImplicitCalls)) {
+		return CompilerDirective.NOT_EDITOR;
+	}
 }
 
 function isAndBinaryExpression(expression: ts.Expression): expression is ts.BinaryExpression {
@@ -72,6 +82,7 @@ export interface DirectivesResult {
 
 	readonly isServer: boolean;
 	readonly isClient: boolean;
+	readonly isEditor: boolean;
 }
 
 /**
@@ -103,6 +114,7 @@ export function parseDirectives(
 				isComplexDirectiveCheck: false,
 				isServer: directive === CompilerDirective.SERVER || directive === CompilerDirective.NOT_CLIENT,
 				isClient: directive === CompilerDirective.CLIENT || directive === CompilerDirective.NOT_SERVER,
+				isEditor: directive === CompilerDirective.EDITOR,
 			};
 		}
 	}
@@ -193,6 +205,7 @@ export function parseDirectives(
 					directives.includes(CompilerDirective.SERVER) || directives.includes(CompilerDirective.NOT_CLIENT),
 				isClient:
 					directives.includes(CompilerDirective.CLIENT) || directives.includes(CompilerDirective.NOT_SERVER),
+				isEditor: directives.includes(CompilerDirective.EDITOR),
 			};
 
 			return result;

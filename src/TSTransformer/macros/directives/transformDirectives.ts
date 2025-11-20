@@ -3,7 +3,12 @@ import { assert } from "Shared/util/assert";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { CompilerDirective } from "TSTransformer/macros/directives";
-import { isClientDirective, isServerDirective } from "TSTransformer/macros/directives/checkDirectives";
+import {
+	isClientDirective,
+	isEditorDirective,
+	isNotEditorDirective,
+	isServerDirective,
+} from "TSTransformer/macros/directives/checkDirectives";
 import { DirectivesResult, parseDirectives } from "TSTransformer/macros/directives/transformGuardDirectives";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import ts, { factory } from "typescript";
@@ -111,7 +116,8 @@ export function containsDirectiveLikeExpression(
 	if (ts.isIdentifier(expression) || ts.isCallExpression(expression)) {
 		return (
 			isServerDirective(state, expression, includeImplicitCalls) ||
-			isClientDirective(state, expression, includeImplicitCalls)
+			isClientDirective(state, expression, includeImplicitCalls) ||
+			isEditorDirective(state, expression, includeImplicitCalls)
 		);
 	}
 
@@ -135,6 +141,14 @@ export function transformDirectiveConditionalExpression(
 
 	if (isClientDirective(state, condition, includeImplicitCalls)) {
 		if (state.isClientContext) {
+			return transformExpression(state, conditional.whenTrue);
+		} else {
+			return transformExpression(state, conditional.whenFalse);
+		}
+	}
+
+	if (isEditorDirective(state, condition, includeImplicitCalls)) {
+		if (state.isSharedContext) {
 			return transformExpression(state, conditional.whenTrue);
 		} else {
 			return transformExpression(state, conditional.whenFalse);
@@ -244,6 +258,8 @@ export function transformDirectiveIfStatement(
 		const isClientGuard =
 			directives.includes(CompilerDirective.CLIENT) || directives.includes(CompilerDirective.NOT_SERVER);
 
+		const isEditorGuard = directives.includes(CompilerDirective.EDITOR);
+
 		if (directives.includes(CompilerDirective.SERVER) && directives.includes(CompilerDirective.NOT_CLIENT)) {
 			return transformDirectiveIfStatementInner(
 				state,
@@ -273,6 +289,14 @@ export function transformDirectiveIfStatement(
 				state,
 				ifStatement,
 				state.isServerContext,
+				parsedDirectiveCondition.updatedExpression,
+				implicitCalls,
+			);
+		} else if (isEditorGuard && !state.isSharedContext) {
+			return transformDirectiveIfStatementInner(
+				state,
+				ifStatement,
+				true,
 				parsedDirectiveCondition.updatedExpression,
 				implicitCalls,
 			);

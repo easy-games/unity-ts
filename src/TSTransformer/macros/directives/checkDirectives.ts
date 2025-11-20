@@ -43,6 +43,18 @@ export function isNotServerDirective(state: TransformState, expression: ts.Expre
 	}
 }
 
+export function isNotEditorDirective(state: TransformState, expression: ts.Expression, includeImplicitCalls: boolean) {
+	const { isEditorSymbol } = state.services.macroManager;
+
+	if (includeImplicitCalls && isEditorSymbol) {
+		if (isExclamationUnaryExpression(expression) && ts.isCallExpression(expression.operand)) {
+			const symbol = state.typeChecker.getSymbolAtLocation(expression.operand.expression);
+			if (!symbol) return false;
+			return isEditorSymbol === symbol;
+		}
+	}
+}
+
 export function isServerDirective(state: TransformState, expression: ts.Expression, includeImplicitCalls: boolean) {
 	const { isServerSymbol, $SERVER } = state.services.macroManager;
 
@@ -80,6 +92,20 @@ export function isClientDirective(state: TransformState, expression: ts.Expressi
 		if (!symbol) return false;
 
 		return $CLIENT === symbol;
+	}
+
+	return false;
+}
+
+export function isEditorDirective(state: TransformState, expression: ts.Expression, includeImplicitCalls: boolean) {
+	const { isEditorSymbol } = state.services.macroManager;
+
+	if (includeImplicitCalls && isEditorSymbol) {
+		if (ts.isCallExpression(expression)) {
+			const symbol = state.typeChecker.getSymbolAtLocation(expression.expression);
+			if (!symbol) return false;
+			return isEditorSymbol === symbol;
+		}
 	}
 
 	return false;

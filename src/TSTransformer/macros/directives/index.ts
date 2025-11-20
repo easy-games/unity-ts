@@ -11,4 +11,5 @@ export enum CompilerDirective {
 	CLIENT,
 	NOT_CLIENT,
 	EDITOR,
+	NOT_EDITOR,
 }
