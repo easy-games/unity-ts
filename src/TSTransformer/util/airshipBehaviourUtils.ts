@@ -9,7 +9,11 @@ import {
 } from "Shared/types";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { isAirshipBehaviourProperty, isAirshipBehaviourType } from "TSTransformer/util/extendsAirshipBehaviour";
+import {
+	isAirshipBehaviourProperty,
+	isAirshipBehaviourType,
+	isAirshipScriptableObjectType,
+} from "TSTransformer/util/extendsAirshipBehaviour";
 import { isParseablePropertyExpression, parsePropertyExpression } from "TSTransformer/util/propertyValueParser";
 import ts from "typescript";
 
@@ -110,6 +114,15 @@ export function isUnityObjectType(state: TransformState, nodeType: ts.Type) {
 
 	const objectInheritanceTree = getAncestorTypeSymbols(nodeType, state.typeChecker);
 	return objectInheritanceTree.includes(objectSymbol);
+}
+
+export function isSerializableType(state: TransformState, nodeType: ts.Type) {
+	const obj = nodeType.getSymbol()?.valueDeclaration;
+	if (obj && ts.isClassLike(obj)) {
+		return true;
+	} else {
+		return false;
+	}
 }
 
 export function isColorDataType(state: TransformState, nodeType: ts.Type) {
@@ -279,7 +292,8 @@ export function isValidAirshipBehaviourExportType(state: TransformState, node: t
 			state.services.airshipSymbolManager.isTypeSerializable(arrayType) ||
 			isUnityObjectType(state, arrayType) ||
 			isEnumType(arrayType) ||
-			isAirshipBehaviourType(state, arrayType)
+			isAirshipBehaviourType(state, arrayType) ||
+			isAirshipScriptableObjectType(state, arrayType)
 		);
 	} else if (isEnumType(nodeType) || isLiteralUnionType(nodeType)) {
 		return true;
@@ -287,7 +301,9 @@ export function isValidAirshipBehaviourExportType(state: TransformState, node: t
 		return (
 			state.services.airshipSymbolManager.isTypeSerializable(nodeType) ||
 			isUnityObjectType(state, nodeType) ||
-			isAirshipBehaviourProperty(state, node)
+			isAirshipBehaviourProperty(state, node) ||
+			isSerializableType(state, nodeType) ||
+			isAirshipScriptableObjectType(state, nodeType)
 		);
 	}
 }

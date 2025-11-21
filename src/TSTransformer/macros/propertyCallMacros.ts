@@ -4,6 +4,7 @@ import { TransformState } from "TSTransformer/classes/TransformState";
 import {
 	UNITY_COMPONENT_METHODS,
 	UNITY_GAMEOBJECT_METHODS,
+	UNITY_OBJECT_METHODS,
 	UNITY_STATIC_GAMEOBJECT_METHODS,
 } from "TSTransformer/macros/airship/propertyCallMacros";
 import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
@@ -19,9 +20,9 @@ import { offset } from "TSTransformer/util/offset";
 import {
 	isAnyOrUnknownType,
 	isAnyType,
+	isArrayLikeTypeWithUndefined as isArrayLikeTypeWithUndefined,
 	isDefinitelyType,
 	isNumberType,
-	isArrayLikeTypeWithUndefined as isArrayLikeTypeWithUndefined,
 	isStringType,
 } from "TSTransformer/util/types";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
@@ -1212,7 +1213,7 @@ export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCall
 	GameObject: UNITY_GAMEOBJECT_METHODS,
 	GameObjectConstructor: UNITY_STATIC_GAMEOBJECT_METHODS,
 	Component: UNITY_COMPONENT_METHODS,
-	// Object: UNITY_OBJECT_METHODS,
+	Object: UNITY_OBJECT_METHODS,
 };
 
 // comment logic

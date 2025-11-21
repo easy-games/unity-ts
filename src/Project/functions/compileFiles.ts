@@ -14,7 +14,7 @@ import { LogService } from "Shared/classes/LogService";
 import { PathHint, PathTranslator } from "Shared/classes/PathTranslator";
 import { ProjectType } from "Shared/constants";
 import { warnings } from "Shared/diagnostics";
-import { AirshipBuildFile, ProjectData } from "Shared/types";
+import { AirshipBuildFile, AirshipScriptMetadata, ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
 import {
@@ -56,6 +56,9 @@ interface FileWriteEntry {
 	source: string;
 	context?: CompliationContext;
 }
+
+/** Make all properties in T non-readonly. */
+type Writable<T> = { -readonly [P in keyof T]: T[P] };
 
 /**
  * 'transpiles' TypeScript project into a logically identical Luau project.
@@ -259,6 +262,8 @@ export function compileFiles(
 
 			if (emitBuildInfo) {
 				const airshipBehaviours = transformState.airshipBehaviours;
+				const scriptableObjects = transformState.scriptableObjects;
+				const serializables = transformState.serializables;
 
 				// In watch mode we want to ensure entries are updated
 				if (watch && !incremental) {
@@ -277,18 +282,52 @@ export function compileFiles(
 					}
 				}
 
-				if (airshipBehaviours.length > 0) {
+				let scriptMetadata: Writable<AirshipScriptMetadata> = {
+					behaviour: undefined,
+					scriptable: undefined,
+					serializables: undefined,
+				};
+
+				if (serializables.length > 0) {
+					const types = (scriptMetadata.serializables ??= []);
+
+					for (const serializable of serializables) {
+						const relativeFilePath = path.relative(
+							pathTranslator.outDir,
+							pathTranslator.getOutputPath(sourceFile.fileName),
+						);
+						buildState.registerSerializable(serializable, relativeFilePath);
+
+						types.push(serializable);
+					}
+				}
+
+				if (airshipBehaviours.length > 0 || serializables.length > 0 || scriptableObjects.length > 0) {
+					for (const scriptable of scriptableObjects) {
+						const airshipBehaviourMetadata = scriptable.metadata;
+
+						if (airshipBehaviourMetadata) scriptMetadata.scriptable = airshipBehaviourMetadata;
+
+						// Backwards compat. reasons
+						scriptMetadata = { ...scriptMetadata, ...scriptMetadata.behaviour } as AirshipScriptMetadata;
+
+						const relativeFilePath = path.relative(
+							pathTranslator.outDir,
+							pathTranslator.getOutputPath(sourceFile.fileName),
+						);
+
+						buildState.registerBehaviourInheritance(scriptable);
+						buildState.registerScriptableObject(scriptable, relativeFilePath);
+						buildState.linkBehaviourToFile(scriptable, sourceFile);
+					}
+
 					for (const behaviour of airshipBehaviours) {
 						const airshipBehaviourMetadata = behaviour.metadata;
 
-						if (airshipBehaviourMetadata) {
-							if (fileMetadataWriteQueue.has(sourceFile)) continue;
+						if (airshipBehaviourMetadata) scriptMetadata.behaviour = airshipBehaviourMetadata;
 
-							fileMetadataWriteQueue.set(
-								sourceFile,
-								JSON.stringify(airshipBehaviourMetadata, null, "\t"),
-							);
-						}
+						// Backwards compat. reasons
+						scriptMetadata = { ...scriptMetadata, ...scriptMetadata.behaviour } as AirshipScriptMetadata;
 
 						const relativeFilePath = path.relative(
 							pathTranslator.outDir,
@@ -299,6 +338,14 @@ export function compileFiles(
 						buildState.registerBehaviour(behaviour, relativeFilePath);
 						buildState.linkBehaviourToFile(behaviour, sourceFile);
 					}
+				}
+
+				if (
+					scriptMetadata &&
+					!fileMetadataWriteQueue.has(sourceFile) &&
+					(scriptMetadata.behaviour || scriptMetadata.serializables || scriptMetadata.scriptable)
+				) {
+					fileMetadataWriteQueue.set(sourceFile, JSON.stringify(scriptMetadata, null, "\t"));
 				}
 			}
 
@@ -440,8 +487,6 @@ export function compileFiles(
 				fs.outputFileSync(buildFilePath, newBuildFileSource);
 			}
 		}
-	} else {
-		LogService.writeIfVerbose(`Skipped emitting build information`);
 	}
 
 	program.emitBuildInfo();

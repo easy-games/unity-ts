@@ -12,6 +12,7 @@ import {
 	isAirshipSingletonClass,
 	isRootAirshipBehaviourClass,
 	isRootAirshipSingletonClass,
+	isRootScriptableObjectClass,
 } from "TSTransformer/util/extendsAirshipBehaviour";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getStatements } from "TSTransformer/util/getStatements";
@@ -74,6 +75,7 @@ export function transformClassConstructor(
 	const isRootSingletonClass = isRootAirshipSingletonClass(state, node);
 	const isAirshipSingleton = isAirshipSingletonClass(state, node);
 	const isRootAirshipBehaviour = isRootAirshipBehaviourClass(state, node);
+	const isRootScriptableObject = isRootScriptableObjectClass(state, node);
 	let removeFirstSuper = isRootAirshipBehaviour || isAirshipSingleton;
 
 	let parameters = luau.list.make<luau.AnyIdentifier>();
@@ -87,7 +89,7 @@ export function transformClassConstructor(
 		luau.list.pushList(statements, paramStatements);
 		parameters = constructorParams;
 		hasDotDotDot = constructorHasDotDotDot;
-	} else if (getExtendsNode(node) && !isRootAirshipBehaviour && !isRootSingletonClass) {
+	} else if (getExtendsNode(node) && !isRootAirshipBehaviour && !isRootScriptableObject && !isRootSingletonClass) {
 		// if extends + no constructor:
 		// - add ... to params
 		// - add super.constructor(self, ...)
