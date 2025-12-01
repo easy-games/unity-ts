@@ -324,6 +324,28 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	const statementsInner = luau.list.make<luau.Statement>();
 	luau.list.pushList(statementsInner, createBoilerplate(state, node, internalName, isClassExpression));
 
+	if (isBehaviourClass) {
+		luau.list.push(
+			statementsInner,
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: luau.property(returnVar, "$type"),
+				operator: "=",
+				right: luau.string("AirshipBehaviour"),
+			}),
+		);
+	}
+
+	if (isScriptableObjectClass) {
+		luau.list.push(
+			statementsInner,
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: luau.property(returnVar, "$type"),
+				operator: "=",
+				right: luau.string("AirshipScriptableObject"),
+			}),
+		);
+	}
+
 	luau.list.pushList(statementsInner, transformClassConstructor(state, node, internalName, getConstructor(node)));
 
 	for (const member of node.members) {

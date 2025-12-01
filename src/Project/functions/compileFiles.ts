@@ -288,17 +288,19 @@ export function compileFiles(
 					serializables: undefined,
 				};
 
-				if (serializables.length > 0) {
-					const types = (scriptMetadata.serializables ??= []);
+				if (data.flags.serializableClassTypes) {
+					if (serializables.length > 0) {
+						const types = (scriptMetadata.serializables ??= []);
 
-					for (const serializable of serializables) {
-						const relativeFilePath = path.relative(
-							pathTranslator.outDir,
-							pathTranslator.getOutputPath(sourceFile.fileName),
-						);
-						buildState.registerSerializable(serializable, relativeFilePath);
+						for (const serializable of serializables) {
+							const relativeFilePath = path.relative(
+								pathTranslator.outDir,
+								pathTranslator.getOutputPath(sourceFile.fileName),
+							);
+							buildState.registerSerializable(serializable, relativeFilePath);
 
-						types.push(serializable);
+							types.push(serializable);
+						}
 					}
 				}
 

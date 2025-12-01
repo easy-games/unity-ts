@@ -35,7 +35,12 @@ export interface ProjectOptions {
 	nodePackageName: string;
 	copyNodeModules: boolean;
 	precompiled: Array<string>;
+	flags: Partial<CompilerFeatureFlags>;
 	stripImplicitContextCalls: boolean;
+}
+
+export interface CompilerFeatureFlags {
+	serializableClassTypes: boolean;
 }
 
 export interface ProjectData {
@@ -50,6 +55,7 @@ export interface ProjectData {
 	projectPath: string;
 	rojoConfigPath: string | undefined;
 	tsConfigPath: string;
+	flags: CompilerFeatureFlags;
 	writeOnlyChanged: boolean;
 	codeOnlyPublish: boolean;
 	optimizedLoops: boolean;
@@ -181,7 +187,6 @@ export interface AirshipSerializable {
 
 export interface AirshipScriptMetadata {
 	readonly behaviour: AirshipBehaviourJson | undefined;
-	/** @deprecated */
 	readonly scriptable: AirshipScriptableObjectJson | undefined;
 	readonly serializables: Array<AirshipSerializable> | undefined;
 }

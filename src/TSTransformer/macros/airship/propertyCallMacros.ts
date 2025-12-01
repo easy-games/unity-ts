@@ -5,7 +5,11 @@ import { getGlobalSymbolByNameOrThrow } from "TSTransformer/classes/MacroManager
 import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { isUnityObjectType } from "TSTransformer/util/airshipBehaviourUtils";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
-import { isAirshipBehaviourType, isAirshipBehaviourTypeNode } from "TSTransformer/util/extendsAirshipBehaviour";
+import {
+	isAirshipBehaviourType,
+	isAirshipBehaviourTypeNode,
+	isAirshipScriptableObjectType,
+} from "TSTransformer/util/extendsAirshipBehaviour";
 import ts from "typescript";
 
 const expectAirshipComponentGeneric = (
@@ -158,6 +162,7 @@ const createAssetLoadMacro: (name: string) => PropertyCallMacro = name => (state
 	const signature = state.typeChecker.getTypeAtLocation(node).getNonNullableType();
 	const symbol = signature.getSymbol();
 
+	const [typeArgument] = node.typeArguments ?? [];
 	const [path] = args;
 
 	// Handle sprite loading differently c:
@@ -167,11 +172,65 @@ const createAssetLoadMacro: (name: string) => PropertyCallMacro = name => (state
 		}
 	}
 
-	return luau.create(luau.SyntaxKind.MethodCallExpression, {
-		name: name,
-		expression: convertToIndexableExpression(expression),
-		args: luau.list.make(...args),
-	});
+	if (isUnityObjectType(state, signature)) {
+		const tempId = luau.tempId("unityAsset");
+
+		state.prereq(
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: tempId,
+				right: luau.create(luau.SyntaxKind.MethodCallExpression, {
+					name: name,
+					expression: convertToIndexableExpression(expression),
+					args: luau.list.make(...args),
+				}),
+			}),
+		);
+
+		state.prereq(
+			luau.create(luau.SyntaxKind.CallStatement, {
+				expression: luau.call(luau.globals.assert, [
+					luau.create(luau.SyntaxKind.MethodCallExpression, {
+						expression: tempId,
+						name: "IsA",
+						args: luau.list.make(luau.string(state.typeChecker.typeToString(signature))),
+					}),
+					luau.string("LoadAsset expected a " + state.typeChecker.typeToString(signature)),
+				]),
+			}),
+		);
+
+		return tempId;
+	} else if (isAirshipScriptableObjectType(state, signature)) {
+		const tempId = luau.tempId("scriptableAsset");
+
+		state.prereq(
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: tempId,
+				right: luau.create(luau.SyntaxKind.MethodCallExpression, {
+					name: name,
+					expression: convertToIndexableExpression(expression),
+					args: luau.list.make(...args),
+				}),
+			}),
+		);
+
+		state.prereq(
+			luau.create(luau.SyntaxKind.CallStatement, {
+				expression: luau.call(luau.globals.assert, [
+					luau.binary(luau.call(luau.globals.typeof, [tempId]), "==", luau.string("table")),
+					luau.string("LoadAsset expected a " + state.typeChecker.typeToString(signature)),
+				]),
+			}),
+		);
+
+		return tempId;
+	} else {
+		return luau.create(luau.SyntaxKind.MethodCallExpression, {
+			name: name,
+			expression: convertToIndexableExpression(expression),
+			args: luau.list.make(...args),
+		});
+	}
 };
 
 export const Asset = {

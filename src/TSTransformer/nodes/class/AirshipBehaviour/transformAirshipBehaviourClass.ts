@@ -330,6 +330,7 @@ function createAirshipProperty(
 
 		prop.objectType = typeChecker.typeToString(type);
 		prop.fileRef = state.getOutputPathFromType(type);
+		if (type.isNullableType()) prop.nullable = true;
 	} else if (isAirshipBehaviourProperty(state, node)) {
 		prop.type = "AirshipBehaviour";
 
@@ -337,6 +338,8 @@ function createAirshipProperty(
 
 		prop.objectType = typeChecker.typeToString(type);
 		prop.fileRef = state.getOutputPathFromType(type);
+
+		if (type.isNullableType()) prop.nullable = true;
 	} else if (isLiteralUnionType(type)) {
 		if (type.isNullableType()) prop.nullable = true;
 
@@ -372,10 +375,12 @@ function createAirshipProperty(
 		prop.type = "AirshipSerializableObject";
 		prop.fileRef = state.getOutputPathFromType(type);
 		prop.objectType = typeChecker.typeToString(type);
-	} else {
 		if (type.isNullableType()) prop.nullable = true;
+	} else {
 		prop.type = typeString;
 	}
+
+	if (type.isNullableType()) prop.nullable = true;
 
 	if (node.initializer) {
 		if (ts.isArrayLiteralExpression(node.initializer)) {

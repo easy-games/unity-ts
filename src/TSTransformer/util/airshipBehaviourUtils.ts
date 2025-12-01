@@ -117,9 +117,20 @@ export function isUnityObjectType(state: TransformState, nodeType: ts.Type) {
 }
 
 export function isSerializableType(state: TransformState, nodeType: ts.Type) {
+	if (!state.compilerFlags.serializableClassTypes) return false;
+
 	const obj = nodeType.getSymbol()?.valueDeclaration;
 	if (obj && ts.isClassLike(obj)) {
-		return true;
+		if (obj.modifiers) {
+			for (const modifier of obj.modifiers) {
+				if (!ts.isDecorator(modifier)) continue;
+				if (!ts.isCallExpression(modifier.expression)) continue;
+				if (!ts.isIdentifier(modifier.expression.expression)) continue;
+				if (modifier.expression.expression.text === "Serializable") return true;
+			}
+		}
+
+		return false;
 	} else {
 		return false;
 	}

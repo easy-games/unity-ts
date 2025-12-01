@@ -98,6 +98,10 @@ export class TransformState {
 		return this.data.isPublishing;
 	}
 
+	public get compilerFlags() {
+		return this.data.flags;
+	}
+
 	public useContext<R = void>(context: CompliationContext, action: (context: CompliationContext) => R) {
 		this._context = context;
 		const value = action(context);

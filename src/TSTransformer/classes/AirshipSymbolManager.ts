@@ -16,7 +16,7 @@ function getType(typeChecker: ts.TypeChecker, node: ts.Node) {
 	return typeChecker.getTypeAtLocation(skipUpwards(node));
 }
 
-const TYPES_NOTICE = "\nYou may need to update your @easy-games/compiler-types!";
+const TYPES_NOTICE = "\nYou may need to update the @Easy/Core package (through the Airship -> Packages menu)";
 
 export const AIRSHIP_SYMBOL_NAMES = {
 	AirshipBehaviour: "AirshipBehaviour",
