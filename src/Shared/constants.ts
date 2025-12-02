@@ -53,6 +53,7 @@ export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	json: false,
 	verbose: false,
 	noInclude: false,
+	flags: {},
 	logTruthyChanges: false,
 	incremental: undefined,
 	writeOnlyChanged: false,
