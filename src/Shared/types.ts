@@ -41,6 +41,7 @@ export interface ProjectOptions {
 
 export interface CompilerFeatureFlags {
 	serializableClassTypes: boolean;
+	stripContextAnyClassMethod: boolean;
 }
 
 export interface ProjectData {

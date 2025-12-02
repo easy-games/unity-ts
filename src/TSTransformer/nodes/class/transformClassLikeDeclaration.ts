@@ -387,6 +387,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 
 	const classType = state.typeChecker.getTypeOfSymbolAtLocation(node.symbol, node);
 	const instanceType = state.typeChecker.getDeclaredTypeOfSymbol(node.symbol);
+	const canContextStripMethods = state.data.flags.stripContextAnyClassMethod || isBehaviourClass;
 
 	for (const method of methods) {
 		if (ts.isIdentifier(method.name) || ts.isStringLiteral(method.name)) {
@@ -409,7 +410,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 			}
 		}
 
-		if (isBehaviourClass && !state.isSharedContext && isStrippableContextMethod(state, method)) {
+		if (canContextStripMethods && !state.isSharedContext && isStrippableContextMethod(state, method)) {
 			luau.list.pushList(statementsInner, createStripMethod(state, method, internalName));
 			continue;
 		}

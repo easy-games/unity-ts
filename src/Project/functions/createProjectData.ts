@@ -54,6 +54,7 @@ export function createProjectData(
 		optimizedLoops,
 		flags: {
 			serializableClassTypes: false,
+			stripContextAnyClassMethod: true,
 			...projectOptions.flags,
 		},
 		watch,
