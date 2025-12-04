@@ -75,12 +75,12 @@ export function getTypeMacroArgumentString(state: TransformState, type: ts.Type)
 }
 
 export function getAncestorTypeSymbols(nodeType: ts.Type, typeChecker: ts.TypeChecker) {
-	if (!nodeType.isClassOrInterface()) return [];
-
 	// ensure non-nullable (e.g. if `GameObject | undefined` - make `GameObject`)
 	if (nodeType.isNullableType()) {
 		nodeType = nodeType.getNonNullableType();
 	}
+
+	if (!nodeType.isClassOrInterface()) return [];
 
 	if (!nodeType.symbol) return [];
 	const baseTypes = nodeType.getBaseTypes();
