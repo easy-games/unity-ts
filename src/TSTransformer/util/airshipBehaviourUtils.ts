@@ -72,19 +72,28 @@ export function getTypesOfClasses(typeChecker: ts.TypeChecker, nodes: ReadonlyAr
 	return symbols;
 }
 
+const TEMPLATE_ARGUMENTS_SUFFIX = /<(.*)>$/gi;
+export function getTypeMacroArgumentString(state: TransformState, type: ts.Type) {
+	const typeName = state.typeChecker.symbolToString(type.symbol);
+	return typeName;
+}
+
 export function getAncestorTypeSymbols(nodeType: ts.Type, typeChecker: ts.TypeChecker) {
 	// ensure non-nullable (e.g. if `GameObject | undefined` - make `GameObject`)
 	if (nodeType.isNullableType()) {
 		nodeType = nodeType.getNonNullableType();
 	}
 
-	if (!nodeType.symbol) return [];
+	if (!nodeType.isClassOrInterface()) return [];
 
+	if (!nodeType.symbol) return [];
 	const baseTypes = nodeType.getBaseTypes();
 
 	if (baseTypes) {
 		const symbols = new Array<ts.Symbol>();
-		for (const baseType of baseTypes) {
+		for (let baseType of baseTypes) {
+			// We need to grab the original type when it comes to X<Y> types
+			baseType = typeChecker.getDeclaredTypeOfSymbol(baseType.symbol);
 			symbols.push(baseType.symbol);
 
 			for (const parentSymbol of getAncestorTypeSymbols(baseType, typeChecker)) {

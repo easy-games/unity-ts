@@ -3,7 +3,7 @@ import { errors, warnings } from "Shared/diagnostics";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { getGlobalSymbolByNameOrThrow } from "TSTransformer/classes/MacroManager";
 import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
-import { isUnityObjectType } from "TSTransformer/util/airshipBehaviourUtils";
+import { getTypeMacroArgumentString, isUnityObjectType } from "TSTransformer/util/airshipBehaviourUtils";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import {
 	isAirshipBehaviourType,
@@ -60,6 +60,7 @@ const expectUnityComponentGeneric = (
 	};
 };
 
+
 const makeTypeArgumentAsStringMacro =
 	(method: string, requiresArgument = true, defaultTypeName?: string): PropertyCallMacro =>
 	(state, node, expression, args) => {
@@ -79,7 +80,9 @@ const makeTypeArgumentAsStringMacro =
 		}
 
 		if (type) {
-			args.unshift(luau.string(state.typeChecker.typeToString(type)));
+			const typeName = getTypeMacroArgumentString(state, type);
+
+			args.unshift(luau.string(typeName));
 			return luau.create(luau.SyntaxKind.MethodCallExpression, {
 				expression: convertToIndexableExpression(expression),
 				name: method,
