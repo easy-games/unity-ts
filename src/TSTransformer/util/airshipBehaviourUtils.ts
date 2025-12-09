@@ -15,7 +15,7 @@ import {
 	isAirshipScriptableObjectType,
 } from "TSTransformer/util/extendsAirshipBehaviour";
 import { isParseablePropertyExpression, parsePropertyExpression } from "TSTransformer/util/propertyValueParser";
-import ts from "typescript";
+import ts, { TypeFlags } from "typescript";
 
 export function isPublicWritablePropertyDeclaration(node: ts.PropertyDeclaration) {
 	// If no modifiers, then it's public by default anyway
@@ -184,7 +184,11 @@ export function isEnumType(type: ts.Type): type is ts.EnumType {
 export function isLiteralUnionType(
 	type: ts.Type,
 ): type is ts.UnionType & { types: ts.StringLiteralType | ts.NumberLiteralType } {
-	return type.isUnion() && type.types.every(type => isNumericEnumValueType(type) || isStringEnumValueType(type));
+	return (
+		type.isUnion() &&
+		(type.flags & TypeFlags.EnumLiteral) === 0 &&
+		type.types.every(type => isNumericEnumValueType(type) || isStringEnumValueType(type))
+	);
 }
 
 export function isNumericEnumValueType(type: ts.Type): type is ts.NumberLiteralType {

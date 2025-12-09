@@ -237,7 +237,7 @@ export class AirshipBuildState {
 		type: ts.Type,
 		sourceFile: ts.SourceFile,
 	) {
-		const fullTypePath = sourceFile.fileName + "@" + typeChecker.symbolToString(type.symbol);
+		const fullTypePath = sourceFile.fileName + "@" + typeChecker.typeToString(type);
 
 		if (this.typeIdCache.has(fullTypePath)) {
 			return this.typeIdCache.get(fullTypePath)!;
@@ -249,7 +249,7 @@ export class AirshipBuildState {
 				.replace("../../Bundles/Types~/", ""),
 		);
 
-		const typeName = typeChecker.symbolToString(type.symbol);
+		const typeName = type.symbol ? typeChecker.symbolToString(type.symbol) : typeChecker.typeToString(type);
 		const value = (parsePath.dir + path.sep + parsePath.name + "@" + typeName).replace(/\\/g, "/");
 
 		this.typeIdCache.set(fullTypePath, value);
