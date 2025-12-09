@@ -1,12 +1,20 @@
+import assert from "assert";
 import { existsSync, readFileSync } from "fs-extra";
 import path from "path";
 import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
-import { AirshipBehaviour, AirshipBehaviourInfo, AirshipBuildFile, FlameworkBuildInfo } from "Shared/types";
+import {
+	AirshipBehaviour,
+	AirshipBehaviourInfo,
+	AirshipBuildFile,
+	AirshipSerializable,
+	AirshipType,
+	FlameworkBuildInfo,
+} from "Shared/types";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { FlameworkClassInfo } from "TSTransformer/flamework";
 import { getEnumMetadata } from "TSTransformer/util/airshipBehaviourUtils";
-import ts from "typescript";
+import ts, { setValueDeclaration } from "typescript";
 
 export type EnumRecord = Record<string, string | number>;
 
@@ -34,11 +42,16 @@ export class AirshipBuildState {
 		this.buildFile = buildFile ?? {
 			behaviours: {},
 			extends: {},
+			serializables: {},
+			scriptables: {},
+			types: [],
 			flamework: {
 				version: 1,
 				identifiers: {},
 			} satisfies FlameworkBuildInfo,
 		};
+
+		this.buildFile.types = [];
 	}
 
 	public readonly fileComponentMap: Record<string, Array<string>> = {};
@@ -70,9 +83,39 @@ export class AirshipBuildState {
 	public registerBehaviour(behaviour: AirshipBehaviour, relativeFilePath: string) {
 		this.buildFile.behaviours[behaviour.name] = {
 			component: behaviour.metadata !== undefined,
+			type: "AirshipBehaviour",
 			filePath: relativeFilePath,
 			extends: behaviour.extends,
 			singleton: behaviour.metadata?.singleton || false,
+		};
+	}
+
+	public registerType(state: TransformState, type: AirshipType) {
+		if (state.isPublish()) return;
+
+		const existingType = this.buildFile.types.find(f => f.id === type.id);
+		if (existingType !== undefined) return;
+		this.buildFile.types.push(type);
+		return type;
+	}
+
+	public registerScriptableObject(behaviour: AirshipBehaviour, relativeFilePath: string) {
+		this.buildFile.scriptables[behaviour.name] = {
+			component: behaviour.metadata !== undefined,
+			type: "AirshipScriptableObject",
+			filePath: relativeFilePath,
+			extends: behaviour.extends,
+			singleton: behaviour.metadata?.singleton || false,
+		};
+	}
+
+	public registerSerializable(serializable: AirshipSerializable, relativeFilePath: string) {
+		this.buildFile.serializables[serializable.name] = {
+			component: false,
+			type: "Serializable",
+			filePath: relativeFilePath,
+			extends: [],
+			singleton: false,
 		};
 	}
 
@@ -166,13 +209,35 @@ export class AirshipBuildState {
 		this.idLookup.set(internalId, id);
 	}
 
+	public getRequirePathOfTypeNoState(pathTranslator: PathTranslator, typeChecker: ts.TypeChecker, type: ts.Type) {
+		const typeName = typeChecker.typeToString(type);
+		const valueDeclaration = type.getSymbol()?.valueDeclaration;
+		if (valueDeclaration !== undefined) {
+			const sourceFile = valueDeclaration.getSourceFile();
+
+			const parsePath = path.parse(
+				path
+					.relative(pathTranslator.outDir, pathTranslator.getOutputPath(sourceFile.fileName))
+					.replace("../../Bundles/Types~/", ""),
+			);
+
+			return parsePath.dir.replace("\\", "/") + "/" + parsePath.name;
+		}
+
+		return typeName;
+	}
+
+	public getRequirePathOfType(state: TransformState, type: ts.Type) {
+		return this.getRequirePathOfTypeNoState(state.pathTranslator, state.typeChecker, type);
+	}
+
 	public getUniqueIdForTypeNoState(
 		pathTranslator: PathTranslator,
 		typeChecker: ts.TypeChecker,
 		type: ts.Type,
 		sourceFile: ts.SourceFile,
 	) {
-		const fullTypePath = sourceFile.fileName + "@" + typeChecker.typeToString(type);
+		const fullTypePath = sourceFile.fileName + "@" + typeChecker.symbolToString(type.symbol);
 
 		if (this.typeIdCache.has(fullTypePath)) {
 			return this.typeIdCache.get(fullTypePath)!;
@@ -184,7 +249,7 @@ export class AirshipBuildState {
 				.replace("../../Bundles/Types~/", ""),
 		);
 
-		const typeName = typeChecker.typeToString(type);
+		const typeName = typeChecker.symbolToString(type.symbol);
 		const value = (parsePath.dir + path.sep + parsePath.name + "@" + typeName).replace(/\\/g, "/");
 
 		this.typeIdCache.set(fullTypePath, value);
@@ -192,7 +257,10 @@ export class AirshipBuildState {
 	}
 
 	private typeIdCache = new Map<string, string>();
-	public getUniqueIdForType(transformState: TransformState, type: ts.Type, sourceFile: ts.SourceFile) {
+	public getUniqueIdForType(transformState: TransformState, type: ts.Type, sourceFile?: ts.SourceFile) {
+		sourceFile ??= type.symbol.valueDeclaration?.getSourceFile();
+		assert(sourceFile);
+
 		return this.getUniqueIdForTypeNoState(
 			transformState.pathTranslator,
 			transformState.typeChecker,

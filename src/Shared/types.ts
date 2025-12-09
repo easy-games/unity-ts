@@ -35,7 +35,13 @@ export interface ProjectOptions {
 	nodePackageName: string;
 	copyNodeModules: boolean;
 	precompiled: Array<string>;
+	flags: Partial<CompilerFeatureFlags>;
 	stripImplicitContextCalls: boolean;
+}
+
+export interface CompilerFeatureFlags {
+	serializableClassTypes: boolean;
+	stripContextAnyClassMethod: boolean;
 }
 
 export interface ProjectData {
@@ -50,6 +56,7 @@ export interface ProjectData {
 	projectPath: string;
 	rojoConfigPath: string | undefined;
 	tsConfigPath: string;
+	flags: CompilerFeatureFlags;
 	writeOnlyChanged: boolean;
 	codeOnlyPublish: boolean;
 	optimizedLoops: boolean;
@@ -136,6 +143,21 @@ export interface AirshipBehaviourJson {
 	readonly properties: Array<AirshipBehaviourFieldExport>;
 }
 
+export interface AirshipScriptableObjectJson {
+	/**
+	 * The name of the behaviour class
+	 */
+	readonly name: string | undefined;
+	/**
+	 * The hash of this AirshipBehaviour
+	 */
+	readonly hash: string;
+	/**
+	 * The AirshipBehaviour supported public serializable properties of the behaviour class
+	 */
+	readonly properties: Array<AirshipBehaviourFieldExport>;
+}
+
 export enum EnumType {
 	StringEnum,
 	IntEnum,
@@ -148,6 +170,63 @@ export interface AirshipBehaviour {
 
 	readonly extends: Array<string>;
 	readonly metadata: AirshipBehaviourJson | undefined;
+}
+
+export interface AirshipSerializable {
+	readonly name: string;
+	readonly id: string;
+
+	/**
+	 * The hash of this AirshipBehaviour
+	 */
+	readonly hash: string;
+	/**
+	 * The AirshipBehaviour supported public serializable properties of the behaviour class
+	 */
+	readonly properties: Array<AirshipBehaviourFieldExport>;
+}
+
+export enum AirshipDeclarationType {
+	/// <summary>
+	/// An AirshipBehaviour class
+	/// </summary>
+	AirshipBehaviour = "AirshipBehaviour",
+	/// <summary>
+	/// An enum
+	/// </summary>
+	Enum = "Enum",
+	/// <summary>
+	/// An AirshipScriptableObject class
+	/// </summary>
+	AirshipScriptableObject = "AirshipScriptableObject",
+}
+
+export interface AirshipTypeBase {
+	readonly name: string;
+	readonly id: string;
+	readonly declarationType: AirshipDeclarationType;
+	readonly modifiers: ReadonlyArray<AirshipClassModifier>;
+}
+
+export type AirshipClassModifier = "abstract" | "default";
+
+export interface AirshipEnumType extends AirshipTypeBase {
+	readonly declarationType: AirshipDeclarationType.Enum;
+	readonly file: string;
+}
+
+export interface AirshipClassType extends AirshipTypeBase {
+	readonly declarationType: AirshipDeclarationType.AirshipBehaviour | AirshipDeclarationType.AirshipScriptableObject;
+	readonly inherits: ReadonlyArray<string>;
+	readonly file: string;
+}
+
+export type AirshipType = AirshipClassType | AirshipEnumType;
+
+export interface AirshipScriptMetadata {
+	readonly behaviour: AirshipBehaviourJson | undefined;
+	readonly scriptable: AirshipScriptableObjectJson | undefined;
+	readonly serializables: Array<AirshipSerializable> | undefined;
 }
 
 export interface AirshipBehaviourStaticMemberValue {
@@ -326,11 +405,22 @@ export const AirshipBehaviourClassDecorator = {
 	},
 };
 
-export interface AirshipBehaviourInfo {
+export interface AirshipBehaviourMeta {
 	readonly filePath: string;
+	readonly type: "AirshipBehaviour" | "Serializable" | "AirshipScriptableObject";
 	readonly component: boolean;
 	readonly singleton: boolean;
 	readonly extends: Array<string>;
+}
+
+export interface AirshipBehaviourInfo extends AirshipBehaviourMeta {
+	readonly type: "AirshipBehaviour";
+}
+export interface AirshipScriptableObjectInfo extends AirshipBehaviourMeta {
+	readonly type: "AirshipScriptableObject";
+}
+export interface AirshipSerializableClassInfo extends AirshipBehaviourMeta {
+	readonly type: "Serializable";
 }
 
 interface FlameworkBuildDecorator {
@@ -356,6 +446,9 @@ export interface FlameworkBuildInfo {
 
 export interface AirshipBuildFile {
 	readonly behaviours: Record<string, AirshipBehaviourInfo>; // TODO: Value
+	readonly scriptables: Record<string, AirshipScriptableObjectInfo>;
+	readonly serializables: Record<string, AirshipSerializableClassInfo>;
 	readonly extends: Record<string, Array<string>>;
 	readonly flamework: FlameworkBuildInfo;
+	types: Array<AirshipType>;
 }

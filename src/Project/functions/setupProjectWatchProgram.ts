@@ -26,6 +26,7 @@ import { isCompilableFile } from "Shared/util/isCompilableFile";
 import { walkDirectorySync } from "Shared/util/walkDirectorySync";
 import { AirshipBuildState, BUILD_FILE, EDITOR_FILE } from "TSTransformer";
 import ts from "typescript";
+import { AirshipType } from "Shared/types";
 
 const IGNORE_LIST = [/^.*\.(?!ts$|tsx$|d\.ts$|lua$)[^.]+$/gi, "**/node_modules/**"];
 const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
@@ -200,6 +201,20 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		} else {
 			reportText("File change detected. Starting incremental compilation...");
 		}
+
+		const changedFilesRel = [...filesToCompile].map(v =>
+			path.relative(pathTranslator!.rootDir, v).replace(/\\/gi, "/"),
+		);
+
+		const typesToInvalidate = new Set<AirshipType>();
+		for (const changedFile of changedFilesRel) {
+			const types = buildFile.types.filter(f => f.file === changedFile);
+			for (const type of types) {
+				typesToInvalidate.add(type);
+			}
+		}
+
+		buildFile.types = buildFile.types.filter(type => !typesToInvalidate.has(type));
 
 		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, watchBuildState, sourceFiles);
 		if (emitResult.emitSkipped) {

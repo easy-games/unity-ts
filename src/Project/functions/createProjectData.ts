@@ -52,6 +52,11 @@ export function createProjectData(
 		writeOnlyChanged,
 		codeOnlyPublish: projectOptions.codePublish,
 		optimizedLoops,
+		flags: {
+			serializableClassTypes: false,
+			stripContextAnyClassMethod: true,
+			...projectOptions.flags,
+		},
 		watch,
 		stripImplicitContextCalls: projectOptions.stripImplicitContextCalls,
 	};

@@ -36,6 +36,20 @@ export function isRootAirshipBehaviourClass(state: TransformState, node: ts.Clas
 	return false;
 }
 
+export function isRootScriptableObjectClass(state: TransformState, node: ts.ClassLikeDeclaration) {
+	const extendsNode = getExtendsNode(node);
+	if (extendsNode) {
+		const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipScriptableObjectSymbolOrThrow();
+
+		const symbol = getOriginalSymbolOfNode(state.typeChecker, extendsNode.expression);
+		if (symbol === airshipBehaviourSymbol) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 export function isRootAirshipSingletonClass(state: TransformState, node: ts.ClassLikeDeclaration) {
 	const extendsNode = getExtendsNode(node);
 	if (extendsNode) {
@@ -55,6 +69,33 @@ export function isAirshipBehaviourClass(state: TransformState, node: ts.ClassLik
 	const extendsNode = getExtendsNode(node);
 	if (extendsNode) {
 		const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipBehaviourSymbolOrThrow();
+
+		// check if the immediate extends is AirshipBehaviour
+		let type = state.typeChecker.getTypeAtLocation(node);
+
+		if (type.isNullableType()) {
+			type = type.getNonNullableType();
+		}
+
+		const symbol = getOriginalSymbolOfNode(state.typeChecker, extendsNode.expression);
+		if (symbol === airshipBehaviourSymbol) {
+			return true;
+		}
+
+		const extendsClasses = getTypesOfClasses(state.typeChecker, getExtendsClasses(state.typeChecker, node));
+		if (extendsClasses.length === 0) return false;
+
+		const baseClass = extendsClasses[extendsClasses.length - 1];
+		return baseClass.symbol === airshipBehaviourSymbol;
+	}
+
+	return false;
+}
+
+export function isAirshipScriptableObjectClass(state: TransformState, node: ts.ClassLikeDeclaration) {
+	const extendsNode = getExtendsNode(node);
+	if (extendsNode) {
+		const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipScriptableObjectSymbolOrThrow();
 
 		// check if the immediate extends is AirshipBehaviour
 		let type = state.typeChecker.getTypeAtLocation(node);
@@ -151,6 +192,15 @@ export function isAirshipBehaviourMethod(state: TransformState, node: ts.MethodD
 	return behaviourMethods.get(node.name.text) !== undefined;
 }
 
+export function isAirshipScriptableObjectProperty(state: TransformState, node: ts.PropertyDeclaration) {
+	const nodeType = state.getType(node);
+	if (isAirshipScriptableObjectType(state, nodeType)) {
+		return true;
+	}
+
+	return false;
+}
+
 export function isAirshipBehaviourProperty(state: TransformState, node: ts.PropertyDeclaration) {
 	const nodeType = state.getType(node);
 	if (isAirshipBehaviourType(state, nodeType)) {
@@ -170,6 +220,26 @@ export function isAirshipBehaviourProperty(state: TransformState, node: ts.Prope
 		}
 
 		return isBehaviourClass;
+	}
+
+	return false;
+}
+
+export function isAirshipScriptableObjectType(state: TransformState, type: ts.Type, includeBaseType = false) {
+	const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipScriptableObjectSymbolOrThrow();
+
+	if (includeBaseType && airshipBehaviourSymbol === type.symbol) return true;
+
+	// Get the inheritance tree, otherwise
+	const inheritance = getAncestorTypeSymbols(type, state.typeChecker);
+	if (inheritance.length === 0) {
+		return false;
+	}
+
+	// Get the root inheriting symbol (Should match AirshipBehaviour for this to be "extending" AirshipBehaviour)
+	const baseTypeDeclaration = inheritance[inheritance.length - 1];
+	if (baseTypeDeclaration !== undefined) {
+		return baseTypeDeclaration === airshipBehaviourSymbol;
 	}
 
 	return false;
@@ -212,8 +282,10 @@ export function isClassInheritingSymbol(state: TransformState, node: ts.ClassLik
 	return inheritance.some(value => value === symbol);
 }
 
-export function isAirshipSingletonType(state: TransformState, type: ts.Type) {
+export function isAirshipSingletonType(state: TransformState, type: ts.Type, includeBaseType = false) {
 	const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipSingletonSymbolOrThrow();
+
+	if (includeBaseType && airshipBehaviourSymbol === type.symbol) return true;
 
 	// Get the inheritance tree, otherwise
 	const inheritance = getAncestorTypeSymbols(type, state.typeChecker);

@@ -2,7 +2,7 @@ import luau, { render, RenderState, renderStatements, solveTempIds } from "@robl
 import { default as systemPath, posix as path } from "path";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { ProjectType } from "Shared/constants";
-import { AirshipBehaviour, ProjectData } from "Shared/types";
+import { AirshipBehaviour, AirshipSerializable, AirshipType, ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
@@ -36,6 +36,10 @@ export enum CompliationContext {
 export class TransformState {
 	private readonly sourceFileText: string;
 	public airshipBehaviours = new Array<AirshipBehaviour>();
+	public scriptableObjects = new Array<AirshipBehaviour>();
+	public serializables = new Array<AirshipSerializable>();
+	public types = new Array<AirshipType>();
+
 	// public sourceFileBehaviourMetaJson: AirshipBehaviourJson | undefined;
 	public hasExportEquals = false;
 	public hasExportFrom = false;
@@ -94,6 +98,10 @@ export class TransformState {
 
 	public isPublish() {
 		return this.data.isPublishing;
+	}
+
+	public get compilerFlags() {
+		return this.data.flags;
 	}
 
 	public useContext<R = void>(context: CompliationContext, action: (context: CompliationContext) => R) {

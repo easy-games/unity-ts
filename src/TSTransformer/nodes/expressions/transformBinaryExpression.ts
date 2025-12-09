@@ -19,6 +19,7 @@ import {
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
+import { isAirshipBehaviourType, isAirshipScriptableObjectType, isAirshipSingletonType } from "TSTransformer/util/extendsAirshipBehaviour";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
@@ -233,6 +234,19 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			luau.nil(),
 		);
 	} else if (operatorKind === ts.SyntaxKind.InstanceOfKeyword) {
+		const rightSymbol = state.typeChecker.getTypeAtLocation(node.right);
+		if (isAirshipScriptableObjectType(state, rightSymbol, true)) {
+			return luau.create(luau.SyntaxKind.MethodCallExpression, {
+				expression: luau.id("AirshipScriptableObject"),
+				name: "IsInstance",
+				args: luau.list.make(left),
+			});
+		}
+		if (isAirshipBehaviourType(state, rightSymbol, true) || isAirshipSingletonType(state, rightSymbol, true)) {
+			DiagnosticService.addDiagnostic(errors.noInstanceOfComponentBaseType(node));
+			return luau.nil();
+		}
+
 		return luau.call(state.TS(node, "instanceof"), [left, right]);
 	}
 
