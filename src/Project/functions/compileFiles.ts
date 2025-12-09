@@ -264,6 +264,7 @@ export function compileFiles(
 				const airshipBehaviours = transformState.airshipBehaviours;
 				const scriptableObjects = transformState.scriptableObjects;
 				const serializables = transformState.serializables;
+				const definedTypes = transformState.types;
 
 				// In watch mode we want to ensure entries are updated
 				if (watch && !incremental) {
@@ -286,21 +287,28 @@ export function compileFiles(
 					behaviour: undefined,
 					scriptable: undefined,
 					serializables: undefined,
+					types: undefined,
 				};
 
-				if (data.flags.serializableClassTypes) {
-					if (serializables.length > 0) {
-						const types = (scriptMetadata.serializables ??= []);
+				if (definedTypes.length > 0) {
+					const types = (scriptMetadata.types ??= []);
 
-						for (const serializable of serializables) {
-							const relativeFilePath = path.relative(
-								pathTranslator.outDir,
-								pathTranslator.getOutputPath(sourceFile.fileName),
-							);
-							buildState.registerSerializable(serializable, relativeFilePath);
+					for (const serializable of definedTypes) {
+						types.push(serializable);
+					}
+				}
 
-							types.push(serializable);
-						}
+				if (serializables.length > 0) {
+					const types = (scriptMetadata.serializables ??= []);
+
+					for (const serializable of serializables) {
+						const relativeFilePath = path.relative(
+							pathTranslator.outDir,
+							pathTranslator.getOutputPath(sourceFile.fileName),
+						);
+						buildState.registerSerializable(serializable, relativeFilePath);
+
+						types.push(serializable);
 					}
 				}
 

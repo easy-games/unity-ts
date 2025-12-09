@@ -186,10 +186,43 @@ export interface AirshipSerializable {
 	readonly properties: Array<AirshipBehaviourFieldExport>;
 }
 
+export enum AirshipDeclarationType {
+	/// <summary>
+	/// An AirshipBehaviour class
+	/// </summary>
+	AirshipBehaviour = "AirshipBehaviour",
+	/// <summary>
+	/// An enum
+	/// </summary>
+	Enum = "Enum",
+	/// <summary>
+	/// An AirshipScriptableObject class
+	/// </summary>
+	AirshipScriptableObject = "AirshipScriptableObject",
+}
+
+export interface AirshipTypeBase {
+	readonly name: string;
+	readonly id: string;
+	readonly declarationType: AirshipDeclarationType;
+	readonly modifiers: ReadonlyArray<AirshipClassModifier>;
+}
+
+export type AirshipClassModifier = "abstract" | "default";
+
+export interface AirshipClassType extends AirshipTypeBase {
+	readonly declarationType: AirshipDeclarationType.AirshipBehaviour | AirshipDeclarationType.AirshipScriptableObject;
+	readonly inherits: ReadonlyArray<string>;
+	readonly file: string;
+}
+
+export type AirshipType = AirshipClassType;
+
 export interface AirshipScriptMetadata {
 	readonly behaviour: AirshipBehaviourJson | undefined;
 	readonly scriptable: AirshipScriptableObjectJson | undefined;
 	readonly serializables: Array<AirshipSerializable> | undefined;
+	readonly types: Array<AirshipClassType> | undefined;
 }
 
 export interface AirshipBehaviourStaticMemberValue {
@@ -413,4 +446,5 @@ export interface AirshipBuildFile {
 	readonly serializables: Record<string, AirshipSerializableClassInfo>;
 	readonly extends: Record<string, Array<string>>;
 	readonly flamework: FlameworkBuildInfo;
+	types: Array<AirshipType>;
 }

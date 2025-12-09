@@ -9,6 +9,8 @@ import {
 	AirshipBehaviourFieldDecoratorParameter,
 	AirshipBehaviourFieldExport,
 	AirshipBehaviourJson,
+	AirshipClassModifier,
+	AirshipDeclarationType,
 	AirshipDocTag,
 	AirshipFieldDocs,
 	AirshipSerializable,
@@ -678,7 +680,7 @@ function getAirshipClassMetadata(
 	node: ts.ClassLikeDeclaration,
 	classType: ts.Type,
 	inherits: ReadonlyArray<ts.Symbol>,
-): [AirshipBehaviourJson, Array<string>] {
+): [AirshipBehaviourJson, Array<string>, Array<string>] {
 	const metadata: Writable<AirshipBehaviourJson> = {
 		name: node.name?.text,
 		properties: [],
@@ -687,7 +689,8 @@ function getAirshipClassMetadata(
 		decorators: undefined,
 	};
 
-	const inheritedBehaviourIds = new Array<string>();
+	const inheritedClassNames = new Array<string>();
+	const inheritedIds = new Array<string>();
 
 	// Inheritance
 	const inheritance = getAncestorTypeSymbols(classType, state.typeChecker);
@@ -710,7 +713,8 @@ function getAirshipClassMetadata(
 			}
 		}
 
-		inheritedBehaviourIds.push(name);
+		inheritedClassNames.push(name);
+		inheritedIds.push(state.airshipBuildState.getUniqueIdForClassDeclaration(state, valueDeclaration)!);
 
 		const inheritedClassDecorators = getClassDecorators(state, valueDeclaration);
 		for (const decorator of inheritedClassDecorators) {
@@ -731,7 +735,7 @@ function getAirshipClassMetadata(
 	const hash = sha1.update(JSON.stringify(metadata)).digest("hex");
 	metadata.hash = hash;
 
-	return [metadata, inheritedBehaviourIds];
+	return [metadata, inheritedClassNames, inheritedIds];
 }
 
 export function generateMetaForAirshipScriptableObject(state: TransformState, node: ts.ClassLikeDeclaration) {
@@ -754,11 +758,11 @@ export function generateMetaForAirshipScriptableObject(state: TransformState, no
 
 	const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipScriptableObjectSymbolOrThrow();
 
-	if (isDefault) {
-		const [metadata, inheritedBehaviourIds] = getAirshipClassMetadata(state, node, classType, [
-			airshipBehaviourSymbol,
-		]);
+	const [metadata, inheritedBehaviourIds, inheritedUids] = getAirshipClassMetadata(state, node, classType, [
+		airshipBehaviourSymbol,
+	]);
 
+	if (isDefault) {
 		airshipBehaviour.metadata = metadata;
 		airshipBehaviour.extends = inheritedBehaviourIds;
 	} else {
@@ -767,12 +771,12 @@ export function generateMetaForAirshipScriptableObject(state: TransformState, no
 		}
 	}
 
+	const relPath = path.relative(state.pathTranslator.rootDir, node.getSourceFile().fileName).replace(/\\+/g, "/");
+
 	const buildState = state.airshipBuildState;
 	const editorInfo = buildState.editorInfo;
 	const uniqueId = buildState.getUniqueIdForClassDeclaration(state, node);
 	if (uniqueId) {
-		const relPath = path.relative(state.pathTranslator.rootDir, node.getSourceFile().fileName).replace(/\\+/g, "/");
-
 		(editorInfo.components ??= {})[uniqueId] = {
 			assetPath: relPath,
 			name: airshipBehaviour.metadata?.name ?? node.name.text,
@@ -789,6 +793,25 @@ export function generateMetaForAirshipScriptableObject(state: TransformState, no
 
 	airshipBehaviour.id = id;
 	state.scriptableObjects.push(airshipBehaviour);
+
+	const classModifiers = new Array<AirshipClassModifier>();
+	if (isDefault) {
+		classModifiers.push("default");
+	}
+
+	if (isAbstract) {
+		classModifiers.push("abstract");
+	}
+
+	state.airshipBuildState.registerType(state, {
+		name: airshipBehaviour.name,
+		id: airshipBehaviour.id,
+		file: relPath,
+		declarationType: AirshipDeclarationType.AirshipScriptableObject,
+		modifiers: classModifiers,
+		inherits: inheritedUids,
+	});
+
 	return airshipBehaviour;
 }
 
@@ -813,12 +836,12 @@ export function generateMetaForAirshipBehaviour(state: TransformState, node: ts.
 	const airshipBehaviourSymbol = state.services.airshipSymbolManager.getAirshipBehaviourSymbolOrThrow();
 	const airshipSingletonSymbol = state.services.airshipSymbolManager.getAirshipSingletonSymbolOrThrow();
 
-	if (isDefault) {
-		const [metadata, inheritedBehaviourIds] = getAirshipClassMetadata(state, node, classType, [
-			airshipBehaviourSymbol,
-			airshipSingletonSymbol,
-		]);
+	const [metadata, inheritedBehaviourIds, inheritedUids] = getAirshipClassMetadata(state, node, classType, [
+		airshipBehaviourSymbol,
+		airshipSingletonSymbol,
+	]);
 
+	if (isDefault) {
 		airshipBehaviour.metadata = metadata;
 		airshipBehaviour.extends = inheritedBehaviourIds;
 	} else {
@@ -827,12 +850,12 @@ export function generateMetaForAirshipBehaviour(state: TransformState, node: ts.
 		}
 	}
 
+	const relPath = path.relative(state.pathTranslator.rootDir, node.getSourceFile().fileName).replace(/\\+/g, "/");
+
 	const buildState = state.airshipBuildState;
 	const editorInfo = buildState.editorInfo;
 	const uniqueId = buildState.getUniqueIdForClassDeclaration(state, node);
 	if (uniqueId) {
-		const relPath = path.relative(state.pathTranslator.rootDir, node.getSourceFile().fileName).replace(/\\+/g, "/");
-
 		(editorInfo.components ??= {})[uniqueId] = {
 			assetPath: relPath,
 			name: airshipBehaviour.metadata?.name ?? node.name.text,
@@ -850,6 +873,24 @@ export function generateMetaForAirshipBehaviour(state: TransformState, node: ts.
 	airshipBehaviour.id = id;
 
 	state.airshipBehaviours.push(airshipBehaviour);
+
+	const classModifiers = new Array<AirshipClassModifier>();
+	if (isDefault) {
+		classModifiers.push("default");
+	}
+
+	if (isAbstract) {
+		classModifiers.push("abstract");
+	}
+
+	state.airshipBuildState.registerType(state, {
+		name: airshipBehaviour.name,
+		id: airshipBehaviour.id,
+		file: relPath,
+		declarationType: AirshipDeclarationType.AirshipBehaviour,
+		modifiers: classModifiers,
+		inherits: inheritedUids,
+	});
 
 	return airshipBehaviour;
 }

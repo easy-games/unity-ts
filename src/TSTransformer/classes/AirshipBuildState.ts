@@ -8,6 +8,7 @@ import {
 	AirshipBehaviourInfo,
 	AirshipBuildFile,
 	AirshipSerializable,
+	AirshipType,
 	FlameworkBuildInfo,
 } from "Shared/types";
 import { TransformState } from "TSTransformer/classes/TransformState";
@@ -43,11 +44,14 @@ export class AirshipBuildState {
 			extends: {},
 			serializables: {},
 			scriptables: {},
+			types: [],
 			flamework: {
 				version: 1,
 				identifiers: {},
 			} satisfies FlameworkBuildInfo,
 		};
+
+		this.buildFile.types = [];
 	}
 
 	public readonly fileComponentMap: Record<string, Array<string>> = {};
@@ -84,6 +88,15 @@ export class AirshipBuildState {
 			extends: behaviour.extends,
 			singleton: behaviour.metadata?.singleton || false,
 		};
+	}
+
+	public registerType(state: TransformState, type: AirshipType) {
+		if (state.isPublish()) return;
+
+		const existingType = this.buildFile.types.find(f => f.id === type.id);
+		if (existingType !== undefined) return;
+		this.buildFile.types.push(type);
+		return type;
 	}
 
 	public registerScriptableObject(behaviour: AirshipBehaviour, relativeFilePath: string) {
@@ -224,7 +237,7 @@ export class AirshipBuildState {
 		type: ts.Type,
 		sourceFile: ts.SourceFile,
 	) {
-		const fullTypePath = sourceFile.fileName + "@" + typeChecker.typeToString(type);
+		const fullTypePath = sourceFile.fileName + "@" + typeChecker.symbolToString(type.symbol);
 
 		if (this.typeIdCache.has(fullTypePath)) {
 			return this.typeIdCache.get(fullTypePath)!;
@@ -236,7 +249,7 @@ export class AirshipBuildState {
 				.replace("../../Bundles/Types~/", ""),
 		);
 
-		const typeName = typeChecker.typeToString(type);
+		const typeName = typeChecker.symbolToString(type.symbol);
 		const value = (parsePath.dir + path.sep + parsePath.name + "@" + typeName).replace(/\\/g, "/");
 
 		this.typeIdCache.set(fullTypePath, value);

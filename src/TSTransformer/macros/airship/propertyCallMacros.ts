@@ -60,7 +60,6 @@ const expectUnityComponentGeneric = (
 	};
 };
 
-
 const makeTypeArgumentAsStringMacro =
 	(method: string, requiresArgument = true, defaultTypeName?: string): PropertyCallMacro =>
 	(state, node, expression, args) => {

@@ -2,7 +2,7 @@ import luau, { render, RenderState, renderStatements, solveTempIds } from "@robl
 import { default as systemPath, posix as path } from "path";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { ProjectType } from "Shared/constants";
-import { AirshipBehaviour, AirshipSerializable, ProjectData } from "Shared/types";
+import { AirshipBehaviour, AirshipSerializable, AirshipType, ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
@@ -38,6 +38,8 @@ export class TransformState {
 	public airshipBehaviours = new Array<AirshipBehaviour>();
 	public scriptableObjects = new Array<AirshipBehaviour>();
 	public serializables = new Array<AirshipSerializable>();
+	public types = new Array<AirshipType>();
+
 	// public sourceFileBehaviourMetaJson: AirshipBehaviourJson | undefined;
 	public hasExportEquals = false;
 	public hasExportFrom = false;
