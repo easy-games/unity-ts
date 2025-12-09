@@ -210,19 +210,23 @@ export interface AirshipTypeBase {
 
 export type AirshipClassModifier = "abstract" | "default";
 
+export interface AirshipEnumType extends AirshipTypeBase {
+	readonly declarationType: AirshipDeclarationType.Enum;
+	readonly file: string;
+}
+
 export interface AirshipClassType extends AirshipTypeBase {
 	readonly declarationType: AirshipDeclarationType.AirshipBehaviour | AirshipDeclarationType.AirshipScriptableObject;
 	readonly inherits: ReadonlyArray<string>;
 	readonly file: string;
 }
 
-export type AirshipType = AirshipClassType;
+export type AirshipType = AirshipClassType | AirshipEnumType;
 
 export interface AirshipScriptMetadata {
 	readonly behaviour: AirshipBehaviourJson | undefined;
 	readonly scriptable: AirshipScriptableObjectJson | undefined;
 	readonly serializables: Array<AirshipSerializable> | undefined;
-	readonly types: Array<AirshipClassType> | undefined;
 }
 
 export interface AirshipBehaviourStaticMemberValue {

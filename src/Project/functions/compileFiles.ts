@@ -264,7 +264,6 @@ export function compileFiles(
 				const airshipBehaviours = transformState.airshipBehaviours;
 				const scriptableObjects = transformState.scriptableObjects;
 				const serializables = transformState.serializables;
-				const definedTypes = transformState.types;
 
 				// In watch mode we want to ensure entries are updated
 				if (watch && !incremental) {
@@ -287,16 +286,7 @@ export function compileFiles(
 					behaviour: undefined,
 					scriptable: undefined,
 					serializables: undefined,
-					types: undefined,
 				};
-
-				if (definedTypes.length > 0) {
-					const types = (scriptMetadata.types ??= []);
-
-					for (const serializable of definedTypes) {
-						types.push(serializable);
-					}
-				}
 
 				if (serializables.length > 0) {
 					const types = (scriptMetadata.serializables ??= []);
