@@ -387,7 +387,7 @@ function createAirshipProperty(
 	if (node.initializer) {
 		if (ts.isArrayLiteralExpression(node.initializer)) {
 			prop.default = node.initializer.elements.map(element =>
-				getUnityObjectInitializerDefaultValue(state, element),
+				getUnityObjectInitializerDefaultValue(state, ts.skipParentheses(element)),
 			);
 		} else {
 			const initializer = node.initializer;

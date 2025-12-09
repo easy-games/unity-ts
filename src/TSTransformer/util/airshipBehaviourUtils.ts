@@ -370,11 +370,21 @@ export function getUnityObjectInitializerDefaultValue(
 	| boolean
 	| undefined {
 	if (ts.isNewExpression(initializer)) {
-		const constructableType = state.typeChecker.getSymbolAtLocation(initializer.expression);
-		if (!constructableType) return undefined;
+		const constructableType = state.typeChecker.getSymbolAtLocation(ts.skipParentheses(initializer.expression));
+		if (!constructableType) {
+			return undefined;
+		}
 
 		const constructing = state.services.airshipSymbolManager.getTypeFromSymbol(constructableType);
 		if (!constructing) return undefined;
+
+		if (initializer.arguments === undefined) {
+			return {
+				target: "constructor",
+				type: state.typeChecker.typeToString(constructing),
+				arguments: [],
+			};
+		}
 
 		const allLiterals = initializer.arguments?.every((argument): argument is ts.StringLiteral | ts.NumericLiteral =>
 			isParseablePropertyExpression(argument),
