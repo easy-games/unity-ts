@@ -713,8 +713,8 @@ function getAirshipClassMetadata(
 			}
 		}
 
-		inheritedClassNames.push(name);
-		inheritedIds.push(state.airshipBuildState.getUniqueIdForClassDeclaration(state, valueDeclaration)!);
+		inheritedClassNames.unshift(name);
+		inheritedIds.unshift(state.airshipBuildState.getUniqueIdForClassDeclaration(state, valueDeclaration)!);
 
 		const inheritedClassDecorators = getClassDecorators(state, valueDeclaration);
 		for (const decorator of inheritedClassDecorators) {
