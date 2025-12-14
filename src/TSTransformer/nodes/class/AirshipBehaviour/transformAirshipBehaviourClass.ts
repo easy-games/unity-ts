@@ -715,9 +715,6 @@ function getAirshipClassMetadata(
 		decorators: undefined,
 	};
 
-	const classSymbol = state.typeChecker.getSymbolAtLocation(node.name!)!;
-	const cType = state.typeChecker.getDeclaredTypeOfSymbol(classSymbol);
-
 	const inheritedClassNames = new Array<string>();
 	const inheritedIds = new Array<string>();
 

@@ -245,6 +245,10 @@ export const errors = {
 		];
 	}),
 
+	argument: errorWithContext(() => {
+		return ["Missing required macro type argument"];
+	}),
+
 	invalidServerMacroUse: error("invalid"),
 
 	requiredComponentTypeParameterRequired: errorWithContext((className: string) => {

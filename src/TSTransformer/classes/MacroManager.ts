@@ -5,6 +5,7 @@ import { assert } from "Shared/util/assert";
 import { Asset } from "TSTransformer/macros/airship/propertyCallMacros";
 import { CALL_MACROS } from "TSTransformer/macros/callMacros";
 import { CONSTRUCTOR_MACROS } from "TSTransformer/macros/constructorMacros";
+import { GenericParameter } from "TSTransformer/macros/generics/pushGenerics";
 import { IDENTIFIER_MACROS } from "TSTransformer/macros/identifierMacros";
 import { PROPERTY_CALL_MACROS } from "TSTransformer/macros/propertyCallMacros";
 import {
@@ -17,8 +18,11 @@ import {
 	PropertySetMacro,
 } from "TSTransformer/macros/types";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { isMethod } from "TSTransformer/util/isMethod";
 import { skipUpwards } from "TSTransformer/util/traversal";
-import ts, { MethodDeclaration } from "typescript";
+import ts, { getUniqueSymbolId, MethodDeclaration } from "typescript";
+import { DiagnosticService } from "./DiagnosticService";
+import { errors } from "Shared/diagnostics";
 
 function getType(typeChecker: ts.TypeChecker, node: ts.Node) {
 	return typeChecker.getTypeAtLocation(skipUpwards(node));
@@ -254,6 +258,53 @@ export class MacroManager {
 		}
 
 		return symbols as { [P in K[number]]?: ts.Symbol };
+	}
+
+	public genericParameterToId = new Map<number, luau.AnyIdentifier>();
+	public registerMacroFunction(symbol: ts.Symbol, genParams: ReadonlyArray<GenericParameter>) {
+		for (const param of genParams) {
+			console.log("add to map", param.symbol.id)
+			this.genericParameterToId.set(param.symbol.id, param.id);
+		}
+
+		this.propertyCallMacros.set(symbol, (state, node, expression, args) => {
+			if (isMethod(state, node.expression)) {
+				const symbol = state.typeChecker.getSymbolAtLocation(node.expression);
+				const declaration = symbol?.valueDeclaration;
+				if (declaration && ts.isMethodDeclaration(declaration) && declaration.typeParameters) {
+					const parameters = new Array<luau.Expression>();
+
+					for (let i = 0; i < declaration.typeParameters.length; i++) {
+						const symbolOfParameter = state.typeChecker.getSymbolAtLocation(
+							declaration.typeParameters[i].name,
+						);
+						if (!symbolOfParameter) continue;
+						const matchingItem = genParams.find(f => f.symbol === symbolOfParameter);
+						if (!matchingItem) continue;
+
+						const typeArgument = node.typeArguments?.[i];
+						if (typeArgument !== undefined) {
+							if (ts.isTypeReferenceNode(typeArgument)) {
+								parameters.push(luau.string(typeArgument.typeName.getText()));
+							}
+						} else {
+							DiagnosticService.addDiagnostic(errors.argument(declaration.typeParameters[i]))
+							parameters.push(luau.nil());
+						}
+					}
+
+					if (ts.isPropertyAccessExpression(node.expression)) {
+						return luau.create(luau.SyntaxKind.MethodCallExpression, {
+							name: node.expression.name.text,
+							expression: convertToIndexableExpression(expression),
+							args: luau.list.make(...parameters, ...args),
+						});
+					}
+				}
+			}
+
+			return luau.nil();
+		});
 	}
 
 	public isMacroOnlySymbol(symbol: ts.Symbol) {

@@ -3,6 +3,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { CompliationContext, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { getGenericsForMethod } from "TSTransformer/macros/generics/pushGenerics";
 import {
 	createStripReturn,
 	getStrippableMethodType,
@@ -31,6 +32,14 @@ export function transformMethodDeclaration(
 	if (ts.isPrivateIdentifier(node.name)) {
 		DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(node.name));
 		return luau.list.make<luau.Statement>();
+	}
+
+	const prefixParameters = luau.list.make();
+	const macro = getGenericsForMethod(state, node);
+	if (macro) {
+		for (const id of macro.parameters) {
+			luau.list.push(prefixParameters, id);
+		}
 	}
 
 	// eslint-disable-next-line no-autofix/prefer-const
@@ -75,6 +84,8 @@ export function transformMethodDeclaration(
 	if (!isAsync && luau.isStringLiteral(name) && !luau.isMap(ptr.value) && luau.isValidIdentifier(name.value)) {
 		if (isMethod(state, node)) {
 			luau.list.shift(parameters); // remove `self`
+			luau.list.unshiftList(parameters, prefixParameters);
+
 			luau.list.push(
 				result,
 				luau.create(luau.SyntaxKind.MethodDeclaration, {

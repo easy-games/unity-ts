@@ -2,6 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { errors, warnings } from "Shared/diagnostics";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { getGlobalSymbolByNameOrThrow } from "TSTransformer/classes/MacroManager";
+import { TransformState } from "TSTransformer/classes/TransformState";
 import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { getTypeMacroArgumentString, isUnityObjectType } from "TSTransformer/util/airshipBehaviourUtils";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
@@ -12,6 +13,26 @@ import {
 } from "TSTransformer/util/extendsAirshipBehaviour";
 import ts from "typescript";
 
+function isGenericReferenceNode(state: TransformState, typeNode: ts.TypeNode) {
+	if (ts.isTypeReferenceNode(typeNode)) {
+		const symbol = state.typeChecker.getSymbolAtLocation(typeNode.typeName);
+		if (!symbol) return false;
+		return state.services.macroManager.genericParameterToId.has(symbol.id);
+	}
+
+	return false;
+}
+
+function getGenericId(state: TransformState, typeNode: ts.TypeNode) {
+	if (ts.isTypeReferenceNode(typeNode)) {
+		const symbol = state.typeChecker.getSymbolAtLocation(typeNode.typeName);
+		if (!symbol) return undefined;
+		return state.services.macroManager.genericParameterToId.get(symbol.id);
+	}
+
+	return undefined;
+}
+
 const expectAirshipComponentGeneric = (
 	name: string,
 	propertyCallMacro: PropertyCallMacro,
@@ -20,7 +41,7 @@ const expectAirshipComponentGeneric = (
 	return (state, node, expression, args) => {
 		if (node.typeArguments) {
 			const typeNode = node.typeArguments[index];
-			if (!isAirshipBehaviourTypeNode(state, typeNode)) {
+			if (!isAirshipBehaviourTypeNode(state, typeNode) && !isGenericReferenceNode(state, typeNode)) {
 				DiagnosticService.addDiagnostic(
 					errors.unityMacroExpectsAirshipComponentTypeArgument(
 						node,
@@ -65,6 +86,8 @@ const makeTypeArgumentAsStringMacro =
 	(state, node, expression, args) => {
 		let type: ts.Type | undefined;
 
+		const id = node.typeArguments ? getGenericId(state, node.typeArguments[0]) : undefined;
+
 		if (node.typeArguments) {
 			type = state.getType(node.typeArguments[0]);
 		} else if (ts.isAsExpression(node.parent)) {
@@ -81,7 +104,7 @@ const makeTypeArgumentAsStringMacro =
 		if (type) {
 			const typeName = getTypeMacroArgumentString(state, type);
 
-			args.unshift(luau.string(typeName));
+			args.unshift(id ?? luau.string(typeName));
 			return luau.create(luau.SyntaxKind.MethodCallExpression, {
 				expression: convertToIndexableExpression(expression),
 				name: method,
