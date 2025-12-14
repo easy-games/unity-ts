@@ -574,14 +574,28 @@ function getPropertyDecorators(
 	}
 }
 
+function getResultingTypeOfProperty(
+	checker: ts.TypeChecker,
+	classDeclaration: ts.ClassLikeDeclaration,
+	propertyName: string,
+) {
+	if (!classDeclaration.name) return undefined;
+	const classSymbol = checker.getSymbolAtLocation(classDeclaration.name!);
+	if (!classSymbol) return;
+	const classType = checker.getDeclaredTypeOfSymbol(classSymbol);
+	const propType = checker.getTypeOfPropertyOfType(classType, propertyName);
+	return propType;
+}
+
 function pushPropertyMetadataForAirshipBehaviour(
 	state: TransformState,
-	node: ts.ClassLikeDeclaration,
+	targetClassDeclaration: ts.ClassLikeDeclaration,
 	metadata: AirshipBehaviourJson | AirshipSerializable,
+	contextClassDeclaration?: ts.ClassLikeDeclaration,
 ) {
 	// iter props
-	for (const classElement of node.members) {
-		const elementType = state.getType(classElement);
+	for (const classElement of targetClassDeclaration.members) {
+		let elementType = state.getType(classElement);
 
 		// skip anything that's not a property
 		if (!ts.isPropertyDeclaration(classElement)) continue;
@@ -596,8 +610,20 @@ function pushPropertyMetadataForAirshipBehaviour(
 
 		if (decorators.find(f => f.name === "NonSerialized")) continue;
 
+		if (ts.isIdentifier(classElement.name) && contextClassDeclaration) {
+			// This allows us to infer a generic e.g. `TValue` -> `number`
+			const propType = getResultingTypeOfProperty(
+				state.typeChecker,
+				contextClassDeclaration,
+				classElement.name.text,
+			);
+			if (propType !== undefined) {
+				elementType = propType;
+			}
+		}
+
 		// only do valid exports
-		if (!isValidAirshipBehaviourExportType(state, classElement)) continue;
+		if (!isValidAirshipBehaviourExportType(state, classElement, elementType)) continue;
 
 		// can't add weird properties
 		if (!ts.isIdentifier(classElement.name)) continue;
@@ -689,6 +715,9 @@ function getAirshipClassMetadata(
 		decorators: undefined,
 	};
 
+	const classSymbol = state.typeChecker.getSymbolAtLocation(node.name!)!;
+	const cType = state.typeChecker.getDeclaredTypeOfSymbol(classSymbol);
+
 	const inheritedClassNames = new Array<string>();
 	const inheritedIds = new Array<string>();
 
@@ -702,7 +731,7 @@ function getAirshipClassMetadata(
 		if (!ts.isClassLike(valueDeclaration)) continue;
 		if (inherits.includes(inherited)) continue;
 
-		pushPropertyMetadataForAirshipBehaviour(state, valueDeclaration, metadata);
+		pushPropertyMetadataForAirshipBehaviour(state, valueDeclaration, metadata, node);
 
 		let name = inherited.name;
 		if (name === "default") {
