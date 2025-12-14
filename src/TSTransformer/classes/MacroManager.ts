@@ -5,7 +5,7 @@ import { assert } from "Shared/util/assert";
 import { Asset } from "TSTransformer/macros/airship/propertyCallMacros";
 import { CALL_MACROS } from "TSTransformer/macros/callMacros";
 import { CONSTRUCTOR_MACROS } from "TSTransformer/macros/constructorMacros";
-import { GenericParameter } from "TSTransformer/macros/generics/pushGenerics";
+import { createGenericMacroMethod, GenericParameter } from "TSTransformer/macros/generics/createGenericMacroMethod";
 import { IDENTIFIER_MACROS } from "TSTransformer/macros/identifierMacros";
 import { PROPERTY_CALL_MACROS } from "TSTransformer/macros/propertyCallMacros";
 import {
@@ -261,50 +261,12 @@ export class MacroManager {
 	}
 
 	public genericParameterToId = new Map<number, luau.AnyIdentifier>();
-	public registerMacroFunction(symbol: ts.Symbol, genParams: ReadonlyArray<GenericParameter>) {
-		for (const param of genParams) {
-			console.log("add to map", param.symbol.id)
+	public registerMacroFunction(symbol: ts.Symbol, genericParameters: ReadonlyArray<GenericParameter>) {
+		for (const param of genericParameters) {
 			this.genericParameterToId.set(param.symbol.id, param.id);
 		}
 
-		this.propertyCallMacros.set(symbol, (state, node, expression, args) => {
-			if (isMethod(state, node.expression)) {
-				const symbol = state.typeChecker.getSymbolAtLocation(node.expression);
-				const declaration = symbol?.valueDeclaration;
-				if (declaration && ts.isMethodDeclaration(declaration) && declaration.typeParameters) {
-					const parameters = new Array<luau.Expression>();
-
-					for (let i = 0; i < declaration.typeParameters.length; i++) {
-						const symbolOfParameter = state.typeChecker.getSymbolAtLocation(
-							declaration.typeParameters[i].name,
-						);
-						if (!symbolOfParameter) continue;
-						const matchingItem = genParams.find(f => f.symbol === symbolOfParameter);
-						if (!matchingItem) continue;
-
-						const typeArgument = node.typeArguments?.[i];
-						if (typeArgument !== undefined) {
-							if (ts.isTypeReferenceNode(typeArgument)) {
-								parameters.push(luau.string(typeArgument.typeName.getText()));
-							}
-						} else {
-							DiagnosticService.addDiagnostic(errors.argument(declaration.typeParameters[i]))
-							parameters.push(luau.nil());
-						}
-					}
-
-					if (ts.isPropertyAccessExpression(node.expression)) {
-						return luau.create(luau.SyntaxKind.MethodCallExpression, {
-							name: node.expression.name.text,
-							expression: convertToIndexableExpression(expression),
-							args: luau.list.make(...parameters, ...args),
-						});
-					}
-				}
-			}
-
-			return luau.nil();
-		});
+		this.propertyCallMacros.set(symbol, createGenericMacroMethod(genericParameters));
 	}
 
 	public isMacroOnlySymbol(symbol: ts.Symbol) {

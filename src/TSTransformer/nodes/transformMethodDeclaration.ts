@@ -3,7 +3,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { CompliationContext, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { getGenericsForMethod } from "TSTransformer/macros/generics/pushGenerics";
+import { getForwardedGenericsForMethod } from "TSTransformer/macros/generics/createGenericMacroMethod";
 import {
 	createStripReturn,
 	getStrippableMethodType,
@@ -35,7 +35,7 @@ export function transformMethodDeclaration(
 	}
 
 	const prefixParameters = luau.list.make();
-	const macro = getGenericsForMethod(state, node);
+	const macro = getForwardedGenericsForMethod(state, node);
 	if (macro) {
 		for (const id of macro.parameters) {
 			luau.list.push(prefixParameters, id);
