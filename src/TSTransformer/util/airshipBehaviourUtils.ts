@@ -300,9 +300,11 @@ function getArrayTypeInfo(state: TransformState, nodeType: ts.Type): { arrayType
 	}
 }
 
-export function isValidAirshipBehaviourExportType(state: TransformState, node: ts.PropertyDeclaration) {
-	const nodeType = state.getType(node);
-
+export function isValidAirshipBehaviourExportType(
+	state: TransformState,
+	node: ts.PropertyDeclaration,
+	nodeType: ts.Type = state.getType(node),
+) {
 	const arrayTypeInfo = getArrayTypeInfo(state, nodeType);
 
 	if (arrayTypeInfo) {
