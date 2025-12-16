@@ -1,3 +1,15 @@
+# 3.7.x
+- `AirshipScriptableObject` support
+- Support for using literal union types as properties
+- Fixed bug with constructors with undefined arguments
+- Support for property inference from inherited generic types, allowing fields which are otherwise generic to become properties if the resulting type is serializable.
+- Support for including decorators from abstract or inherited properties if overloaded with other decorators.
+- Fixed inheritance and macros with templated-type ABs
+- Fixed bug with nullable types not showing up as properties
+- Code context stripping support for Server, Client and Editor.
+- Code deployment compilation changes
+- `Map.values`, `Map.keys`, `Map.some`, `Map.every`, `Map.getOrInsert`, `Map.getOrInsertComputed`, `Map.clone`, `Array.clone` and `Set.clone`.
+
 # 3.6.x
 - [`static` blocks](https://www.typescriptlang.org/docs/handbook/2/classes.html#static-blocks-in-classes) are now supported, instead of crashing the compiler.
 - Support for Array, Set, Map, Generator and Object destructuring!

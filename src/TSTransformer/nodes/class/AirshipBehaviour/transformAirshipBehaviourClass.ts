@@ -599,12 +599,20 @@ function pushPropertyMetadataForAirshipBehaviour(
 
 		// skip anything that's not a property
 		if (!ts.isPropertyDeclaration(classElement)) continue;
+		// can't add weird properties
+		if (!ts.isIdentifier(classElement.name)) continue;
+
+		const name = classElement.name.text;
 
 		const decorators = getPropertyDecorators(state, classElement);
 		const isSerializeField = decorators.find(f => f.name === "SerializeField");
 
+		const inheritedProperty = metadata.properties.find(
+			(f): f is Writable<AirshipBehaviourFieldExport> => f.name === name,
+		);
+
 		// skip private, protected properties
-		if (!isPublicWritablePropertyDeclaration(classElement) && !isSerializeField) {
+		if (!inheritedProperty && !isPublicWritablePropertyDeclaration(classElement) && !isSerializeField) {
 			continue;
 		}
 
@@ -625,16 +633,17 @@ function pushPropertyMetadataForAirshipBehaviour(
 		// only do valid exports
 		if (!isValidAirshipBehaviourExportType(state, classElement, elementType)) continue;
 
-		// can't add weird properties
-		if (!ts.isIdentifier(classElement.name)) continue;
-
 		// remove serialize field - doesn't need to be included
 		if (isSerializeField) decorators.splice(decorators.indexOf(isSerializeField), 1);
 
-		const name = classElement.name.text;
-		const property = createAirshipProperty(state, name, elementType, classElement, decorators);
-
-		metadata.properties.push(property);
+		if (!inheritedProperty) {
+			const property = createAirshipProperty(state, name, elementType, classElement, decorators);
+			metadata.properties.push(property);
+		} else if (decorators.length > 0) {
+			const prevDecorators = inheritedProperty.decorators ?? [];
+			prevDecorators.push(...decorators);
+			inheritedProperty.decorators = prevDecorators;
+		}
 	}
 }
 

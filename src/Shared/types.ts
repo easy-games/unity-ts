@@ -295,7 +295,6 @@ export interface AirshipBehaviourFieldExport extends AirshipTypeReference {
 	readonly name: string;
 
 	readonly nullable?: boolean;
-
 	readonly jsdoc?: AirshipFieldDocs;
 
 	/**
@@ -313,7 +312,7 @@ export interface AirshipBehaviourFieldExport extends AirshipTypeReference {
 	/**
 	 * Applied attributes (in TS, decorators) of this property
 	 */
-	readonly decorators: ReadonlyArray<AirshipBehaviourFieldDecorator>;
+	readonly decorators: Array<AirshipBehaviourFieldDecorator>;
 
 	/**
 	 * A file reference for the given type (for `AirshipBehaviour`)
