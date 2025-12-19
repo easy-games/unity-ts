@@ -316,7 +316,9 @@ export const errors = {
 		},
 	),
 
-	decoratorParamsLiteralsOnly: error("Airship Behaviour decorators only accepts constants as property values"),
+	decoratorParamsLiteralsOnly: errorWithContext(() => {
+		return ["Airship decorators can only contain literals or values that can be evaluated at compile time."];
+	}),
 
 	// files
 	noRojoData: errorWithContext((path: string, isPackage: boolean) => [

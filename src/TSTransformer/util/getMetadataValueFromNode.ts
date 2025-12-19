@@ -1,6 +1,6 @@
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { isNumericEnumValueType, isStringEnumValueType } from "TSTransformer/util/airshipBehaviourUtils";
-import { parsePropertyExpression } from "TSTransformer/util/propertyValueParser";
+import { evaluateNumericOperation, parsePropertyExpression } from "TSTransformer/util/propertyValueParser";
 import { isArrayType, isDefinitelyType } from "TSTransformer/util/types";
 import ts from "typescript";
 
@@ -24,10 +24,32 @@ interface LiteralArrayValue {
 	value: Array<MetadataTypeValue>;
 }
 
+function parseEnumBinaryExpression(typeChecker: ts.TypeChecker, expression: ts.Expression): number | undefined {
+	if (ts.isPropertyAccessExpression(expression)) {
+		const type = typeChecker.getTypeAtLocation(expression);
+
+		if (isNumericEnumValueType(type)) {
+			return type.value;
+		}
+	} else if (ts.isBinaryExpression(expression)) {
+		const { left, operatorToken, right } = expression;
+		const leftOperand = parseEnumBinaryExpression(typeChecker, left);
+		const rightOperand = parseEnumBinaryExpression(typeChecker, right);
+
+		if (leftOperand !== undefined && rightOperand !== undefined) {
+			return evaluateNumericOperation(leftOperand, operatorToken, rightOperand);
+		}
+	}
+}
+
+function getFlagEnum(state: TransformState, node: ts.Expression) {
+	return parseEnumBinaryExpression(state.typeChecker, node);
+}
+
 export type MetadataTypeValue = LiteralNumberValue | LiteralStringValue | LiteralBooleanValue | LiteralArrayValue;
 export function getMetadataValueFromNode(
 	state: TransformState,
-	node: ts.Node,
+	node: ts.Expression,
 	supportComplexValues: boolean,
 ): MetadataTypeValue | undefined {
 	const type = state.typeChecker.getTypeAtLocation(node);
@@ -55,7 +77,7 @@ export function getMetadataValueFromNode(
 	}
 
 	if (ts.isExpression(node)) {
-		const value = parsePropertyExpression(node);
+		const value = parsePropertyExpression(state, node);
 		switch (typeof value) {
 			case "string":
 				return { type: "string", value };
@@ -64,6 +86,14 @@ export function getMetadataValueFromNode(
 			case "boolean":
 				return { type: "boolean", value };
 		}
+	}
+
+	const flagValue = getFlagEnum(state, node);
+	if (flagValue !== undefined) {
+		return {
+			type: "number",
+			value: flagValue,
+		};
 	}
 
 	return undefined;

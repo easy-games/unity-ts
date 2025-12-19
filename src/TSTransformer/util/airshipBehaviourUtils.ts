@@ -389,7 +389,7 @@ export function getUnityObjectInitializerDefaultValue(
 		}
 
 		const allLiterals = initializer.arguments?.every((argument): argument is ts.StringLiteral | ts.NumericLiteral =>
-			isParseablePropertyExpression(argument),
+			isParseablePropertyExpression(state, argument),
 		);
 		if (!allLiterals) return undefined;
 
@@ -397,7 +397,7 @@ export function getUnityObjectInitializerDefaultValue(
 			target: "constructor",
 			type: state.typeChecker.typeToString(constructing),
 			arguments: initializer.arguments.map(v => {
-				return parsePropertyExpression(v);
+				return parsePropertyExpression(state, v);
 			}),
 		};
 	} else if (ts.isCallExpression(initializer)) {
@@ -415,7 +415,7 @@ export function getUnityObjectInitializerDefaultValue(
 		if (!constructorType) return undefined;
 
 		const allLiterals = initializer.arguments?.every((argument): argument is ts.StringLiteral | ts.NumericLiteral =>
-			isParseablePropertyExpression(argument),
+			isParseablePropertyExpression(state, argument),
 		);
 		if (!allLiterals) return undefined;
 
@@ -424,7 +424,7 @@ export function getUnityObjectInitializerDefaultValue(
 			method: methodName,
 			type: state.typeChecker.typeToString(constructorType),
 			arguments: initializer.arguments.map(v => {
-				return parsePropertyExpression(v);
+				return parsePropertyExpression(state, v);
 			}),
 		};
 	} else if (ts.isPropertyAccessExpression(initializer)) {
@@ -442,7 +442,7 @@ export function getUnityObjectInitializerDefaultValue(
 	} else if (ts.isBooleanLiteral(initializer)) {
 		return initializer.kind === ts.SyntaxKind.TrueKeyword;
 	} else {
-		const defaultValue = parsePropertyExpression(initializer);
+		const defaultValue = parsePropertyExpression(state, initializer);
 		if (defaultValue === undefined) {
 			DiagnosticService.addSingleDiagnostic(warnings.invalidDefaultValueForProperty(initializer));
 			return undefined;

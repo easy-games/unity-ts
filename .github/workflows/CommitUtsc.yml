@@ -65,7 +65,7 @@ jobs:
           ref: main
           token: ${{ steps.generate-token.outputs.token }}
 
-      - name: Commit New Utsc
+      - name: Update TypeScript Compiler
         if: inputs.environment == 'platform-production'
         run: |
           COMMIT_HASH=$(git rev-parse HEAD)
