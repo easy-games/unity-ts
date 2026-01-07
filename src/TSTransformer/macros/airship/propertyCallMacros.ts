@@ -260,7 +260,7 @@ const createAssetLoadMacro: (name: string, optional?: boolean) => PropertyCallMa
 				luau.binary(
 					luau.call(luau.globals.table.find, [
 						luau.property(tempId, AirshipClassSymbol.InheritsArray),
-						luau.string(state.typeChecker.typeToString(signature)),
+						luau.string(state.airshipBuildState.getUniqueIdForType(state, signature)),
 					]),
 					"~=",
 					luau.nil(),

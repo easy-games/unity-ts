@@ -79,9 +79,9 @@ export function getTypeMacroArgumentString(state: TransformState, type: ts.Type)
 }
 
 export enum AirshipClassSymbol {
-	Type = "@airshipType",
-	InheritsArray = "@instanceof",
-	ClassName = "@className",
+	Type = "@AirshipObject",
+	InheritsArray = "@AirshipTypes",
+	ClassName = "@AirshipType",
 }
 
 export function getAncestorTypeSymbols(nodeType: ts.Type, typeChecker: ts.TypeChecker) {

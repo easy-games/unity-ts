@@ -352,25 +352,18 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	}
 
 	if (isBehaviourClass || isScriptableObjectClass) {
-		if (node.name) {
-			luau.list.push(
-				statementsInner,
-				luau.create(luau.SyntaxKind.Assignment, {
-					left: luau.property(returnVar, AirshipClassSymbol.ClassName),
-					operator: "=",
-					right: luau.string(node.name.text),
-				}),
-			);
-		}
-
 		const inherits = getAncestorTypeSymbols(instanceType, state.typeChecker);
 		const inheritanceClassNames = inherits.map(inherited => {
-			return luau.string(state.typeChecker.symbolToString(inherited));
+			const typeFromSymbol = state.typeChecker.getTypeOfSymbol(inherited);
+
+			return luau.string(state.airshipBuildState.getUniqueIdForType(state, typeFromSymbol));
 		});
 
 		if (node.name) {
-			inheritanceClassNames.unshift(luau.string(node.name.text));
+			inheritanceClassNames.unshift(luau.string(state.airshipBuildState.getUniqueIdForType(state, instanceType)));
 		}
+
+		inheritanceClassNames.pop(); // pop last one
 
 		luau.list.push(
 			statementsInner,
