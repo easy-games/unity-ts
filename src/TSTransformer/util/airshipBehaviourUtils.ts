@@ -78,6 +78,12 @@ export function getTypeMacroArgumentString(state: TransformState, type: ts.Type)
 	return typeName;
 }
 
+export enum AirshipClassSymbol {
+	Type = "@airshipType",
+	InheritsArray = "@instanceof",
+	ClassName = "@className",
+}
+
 export function getAncestorTypeSymbols(nodeType: ts.Type, typeChecker: ts.TypeChecker) {
 	// ensure non-nullable (e.g. if `GameObject | undefined` - make `GameObject`)
 	if (nodeType.isNullableType()) {

@@ -3,7 +3,11 @@ import { errors, warnings } from "Shared/diagnostics";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { getGlobalSymbolByNameOrThrow } from "TSTransformer/classes/MacroManager";
 import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
-import { getTypeMacroArgumentString, isUnityObjectType } from "TSTransformer/util/airshipBehaviourUtils";
+import {
+	AirshipClassSymbol,
+	getTypeMacroArgumentString,
+	isUnityObjectType,
+} from "TSTransformer/util/airshipBehaviourUtils";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import {
 	isAirshipBehaviourType,
@@ -243,8 +247,33 @@ const createAssetLoadMacro: (name: string, optional?: boolean) => PropertyCallMa
 			check = luau.binary(
 				check,
 				"and",
-				luau.binary(luau.property(tempId, "$type"), "==", luau.string("AirshipScriptableObject")),
+				luau.binary(
+					luau.property(tempId, AirshipClassSymbol.Type),
+					"==",
+					luau.string("AirshipScriptableObject"),
+				),
 			);
+
+			check = luau.binary(
+				check,
+				"and",
+				luau.binary(
+					luau.call(luau.globals.table.find, [
+						luau.property(tempId, AirshipClassSymbol.InheritsArray),
+						luau.string(state.typeChecker.typeToString(signature)),
+					]),
+					"~=",
+					luau.nil(),
+				),
+			);
+
+			if (optional) {
+				check = luau.binary(
+					luau.binary(tempId, "==", luau.nil()),
+					"or",
+					luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression: check }),
+				);
+			}
 
 			state.prereq(
 				luau.create(luau.SyntaxKind.CallStatement, {

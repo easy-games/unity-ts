@@ -18,6 +18,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformBlock } from "TSTransformer/nodes/statements/transformBlock";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
+import { AirshipClassSymbol, getAncestorTypeSymbols } from "TSTransformer/util/airshipBehaviourUtils";
 import {
 	isAirshipBehaviourClass,
 	isAirshipScriptableObjectClass,
@@ -324,11 +325,15 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	const statementsInner = luau.list.make<luau.Statement>();
 	luau.list.pushList(statementsInner, createBoilerplate(state, node, internalName, isClassExpression));
 
+	const classType = state.typeChecker.getTypeOfSymbolAtLocation(node.symbol, node);
+	const instanceType = state.typeChecker.getDeclaredTypeOfSymbol(node.symbol);
+	const canContextStripMethods = state.data.flags.stripContextAnyClassMethod || isBehaviourClass;
+
 	if (isBehaviourClass) {
 		luau.list.push(
 			statementsInner,
 			luau.create(luau.SyntaxKind.Assignment, {
-				left: luau.property(returnVar, "$type"),
+				left: luau.property(returnVar, AirshipClassSymbol.Type),
 				operator: "=",
 				right: luau.string("AirshipBehaviour"),
 			}),
@@ -339,9 +344,40 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		luau.list.push(
 			statementsInner,
 			luau.create(luau.SyntaxKind.Assignment, {
-				left: luau.property(returnVar, "$type"),
+				left: luau.property(returnVar, AirshipClassSymbol.Type),
 				operator: "=",
 				right: luau.string("AirshipScriptableObject"),
+			}),
+		);
+	}
+
+	if (isBehaviourClass || isScriptableObjectClass) {
+		if (node.name) {
+			luau.list.push(
+				statementsInner,
+				luau.create(luau.SyntaxKind.Assignment, {
+					left: luau.property(returnVar, AirshipClassSymbol.ClassName),
+					operator: "=",
+					right: luau.string(node.name.text),
+				}),
+			);
+		}
+
+		const inherits = getAncestorTypeSymbols(instanceType, state.typeChecker);
+		const inheritanceClassNames = inherits.map(inherited => {
+			return luau.string(state.typeChecker.symbolToString(inherited));
+		});
+
+		if (node.name) {
+			inheritanceClassNames.unshift(luau.string(node.name.text));
+		}
+
+		luau.list.push(
+			statementsInner,
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: luau.property(returnVar, AirshipClassSymbol.InheritsArray),
+				operator: "=",
+				right: luau.array(inheritanceClassNames),
 			}),
 		);
 	}
@@ -384,10 +420,6 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 			assert(false, `ClassMember kind not implemented: ${getKindName(member.kind)}`);
 		}
 	}
-
-	const classType = state.typeChecker.getTypeOfSymbolAtLocation(node.symbol, node);
-	const instanceType = state.typeChecker.getDeclaredTypeOfSymbol(node.symbol);
-	const canContextStripMethods = state.data.flags.stripContextAnyClassMethod || isBehaviourClass;
 
 	for (const method of methods) {
 		if (ts.isIdentifier(method.name) || ts.isStringLiteral(method.name)) {
