@@ -79,7 +79,8 @@ export function writeLiteralUnionInfo(state: TransformState, type: ts.UnionType)
 						const name = getEnumInspectorName(valueDecl) ?? state.typeChecker.symbolToString(symbol);
 						enumRecord[name] = subType.value;
 					} else {
-						state.typeChecker.symbolToString(symbol);
+						const name = state.typeChecker.symbolToString(symbol);
+						enumRecord[name] = subType.value;
 					}
 				} else {
 					enumRecord[subType.value] = subType.value;
@@ -110,7 +111,8 @@ export function writeLiteralUnionInfo(state: TransformState, type: ts.UnionType)
 						const name = getEnumInspectorName(valueDecl) ?? state.typeChecker.symbolToString(symbol);
 						enumRecord[name] = subType.value;
 					} else {
-						state.typeChecker.symbolToString(symbol);
+						const name = state.typeChecker.symbolToString(symbol);
+						enumRecord[name] = subType.value;
 					}
 				} else {
 					enumRecord[subType.value] = subType.value;
