@@ -10,6 +10,19 @@ interface EnumWriteInfo {
 	readonly enumRef: string;
 }
 
+export function getEnumInspectorName(member: ts.EnumMember) {
+	if (!ts.isIdentifier(member.name)) {
+		return;
+	}
+
+	const doc = ts.getJSDocTags(member);
+	const inspectorName = doc.find(f => f.tagName.text.toLowerCase() === "inspectorname")?.comment as
+		| string
+		| undefined;
+
+	return inspectorName ?? member.name.text;
+}
+
 export function writeEnumInfo(
 	state: TransformState,
 	type: ts.Type,
@@ -54,9 +67,23 @@ export function writeLiteralUnionInfo(state: TransformState, type: ts.UnionType)
 		const mts = state.airshipBuildState;
 		if (mts.editorInfo.enum[enumName] === undefined) {
 			const enumRecord = {} as EnumRecord;
-			const values = type.types.filter(f => f.isStringLiteral()).map(v => v.value);
-			for (const value of values) {
-				enumRecord[value] = value;
+
+			for (const subType of type.types) {
+				if (!subType.isStringLiteral()) continue;
+
+				const symbol = subType.getSymbol();
+				if (symbol) {
+					const valueDecl = symbol.valueDeclaration;
+
+					if (valueDecl && ts.isEnumMember(valueDecl)) {
+						const name = getEnumInspectorName(valueDecl) ?? state.typeChecker.symbolToString(symbol);
+						enumRecord[name] = subType.value;
+					} else {
+						state.typeChecker.symbolToString(symbol);
+					}
+				} else {
+					enumRecord[subType.value] = subType.value;
+				}
 			}
 
 			mts.editorInfo.enum[enumName] = enumRecord;
@@ -71,9 +98,23 @@ export function writeLiteralUnionInfo(state: TransformState, type: ts.UnionType)
 		const mts = state.airshipBuildState;
 		if (mts.editorInfo.enum[enumName] === undefined) {
 			const enumRecord = {} as EnumRecord;
-			const values = type.types.filter(f => f.isNumberLiteral()).map(v => v.value);
-			for (const value of values) {
-				enumRecord[value] = value;
+
+			for (const subType of type.types) {
+				if (!subType.isNumberLiteral()) continue;
+
+				const symbol = subType.getSymbol();
+				if (symbol) {
+					const valueDecl = symbol.valueDeclaration;
+
+					if (valueDecl && ts.isEnumMember(valueDecl)) {
+						const name = getEnumInspectorName(valueDecl) ?? state.typeChecker.symbolToString(symbol);
+						enumRecord[name] = subType.value;
+					} else {
+						state.typeChecker.symbolToString(symbol);
+					}
+				} else {
+					enumRecord[subType.value] = subType.value;
+				}
 			}
 
 			mts.editorInfo.enum[enumName] = enumRecord;
