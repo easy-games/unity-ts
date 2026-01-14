@@ -8,6 +8,7 @@ import ts from "typescript";
 interface EnumWriteInfo {
 	readonly enumTypeString: string;
 	readonly enumRef: string;
+	readonly defaultValue?: ts.NumberLiteralType | ts.StringLiteralType;
 }
 
 export function getEnumInspectorName(member: ts.EnumMember) {
@@ -93,8 +94,11 @@ export function writeLiteralUnionInfo(state: TransformState, type: ts.UnionType)
 		return {
 			enumTypeString: "StringEnum",
 			enumRef: enumName,
+			defaultValue: type.types[0],
 		};
-	} else if (type.types.every(type => type.isNumberLiteral() && type.value % 1 === 0)) {
+	} else if (
+		type.types.every((type): type is ts.NumberLiteralType => type.isNumberLiteral() && type.value % 1 === 0)
+	) {
 		const enumName = getLiteralEnumName(state, type);
 		const mts = state.airshipBuildState;
 		if (mts.editorInfo.enum[enumName] === undefined) {
@@ -125,6 +129,7 @@ export function writeLiteralUnionInfo(state: TransformState, type: ts.UnionType)
 		return {
 			enumTypeString: "IntEnum",
 			enumRef: enumName,
+			defaultValue: type.types[0],
 		};
 	}
 

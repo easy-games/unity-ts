@@ -350,6 +350,7 @@ function createAirshipProperty(
 		if (results) {
 			prop.type = results.enumTypeString;
 			prop.ref = results.enumRef;
+			prop.default = results.defaultValue?.value ?? 0;
 		}
 	} else if (isEnum) {
 		if (type.isNullableType()) prop.nullable = true;
@@ -371,6 +372,20 @@ function createAirshipProperty(
 			if (node.initializer && ts.isPropertyAccessExpression(node.initializer)) {
 				const enumKey = getEnumValue(state, node.initializer);
 				prop.default = enumKey;
+			} else {
+				const enumType = type as ts.EnumType & ts.UnionType;
+				let inferredDefault: string | number | undefined;
+
+				if (enumType.regularType.isNumberLiteral()) {
+					inferredDefault = enumType.regularType.value;
+				} else if (enumType.types) {
+					const [firstType] = enumType.types;
+					if (firstType.isNumberLiteral()) {
+						inferredDefault = firstType.value;
+					}
+				}
+
+				prop.default = inferredDefault;
 			}
 		}
 	} else if (isSerializableType(state, type)) {
