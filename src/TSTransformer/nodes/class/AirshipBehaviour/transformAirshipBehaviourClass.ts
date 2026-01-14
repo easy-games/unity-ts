@@ -289,6 +289,7 @@ function createAirshipProperty(
 			const docTags = declaration ? ts.getJSDocTags(declaration) : [];
 
 			const enumInfo = getEnumMetadata(
+				state,
 				arrayItemType,
 				docTags.find(f => f.tagName.text === "flags") !== undefined,
 			);
@@ -360,7 +361,7 @@ function createAirshipProperty(
 
 		const docTags = declaration ? ts.getJSDocTags(declaration) : [];
 
-		const enumInfo = getEnumMetadata(type, docTags.find(f => f.tagName.text === "flags") !== undefined);
+		const enumInfo = getEnumMetadata(state, type, docTags.find(f => f.tagName.text === "flags") !== undefined);
 
 		if (sourceFile && enumInfo) {
 			const { enumTypeString, enumRef } = writeEnumInfo(state, type, sourceFile, enumInfo);

@@ -226,7 +226,7 @@ export interface EnumMetadata {
 	record: EnumRecord;
 }
 
-function appendEnumMember(member: ts.EnumMember, state: EnumMetadata, isFlags: boolean) {
+function appendEnumMember(state: TransformState, member: ts.EnumMember, enumState: EnumMetadata, isFlags: boolean) {
 	if (!ts.isIdentifier(member.name)) {
 		return;
 	}
@@ -237,33 +237,45 @@ function appendEnumMember(member: ts.EnumMember, state: EnumMetadata, isFlags: b
 		| undefined;
 
 	if (member.initializer) {
+		const valueType = state.typeChecker.getTypeAtLocation(member);
+
 		if (ts.isStringLiteral(member.initializer)) {
-			state.record[inspectorName ?? member.name.text] = member.initializer.text;
-			state.enumType = EnumType.StringEnum;
+			enumState.record[inspectorName ?? member.name.text] = member.initializer.text;
+			enumState.enumType = EnumType.StringEnum;
 		} else if (isNumericLike(member.initializer)) {
-			state.index = parseNumericNode(member.initializer) ?? 0;
-			state.record[inspectorName ?? member.name.text] = state.index;
-			state.index++;
+			enumState.index = parseNumericNode(member.initializer) ?? 0;
+			enumState.record[inspectorName ?? member.name.text] = valueType.isNumberLiteral()
+				? valueType.value
+				: enumState.index;
+			enumState.index++;
 		} else if (
 			ts.isBinaryExpression(member.initializer) &&
 			member.initializer.operatorToken.kind === ts.SyntaxKind.LessThanLessThanToken &&
 			ts.isNumericLiteral(member.initializer.left) &&
 			ts.isNumericLiteral(member.initializer.right)
 		) {
-			state.enumType = EnumType.FlagEnum;
+			enumState.enumType = EnumType.FlagEnum;
 			const value = parseInt(member.initializer.left.text) << parseInt(member.initializer.right.text);
 
-			state.record[inspectorName ?? member.name.text] = value;
-			state.index = value + 1;
+			enumState.record[inspectorName ?? member.name.text] = value;
+			enumState.index = value + 1;
 		}
 	} else {
-		if (state.enumType !== EnumType.FlagEnum) {
-			state.record[inspectorName ?? member.name.text] = state.index++;
+		const valueType = state.typeChecker.getTypeAtLocation(member);
+
+		if (enumState.enumType !== EnumType.FlagEnum) {
+			enumState.record[inspectorName ?? member.name.text] = valueType.isNumberLiteral()
+				? valueType.value
+				: enumState.index++;
 		}
 	}
 }
 
-export function getEnumMetadata(enumType: ts.Type, isFlagEnum = false): Readonly<EnumMetadata> | undefined {
+export function getEnumMetadata(
+	transformState: TransformState,
+	enumType: ts.Type,
+	isFlagEnum = false,
+): Readonly<EnumMetadata> | undefined {
 	const valueDeclaration = enumType.getSymbol()?.valueDeclaration;
 
 	if (!valueDeclaration) return undefined;
@@ -276,12 +288,12 @@ export function getEnumMetadata(enumType: ts.Type, isFlagEnum = false): Readonly
 
 	if (ts.isEnumDeclaration(valueDeclaration)) {
 		for (const member of valueDeclaration.members) {
-			appendEnumMember(member, state, isFlagEnum);
+			appendEnumMember(transformState, member, state, isFlagEnum);
 		}
 
 		return state;
 	} else if (ts.isEnumMember(valueDeclaration)) {
-		appendEnumMember(valueDeclaration, state, isFlagEnum);
+		appendEnumMember(transformState, valueDeclaration, state, isFlagEnum);
 		return state;
 	}
 

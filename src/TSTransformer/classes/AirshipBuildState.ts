@@ -287,7 +287,7 @@ export class AirshipBuildState {
 		const id = this.getUniqueIdForEnumDeclaration(state, declaration);
 		const type = state.typeChecker.getTypeAtLocation(declaration);
 		if (type && id) {
-			const enumMetadata = getEnumMetadata(type)?.record;
+			const enumMetadata = getEnumMetadata(state, type)?.record;
 			if (!enumMetadata) return;
 
 			this.editorInfo.enum[id] = enumMetadata;
