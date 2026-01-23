@@ -376,11 +376,11 @@ function createAirshipProperty(
 				const enumType = type as ts.EnumType & ts.UnionType;
 				let inferredDefault: string | number | undefined;
 
-				if (enumType.regularType.isNumberLiteral()) {
+				if (enumType.regularType.isNumberLiteral() || enumType.regularType.isStringLiteral()) {
 					inferredDefault = enumType.regularType.value;
 				} else if (enumType.types) {
 					const [firstType] = enumType.types;
-					if (firstType.isNumberLiteral()) {
+					if (firstType.isNumberLiteral() || firstType.isStringLiteral()) {
 						inferredDefault = firstType.value;
 					}
 				}
