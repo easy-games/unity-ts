@@ -236,9 +236,7 @@ function convertToNilCheckableExpression(
 		// If we have a unity object type that's nullable, we need to convert it to be readable as "nil"
 		// in the cases it's destroyed or non-existant.
 
-		if (!tempId) {
-			tempId = createOrSetTempId(state, tempId, baseExpression, expressionNode);
-		}
+		tempId = createOrSetTempId(state, tempId, baseExpression, expressionNode);
 
 		// So this should push a if conditional expression in the case our expression is nullable
 		return convertToUnityObjectNullableExpression(tempId);
