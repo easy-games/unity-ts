@@ -232,7 +232,9 @@ function convertToNilCheckableExpression(
 ): [luau.Expression, luau.TemporaryIdentifier | undefined] {
 	const expType = state.typeChecker.getNonOptionalType(state.getType(expressionNode));
 	const nonNullableType = expType.getNonNullableType();
-	if (isUnityObjectType(state, nonNullableType) && expType.isNullableType()) {
+
+	if (isUnityObjectType(state, nonNullableType) && expType.isNullableType() && !luau.isIfExpression(baseExpression)) {
+		state.prereq(luau.comment(` ${expressionNode.getText()}`));
 		// If we have a unity object type that's nullable, we need to convert it to be readable as "nil"
 		// in the cases it's destroyed or non-existant.
 
@@ -330,9 +332,12 @@ function transformOptionalChainInner(
 						}
 					}
 					newExpression = wrapReturnIfLuaTuple(state, item.node, luau.call(tempId!, args));
-					[newExpression, tempId] = convertToNilCheckableExpression(state, tempId, item.node, newExpression);
 				} else {
 					newExpression = transformChainItem(state, tempId!, item);
+				}
+
+				if (item.optional) {
+					[newExpression, tempId] = convertToNilCheckableExpression(state, tempId, item.node, newExpression);
 				}
 
 				return transformOptionalChainInner(state, chain, newExpression, tempId, index + 1);
