@@ -229,7 +229,7 @@ function convertToNilCheckableExpression(
 	tempId: luau.TemporaryIdentifier | undefined,
 	expressionNode: ts.Expression,
 	baseExpression: luau.Expression,
-): luau.Expression {
+): [luau.Expression, luau.TemporaryIdentifier | undefined] {
 	const expType = state.typeChecker.getNonOptionalType(state.getType(expressionNode));
 	const nonNullableType = expType.getNonNullableType();
 	if (isUnityObjectType(state, nonNullableType) && expType.isNullableType()) {
@@ -239,10 +239,10 @@ function convertToNilCheckableExpression(
 		tempId = createOrSetTempId(state, tempId, baseExpression, expressionNode);
 
 		// So this should push a if conditional expression in the case our expression is nullable
-		return convertToUnityObjectNullableExpression(tempId);
+		return [convertToUnityObjectNullableExpression(tempId), tempId];
 	}
 
-	return baseExpression;
+	return [baseExpression, tempId];
 }
 
 function convertToUnityObjectNullableExpression(expr: luau.IndexableExpression) {
@@ -300,7 +300,7 @@ function transformOptionalChainInner(
 			}
 		}
 
-		baseExpression = convertToNilCheckableExpression(state, tempId, item.node.expression, baseExpression);
+		[baseExpression, tempId] = convertToNilCheckableExpression(state, tempId, item.node.expression, baseExpression);
 
 		// capture so we can wrap later if necessary
 		const [result, prereqStatements] = state.capture(() => {
@@ -330,11 +330,11 @@ function transformOptionalChainInner(
 						}
 					}
 					newExpression = wrapReturnIfLuaTuple(state, item.node, luau.call(tempId!, args));
+					[newExpression, tempId] = convertToNilCheckableExpression(state, tempId, item.node, newExpression);
 				} else {
 					newExpression = transformChainItem(state, tempId!, item);
 				}
 
-				newExpression = convertToNilCheckableExpression(state, tempId, item.node, newExpression);
 				return transformOptionalChainInner(state, chain, newExpression, tempId, index + 1);
 			});
 
