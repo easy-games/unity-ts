@@ -11,20 +11,8 @@ import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { createArrayCountExpression } from "TSTransformer/util/createArrayCounter";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
-import {
-	createLuauForStatement,
-	createLuauIfStatement,
-	createLuauVariableDeclaration,
-} from "TSTransformer/util/luauExpressions";
 import { offset } from "TSTransformer/util/offset";
-import {
-	isAnyOrUnknownType,
-	isAnyType,
-	isArrayLikeTypeWithUndefined as isArrayLikeTypeWithUndefined,
-	isDefinitelyType,
-	isNumberType,
-	isStringType,
-} from "TSTransformer/util/types";
+import { isArrayLikeTypeWithUndefined, isDefinitelyType, isNumberType, isStringType } from "TSTransformer/util/types";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import ts from "typescript";
 

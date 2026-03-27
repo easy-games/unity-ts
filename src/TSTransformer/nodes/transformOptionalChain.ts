@@ -224,15 +224,36 @@ function createNilCheck(tempId: luau.TemporaryIdentifier, statements: luau.List<
 	});
 }
 
-function createUnityObjectNilCheck(tempId: luau.TemporaryIdentifier, statements: luau.List<luau.Statement>) {
-	return luau.create(luau.SyntaxKind.IfStatement, {
+function convertToNilCheckableExpression(
+	state: TransformState,
+	tempId: luau.TemporaryIdentifier | undefined,
+	expressionNode: ts.Expression,
+	baseExpression: luau.Expression,
+): luau.Expression {
+	const expType = state.typeChecker.getNonOptionalType(state.getType(expressionNode));
+	const nonNullableType = expType.getNonNullableType();
+	if (isUnityObjectType(state, nonNullableType) && expType.isNullableType()) {
+		// If we have a unity object type that's nullable, we need to convert it to be readable as "nil"
+		// in the cases it's destroyed or non-existant.
+
+		tempId = createOrSetTempId(state, tempId, baseExpression, expressionNode);
+
+		// So this should push a if conditional expression in the case our expression is nullable
+		return convertToUnityObjectNullableExpression(tempId);
+	}
+
+	return baseExpression;
+}
+
+function convertToUnityObjectNullableExpression(expr: luau.IndexableExpression) {
+	return luau.create(luau.SyntaxKind.IfExpression, {
 		condition: luau.binary(
-			luau.binary(tempId, "~=", luau.nil()),
+			luau.binary(expr, "~=", luau.nil()),
 			"and",
-			luau.unary("not", createIsDestroyedLuauMethodCall(tempId)),
+			luau.unary("not", createIsDestroyedLuauMethodCall(expr)),
 		),
-		statements,
-		elseBody: luau.list.make(),
+		expression: expr,
+		alternative: luau.nil(),
 	});
 }
 
@@ -279,14 +300,18 @@ function transformOptionalChainInner(
 			}
 		}
 
+		baseExpression = convertToNilCheckableExpression(state, tempId, item.node.expression, baseExpression);
+
 		// capture so we can wrap later if necessary
 		const [result, prereqStatements] = state.capture(() => {
 			tempId = createOrSetTempId(state, tempId, baseExpression, chain[chain.length - 1].node);
 
-			const [newValue, ifStatements] = state.capture(() => {
+			// eslint-disable-next-line no-autofix/prefer-const
+			let [newValue, ifStatements] = state.capture(() => {
 				let newExpression: luau.Expression;
+				const expType = state.typeChecker.getNonOptionalType(state.getType(item.node.expression));
+
 				if (isCompoundCall(item) && item.callOptional) {
-					const expType = state.typeChecker.getNonOptionalType(state.getType(item.node.expression));
 					const symbol = getFirstDefinedSymbol(state, expType);
 					if (symbol) {
 						const macro = state.services.macroManager.getPropertyCallMacro(symbol);
@@ -309,6 +334,7 @@ function transformOptionalChainInner(
 					newExpression = transformChainItem(state, tempId!, item);
 				}
 
+				newExpression = convertToNilCheckableExpression(state, tempId, item.node, newExpression);
 				return transformOptionalChainInner(state, chain, newExpression, tempId, index + 1);
 			});
 
@@ -334,24 +360,7 @@ function transformOptionalChainInner(
 				}
 			}
 
-			let isUnityObject = false;
-
-			if (ts.isCallExpression(item.node) && ts.isPropertyAccessExpression(item.node.expression)) {
-				// handles x?.y() where x is UnityObject
-				const callInnerExpressionType = state.typeChecker.getTypeAtLocation(item.node.expression.expression);
-				isUnityObject = isUnityObjectType(state, callInnerExpressionType);
-			} else if (ts.isPropertyAccessExpression(item.node)) {
-				// handles x?.y where x is UnityObject
-				const leftHandExpressionType = state.typeChecker.getTypeAtLocation(item.node.expression);
-				isUnityObject = isUnityObjectType(state, leftHandExpressionType);
-			}
-
-			if (isUnityObject) {
-				state.prereq(createUnityObjectNilCheck(tempId, ifStatements));
-			} else {
-				state.prereq(createNilCheck(tempId, ifStatements));
-			}
-
+			state.prereq(createNilCheck(tempId, ifStatements));
 			return isUsed ? tempId : luau.none();
 		});
 
