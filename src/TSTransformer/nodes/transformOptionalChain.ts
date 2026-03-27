@@ -234,7 +234,6 @@ function convertToNilCheckableExpression(
 	const nonNullableType = expType.getNonNullableType();
 
 	if (isUnityObjectType(state, nonNullableType) && expType.isNullableType() && !luau.isIfExpression(baseExpression)) {
-		state.prereq(luau.comment(` ${expressionNode.getText()}`));
 		// If we have a unity object type that's nullable, we need to convert it to be readable as "nil"
 		// in the cases it's destroyed or non-existant.
 
