@@ -16,7 +16,7 @@
 		"build-watch": "tspc -b -w",
 		"eslint": "eslint \"src/**/*.ts\" --max-warnings 0",
 		"devlink": "npm run build && cd devlink && npm link",
-		"bundle": "npm run build && esbuild out/CLI/cli.js --bundle --outfile=dist/utsc.js --platform=node --minify"
+		"bundle": "npm run build && esbuild --bundle out/CLI/cli.js --outfile=dist/utsc.js --platform=node "
 	},
 	"repository": {
 		"type": "git",
