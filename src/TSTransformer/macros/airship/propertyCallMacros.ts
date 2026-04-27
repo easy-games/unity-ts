@@ -176,13 +176,30 @@ const createAssetLoadMacro: (name: string, optional?: boolean) => PropertyCallMa
 		const signature = state.typeChecker.getTypeAtLocation(node).getNonNullableType();
 		const symbol = signature.getSymbol();
 
-		const [typeArgument] = node.typeArguments ?? [];
 		const [path] = args;
 
 		// Handle sprite loading differently c:
 		if (symbol === getGlobalSymbolByNameOrThrow(state.typeChecker, "Sprite", ts.SymbolFlags.Interface)) {
 			if (luau.isStringLiteral(path) && !path.value.endsWith(".sprite")) {
 				path.value += ".sprite";
+			} else if (
+				luau.isIdentifier(path) ||
+				luau.isPropertyAccessExpression(path) ||
+				luau.isTemporaryIdentifier(path) ||
+				luau.isBinaryExpression(path)
+			) {
+				const newVar = state.pushToVar(
+					luau.create(luau.SyntaxKind.IfExpression, {
+						condition: luau.create(luau.SyntaxKind.CallExpression, {
+							expression: luau.globals.string.find,
+							args: luau.list.make<luau.Expression>(path, luau.string("%.sprite$")),
+						}),
+						expression: path,
+						alternative: luau.binary(path, "+", luau.string(".sprite")),
+					}),
+					"spritePath",
+				);
+				args[0] = newVar; // ??
 			}
 		}
 
