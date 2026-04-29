@@ -164,8 +164,8 @@ function transformParameterDecorators(
 
 	for (let i = 0; i < member.parameters.length; i++) {
 		const parameter = member.parameters[i];
-		const name = parameter.name;
-		if (ts.isIdentifier(name)) {
+		const name = member.name;
+		if (name && ts.isIdentifier(name)) {
 			luau.list.pushList(
 				result,
 				transformMemberDecorators(state, parameter, expression =>
